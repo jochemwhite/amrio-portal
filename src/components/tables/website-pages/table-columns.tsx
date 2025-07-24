@@ -44,7 +44,7 @@ function PageTableActions({ page, onEdit, onEditSchema, onDelete, onStatusChange
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm">
+        <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
           <MoreVertical className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
@@ -190,13 +190,15 @@ export const createColumns = (
     id: "actions",
     header: "Actions",
     cell: ({ row }) => (
-      <PageTableActions
-        page={row.original}
-        onEdit={onEdit}
-        onEditSchema={onEditSchema}
-        onDelete={onDelete}
-        onStatusChange={onStatusChange}
-      />
+      <div onClick={(e) => e.stopPropagation()}>
+        <PageTableActions
+          page={row.original}
+          onEdit={onEdit}
+          onEditSchema={onEditSchema}
+          onDelete={onDelete}
+          onStatusChange={onStatusChange}
+        />
+      </div>
     ),
     enableSorting: false,
     enableHiding: false,

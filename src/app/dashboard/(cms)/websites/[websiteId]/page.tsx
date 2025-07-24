@@ -24,7 +24,7 @@ export default async function PagesPage({ params }: PagesPageProps) {
 
   return (
     <div className="container mx-auto py-6">
-        <PageOverview pages={pages || []} websiteId={websiteId}  />
+      <PageOverview pages={pages || []} websiteId={websiteId} />
     </div>
   );
 }

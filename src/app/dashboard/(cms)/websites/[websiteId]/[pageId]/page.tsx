@@ -1,28 +1,22 @@
 import { createClient } from "@/lib/supabase/supabaseServerClient";
-import { checkRequiredRoles } from "@/server/auth/check-required-roles";
 import { redirect, notFound } from "next/navigation";
-import { PageSchemaClientPage } from "@/components/cms/PageSchemaClientPage";
+import { PayloadStylePageBuilder } from "@/components/cms/PayloadStylePageBuilder";
 
-interface PageSchemaBuilderProps {
+interface PageBuilderProps {
   params: Promise<{
+    websiteId: string;
     pageId: string;
   }>;
 }
 
-export default async function PageSchemaBuilder({ params }: PageSchemaBuilderProps) {
-  const { pageId } = await params;
+export default async function PageBuilder({ params }: PageBuilderProps) {
+  const { websiteId, pageId } = await params;
   const supabase = await createClient();
 
   // Check authentication
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) {
     return redirect("/");
-  }
-
-  // Check admin role
-  const isAdmin = await checkRequiredRoles(user.id, ["system_admin"]);
-  if (!isAdmin) {
-    return redirect("/dashboard");
   }
 
   // Fetch page with sections and fields
@@ -46,30 +40,31 @@ export default async function PageSchemaBuilder({ params }: PageSchemaBuilderPro
         id,
         name,
         description,
-        order,
         page_id,
         cms_fields (
           id,
           name,
           type,
           required,
-          order,
-          section_id
+          section_id,
+          default_value,
+          validation
         )
       )
     `)
     .eq("id", pageId)
+    .eq("website_id", websiteId)
     .single();
 
   if (pageError || !page) {
+    console.error('Error fetching page:', pageError);
     return notFound();
   }
 
   return (
-    <div className="container mx-auto py-6">
-      <PageSchemaClientPage 
-        initialPage={page}
-      />
-    </div>
+    <PayloadStylePageBuilder 
+      initialPage={page}
+      websiteId={websiteId}
+    />
   );
 } 
