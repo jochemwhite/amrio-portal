@@ -11,7 +11,7 @@ export const cmsAPI = {
     const { data: sections, error: sectionsError } = await supabase
       .from('cms_sections')
       .select('*')
-      .order('created_at', { ascending: true });
+      .order('order', { ascending: true });
 
     if (sectionsError) throw sectionsError;
 

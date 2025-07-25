@@ -1,23 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Plus, Globe, ChevronDown, ChevronRight, GripVertical, Edit, Trash2, Save, Eye, Settings } from "lucide-react";
 import { usePageBuilderStore } from "@/stores/usePageBuilderStore";
-import { DndContext, closestCenter, DragEndEvent } from "@dnd-kit/core";
+import { closestCenter, DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { PayloadSection } from "./PayloadSection";
-import { PayloadField } from "./PayloadField";
+import { ArrowLeft, Eye, Globe, Plus, Save, Settings } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { AddBlockMenu } from "./AddBlockMenu";
+import { PayloadSection } from "./PayloadSection";
+import { PageSettingsDialog } from "./PageSettingsDialog";
+import { SectionDialog } from "./SectionDialog";
+import { FieldDialog } from "./FieldDialog";
 
 interface PayloadStylePageBuilderProps {
   initialPage: any;
@@ -45,30 +42,41 @@ export function PayloadStylePageBuilder({ initialPage, websiteId }: PayloadStyle
     selectedSectionId,
     hasUnsavedChanges,
     isSaving,
-
+    // Page settings
+    isPageSettingsOpen,
+    pageSettingsData,
+    // Section dialog state
+    isAddSectionOpen,
+    isEditSectionOpen,
+    sectionFormData,
+    // Field dialog state
+    isAddFieldOpen,
+    isEditFieldOpen,
+    fieldFormData,
     // Actions
     initializeStore,
     setSelectedSection,
-
+    // Page settings actions
+    openPageSettings,
+    closePageSettings,
+    setPageSettingsData,
+    submitPageSettings,
     // Section actions
-    openAddSectionDialog,
     openEditSectionDialog,
     closeSectionDialog,
     setSectionFormData,
     submitSection,
     deleteSectionById,
-
     // Field actions
-    openAddFieldDialog,
     openEditFieldDialog,
     closeFieldDialog,
     setFieldFormData,
     submitField,
     deleteFieldById,
-
     // Drag and drop actions
     reorderSections,
     reorderSectionFields,
+    saveChanges,
   } = usePageBuilderStore();
 
   // Initialize the store with page data
@@ -81,7 +89,7 @@ export function PayloadStylePageBuilder({ initialPage, websiteId }: PayloadStyle
       const confirmed = confirm("You have unsaved changes. Are you sure you want to leave?");
       if (!confirmed) return;
     }
-    router.push(`/dashboard/websites/${websiteId}/pages`);
+    router.push(`/dashboard/websites/${websiteId}`);
   };
 
   // Drag and drop handlers
@@ -93,28 +101,36 @@ export function PayloadStylePageBuilder({ initialPage, websiteId }: PayloadStyle
     reorderSections(active.id as string, over.id as string);
   };
 
-  const handleFieldDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    if (!over || active.id === over.id || !selectedSectionId) return;
-
-    reorderSectionFields(selectedSectionId, active.id as string, over.id as string);
-  };
 
   const handleFieldReorder = (sectionId: string, activeId: string, overId: string) => {
     reorderSectionFields(sectionId, activeId, overId);
   };
 
-  const handleAddSection = async (name: string, description: string) => {
+  const handleAddSection = (name: string, description: string) => {
     setSectionFormData({ name, description });
-    await submitSection();
+    submitSection();
     setShowAddMenu(null);
   };
 
-  const handleAddField = async (sectionId: string, fieldData: any) => {
+  const handlePageSettingsSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitPageSettings();
+  };
+
+  const handleSectionSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitSection();
+  };
+
+  const handleFieldSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitField();
+  };
+
+  const handleAddField = (sectionId: string, fieldData: any) => {
     setSelectedSection(sectionId);
     setFieldFormData(fieldData);
-    await submitField();
+    submitField();
     setShowAddMenu(null);
   };
 
@@ -151,7 +167,7 @@ export function PayloadStylePageBuilder({ initialPage, websiteId }: PayloadStyle
                 <Eye className="mr-2 h-4 w-4" />
                 Preview
               </Button>
-              <Button size="sm" disabled={isSaving}>
+              <Button size="sm" disabled={isSaving || !hasUnsavedChanges} onClick={() => saveChanges()}>
                 <Save className="mr-2 h-4 w-4" />
                 {isSaving ? "Saving..." : "Save"}
               </Button>
@@ -167,7 +183,7 @@ export function PayloadStylePageBuilder({ initialPage, websiteId }: PayloadStyle
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-medium ">Page Settings</h2>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" onClick={openPageSettings}>
                 <Settings className="h-4 w-4" />
               </Button>
             </div>
@@ -240,6 +256,39 @@ export function PayloadStylePageBuilder({ initialPage, websiteId }: PayloadStyle
           {showAddMenu === "page" && <AddBlockMenu onAddSection={handleAddSection} onClose={() => setShowAddMenu(null)} fieldTypes={FIELD_TYPES} />}
         </div>
       </div>
+
+      {/* Page Settings Dialog */}
+      <PageSettingsDialog
+        isOpen={isPageSettingsOpen}
+        isSaving={isSaving}
+        formData={pageSettingsData}
+        onChange={setPageSettingsData}
+        onClose={closePageSettings}
+        onSubmit={handlePageSettingsSubmit}
+      />
+
+      {/* Section Dialog */}
+      <SectionDialog
+        isOpen={isAddSectionOpen || isEditSectionOpen}
+        isEdit={isEditSectionOpen}
+        isSaving={isSaving}
+        formData={sectionFormData}
+        onChange={setSectionFormData}
+        onClose={closeSectionDialog}
+        onSubmit={handleSectionSubmit}
+      />
+
+      {/* Field Dialog */}
+      <FieldDialog
+        isOpen={isAddFieldOpen || isEditFieldOpen}
+        isEdit={isEditFieldOpen}
+        isSaving={isSaving}
+        formData={fieldFormData}
+        onChange={setFieldFormData}
+        onClose={closeFieldDialog}
+        onSubmit={handleFieldSubmit}
+        fieldTypes={FIELD_TYPES}
+      />
     </div>
   );
 }

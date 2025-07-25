@@ -41,6 +41,7 @@ export default async function PageBuilder({ params }: PageBuilderProps) {
         name,
         description,
         page_id,
+        "order",
         cms_fields (
           id,
           name,
@@ -48,12 +49,14 @@ export default async function PageBuilder({ params }: PageBuilderProps) {
           required,
           section_id,
           default_value,
-          validation
+          validation,
+          "order"
         )
       )
     `)
     .eq("id", pageId)
     .eq("website_id", websiteId)
+    .order("order", { referencedTable: "cms_sections", ascending: true })
     .single();
 
   if (pageError || !page) {
@@ -61,9 +64,18 @@ export default async function PageBuilder({ params }: PageBuilderProps) {
     return notFound();
   }
 
+     // Sort fields within each section by order (since PostgREST can't handle nested ordering)
+   const sortedPage = {
+     ...page,
+     cms_sections: page.cms_sections?.map(section => ({
+       ...section,
+       cms_fields: section.cms_fields?.sort((a, b) => (a.order || 0) - (b.order || 0))
+     }))
+   };
+
   return (
     <PayloadStylePageBuilder 
-      initialPage={page}
+      initialPage={sortedPage}
       websiteId={websiteId}
     />
   );

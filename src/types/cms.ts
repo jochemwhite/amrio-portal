@@ -21,6 +21,7 @@ export interface Section {
   id: string;
   name: string;
   description?: string;
+  order?: number;
   fields: Field[];
 }
 

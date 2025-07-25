@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instanciate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+    PostgrestVersion: "12.2.12 (cd3cf9e)"
   }
   public: {
     Tables: {
@@ -141,6 +141,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          order: number | null
           page_id: string | null
           updated_at: string | null
         }
@@ -149,6 +150,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          order?: number | null
           page_id?: string | null
           updated_at?: string | null
         }
@@ -157,6 +159,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          order?: number | null
           page_id?: string | null
           updated_at?: string | null
         }
@@ -201,7 +204,15 @@ export type Database = {
           tenant_id?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cms_websites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_logs: {
         Row: {

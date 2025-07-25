@@ -72,7 +72,7 @@ export function PayloadField({ field, isSaving, onEdit, onDelete }: PayloadField
     <div
       ref={setNodeRef}
       style={style}
-      className={`group rounded-lg p-4  transition-all duration-200 ${isDragging ? "opacity-50 shadow-lg" : "hover:shadow-sm"}`}
+      className={`group rounded-lg    ${isDragging ? "opacity-50 shadow-lg" : "hover:shadow-sm"}`}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3 flex-1">

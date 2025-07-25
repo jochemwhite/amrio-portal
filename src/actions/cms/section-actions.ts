@@ -10,6 +10,7 @@ interface CreateSectionData {
   page_id: string;
   name: string;
   description?: string;
+  order?: number;
 }
 
 interface UpdateSectionData {
@@ -53,12 +54,31 @@ export async function createSection(data: CreateSectionData): Promise<ActionResp
   }
 
   try {
+    // Get the next order value if not provided
+    let order = data.order;
+    if (order === undefined) {
+      const { data: existingSections, error: countError } = await supabase
+        .from("cms_sections")
+        .select("order")
+        .eq("page_id", data.page_id)
+        .order("order", { ascending: false })
+        .limit(1);
+      
+      if (countError) {
+        console.error("Error getting section count:", countError);
+        order = 0;
+      } else {
+        order = (existingSections?.[0]?.order ?? -1) + 1;
+      }
+    }
+
     const { data: section, error } = await supabase
       .from("cms_sections")
       .insert({
         page_id: data.page_id,
         name: data.name,
-        description: data.description
+        description: data.description,
+        order: order
       })
       .select()
       .single();
@@ -402,4 +422,46 @@ export async function reorderFields(sectionId: string, fieldIds: string[]): Prom
     console.error("Unexpected error reordering fields:", error);
     return { success: false, error: "An unexpected error occurred." };
   }
-} 
+}
+
+export async function reorderSections(pageId: string, sectionIds: string[]): Promise<ActionResponse<void>> {
+  const supabase = await createClient();
+  
+  // Check authentication
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { success: false, error: "Unauthorized: User not authenticated." };
+  }
+
+  // Check admin role
+  const isAdmin = await checkRequiredRoles(user.id, ["system_admin"]);
+  if (!isAdmin) {
+    return { success: false, error: "Unauthorized: Only admins can reorder sections." };
+  }
+
+  try {
+    // Update order for each section
+    const updates = sectionIds.map((sectionId, index) => 
+      supabase
+        .from("cms_sections")
+        .update({ order: index })
+        .eq("id", sectionId)
+        .eq("page_id", pageId)
+    );
+
+    const results = await Promise.all(updates);
+    
+    // Check for any errors
+    const errors = results.filter(result => result.error);
+    if (errors.length > 0) {
+      console.error("Error reordering sections:", errors);
+      return { success: false, error: "Failed to reorder some sections." };
+    }
+
+    revalidatePath("/dashboard/pages");
+    return { success: true };
+  } catch (error) {
+    console.error("Unexpected error reordering sections:", error);
+    return { success: false, error: "An unexpected error occurred." };
+  }
+}

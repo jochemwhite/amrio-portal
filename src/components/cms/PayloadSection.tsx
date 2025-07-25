@@ -1,16 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronRight, GripVertical, Edit, Trash2, Plus, Settings } from "lucide-react";
-import { PayloadField } from "./PayloadField";
+import { closestCenter, DndContext, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { ChevronDown, ChevronRight, GripVertical, Plus, Settings, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { AddFieldMenu } from "./AddFieldMenu";
-import { DndContext, closestCenter, DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { PayloadField } from "./PayloadField";
 
 interface PayloadSectionProps {
   section: any;
@@ -55,11 +54,11 @@ export function PayloadSection({
 }: PayloadSectionProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Configure sensors for field dragging to avoid conflicts with section dragging
+  // Configure sensors for field dragging
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // Require dragging 8px before activating
+        distance: 3, // Require dragging 3px before activating (reduced for smoother feel)
       },
     })
   );
@@ -121,9 +120,9 @@ export function PayloadSection({
                 <div className="text-gray-400 mb-3">
                   <Plus className="mx-auto h-8 w-8" />
                 </div>
-                <h4 className="text-sm font-medium text-gray-900 mb-1">No fields yet</h4>
+                <h4 className="text-sm font-medium  mb-1">No fields yet</h4>
                 <p className="text-xs text-gray-500 mb-4">Add fields to collect content for this section</p>
-                <Button onClick={onShowAddMenu} size="sm" variant="outline" className="text-blue-600 border-blue-200 hover:bg-blue-50">
+                <Button onClick={onShowAddMenu} size="sm" variant="outline" className="">
                   <Plus className="mr-2 h-3 w-3" />
                   Add Field
                 </Button>
@@ -140,7 +139,7 @@ export function PayloadSection({
                   }}
                 >
                   <SortableContext items={section.cms_fields?.map((f: any) => f.id) || []} strategy={verticalListSortingStrategy}>
-                    <div className="space-y-3">
+                    <div className="">
                       {section.cms_fields?.map((field: any) => (
                         <PayloadField
                           key={field.id}
