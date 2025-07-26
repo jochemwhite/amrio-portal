@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { toast } from "sonner";
-import { createSection, updateSection, deleteSection, createField, updateField, deleteField, reorderFields, reorderSections } from "@/actions/cms/section-actions";
+import { bulkSavePageChanges } from "@/actions/cms/section-actions";
 import { arrayMove } from "@dnd-kit/sortable";
 
 // Types for tracking changes
@@ -54,6 +54,13 @@ interface PageBuilderState {
     status: string;
   };
 
+  // Unsaved changes protection
+  isUnsavedChangesDialogOpen: boolean;
+  pendingNavigation: (() => void) | null;
+
+  // Mode switching (schema builder vs content editor)
+  mode: 'schema' | 'content';
+
   // Pending changes tracking
   pendingChanges: PendingChange[];
   tempIdCounter: number;
@@ -91,6 +98,15 @@ interface PageBuilderState {
   closePageSettings: () => void;
   setPageSettingsData: (data: Partial<{ name: string; description: string; slug: string; status: string }>) => void;
   submitPageSettings: () => Promise<void>;
+
+  // Unsaved changes protection
+  checkUnsavedChanges: (navigationCallback: () => void) => boolean;
+  confirmUnsavedChangesDialog: () => void;
+  cancelUnsavedChangesDialog: () => void;
+  discardChangesAndNavigate: () => void;
+
+  // Mode switching
+  setMode: (mode: 'schema' | 'content') => void;
 }
 
 export const usePageBuilderStore = create<PageBuilderState>()(
@@ -133,6 +149,13 @@ export const usePageBuilderStore = create<PageBuilderState>()(
         slug: "",
         status: "draft",
       },
+
+      // Unsaved changes protection
+      isUnsavedChangesDialogOpen: false,
+      pendingNavigation: null,
+
+      // Mode switching
+      mode: 'schema',
 
       // Pending changes
       pendingChanges: [],
@@ -581,117 +604,27 @@ export const usePageBuilderStore = create<PageBuilderState>()(
         set({ isSaving: true }, false, "setSaving");
 
         try {
-          const tempIdMap = new Map<string, string>(); // Map temp IDs to real IDs
+          // Prepare section order
+          const sectionOrder = sections.map((s: any) => s.id);
           
-          // Handle section and field reordering if there are no other pending changes
-          if (pendingChanges.length === 0) {
-            // Save section order
-            const sectionIds = sections.map((s: any) => s.id);
-            const reorderResult = await reorderSections(page.id, sectionIds);
-            
-            if (!reorderResult.success) {
-              throw new Error(`Failed to save section order: ${reorderResult.error}`);
-            }
-
-            // Save field order for each section
-            for (const section of sections) {
-              if (section.cms_fields && section.cms_fields.length > 0) {
-                const fieldIds = section.cms_fields.map((field: any) => field.id);
-                const fieldReorderResult = await reorderFields(section.id, fieldIds);
-                
-                if (!fieldReorderResult.success) {
-                  throw new Error(`Failed to save field order for section ${section.name}: ${fieldReorderResult.error}`);
-                }
-              }
-            }
-            
-            set({ hasUnsavedChanges: false }, false, "saveOrderSuccess");
-            toast.success("Changes saved successfully");
-            return;
-          }
-          
-          // Process changes in order: creates first, then updates, then deletes
-          const creates = pendingChanges.filter(c => c.type === 'create');
-          const updates = pendingChanges.filter(c => c.type === 'update');
-          const deletes = pendingChanges.filter(c => c.type === 'delete');
-
-          // Process creates
-          for (const change of creates) {
-            if (change.entity === 'section') {
-              const result = await createSection(change.data);
-              if (result.success && result.data) {
-                tempIdMap.set(change.tempId!, result.data.id);
-              } else {
-                throw new Error(`Failed to create section: ${result.error}`);
-              }
-            } else if (change.entity === 'field') {
-              // Check if section_id is a temp ID and replace it
-              const sectionId = tempIdMap.get(change.data.section_id) || change.data.section_id;
-              const result = await createField({
-                ...change.data,
-                section_id: sectionId,
-              });
-              if (result.success && result.data) {
-                tempIdMap.set(change.tempId!, result.data.id);
-              } else {
-                throw new Error(`Failed to create field: ${result.error}`);
-              }
-            }
-          }
-
-          // Process updates
-          for (const change of updates) {
-            if (change.entity === 'section') {
-              const result = await updateSection(change.id!, change.data);
-              if (!result.success) {
-                throw new Error(`Failed to update section: ${result.error}`);
-              }
-            } else if (change.entity === 'field') {
-              const result = await updateField(change.id!, change.data);
-              if (!result.success) {
-                throw new Error(`Failed to update field: ${result.error}`);
-              }
-            }
-          }
-
-          // Process deletes
-          for (const change of deletes) {
-            if (change.entity === 'section') {
-              const result = await deleteSection(change.id!);
-              if (!result.success) {
-                throw new Error(`Failed to delete section: ${result.error}`);
-              }
-            } else if (change.entity === 'field') {
-              const result = await deleteField(change.id!);
-              if (!result.success) {
-                throw new Error(`Failed to delete field: ${result.error}`);
-              }
-            }
-          }
-
-          // Handle field reordering for each section
-          for (const section of sections) {
+          // Prepare field orders for each section
+          const fieldOrders: Record<string, string[]> = {};
+          sections.forEach((section: any) => {
             if (section.cms_fields && section.cms_fields.length > 0) {
-              const fieldIds = section.cms_fields.map((f: any) => 
-                tempIdMap.get(f.id) || f.id
-              );
-              const sectionId = tempIdMap.get(section.id) || section.id;
-              
-              // Only save reordering for real sections (not temp ones being created)
-              if (!section.id.startsWith('temp_')) {
-                const result = await reorderFields(sectionId, fieldIds);
-                if (!result.success) {
-                  console.warn(`Failed to save field order for section ${sectionId}:`, result.error);
-                }
-              }
+              fieldOrders[section.id] = section.cms_fields.map((field: any) => field.id);
             }
-          }
+          });
 
-          // Handle section reordering
-          const sectionIds = sections.map((s: any) => tempIdMap.get(s.id) || s.id);
-          const sectionReorderResult = await reorderSections(page.id, sectionIds);
-          if (!sectionReorderResult.success) {
-            console.warn(`Failed to save section order:`, sectionReorderResult.error);
+          // Call the bulk save action
+          const result = await bulkSavePageChanges({
+            pageId: page.id,
+            changes: pendingChanges,
+            sectionOrder,
+            fieldOrders,
+          });
+
+          if (!result.success) {
+            throw new Error(result.error || "Failed to save changes");
           }
 
           // Update state with real IDs and clear pending changes
@@ -699,15 +632,15 @@ export const usePageBuilderStore = create<PageBuilderState>()(
             (state) => ({
               sections: state.sections.map((section: any) => ({
                 ...section,
-                id: tempIdMap.get(section.id) || section.id,
+                id: result.tempIdMap[section.id] || section.id,
                 cms_fields: section.cms_fields?.map((field: any) => ({
                   ...field,
-                  id: tempIdMap.get(field.id) || field.id,
-                  section_id: tempIdMap.get(field.section_id) || field.section_id,
+                  id: result.tempIdMap[field.id] || field.id,
+                  section_id: result.tempIdMap[field.section_id] || field.section_id,
                 })) || [],
               })),
               selectedSectionId: state.selectedSectionId ? 
-                (tempIdMap.get(state.selectedSectionId) || state.selectedSectionId) : 
+                (result.tempIdMap[state.selectedSectionId] || state.selectedSectionId) : 
                 null,
               pendingChanges: [],
               hasUnsavedChanges: false,
@@ -804,6 +737,72 @@ export const usePageBuilderStore = create<PageBuilderState>()(
           toast.error("Failed to update page settings");
           set({ isSaving: false }, false, "submitPageSettingsError");
         }
+      },
+
+      // Unsaved changes protection methods
+      checkUnsavedChanges: (navigationCallback: () => void) => {
+        const { hasUnsavedChanges } = get();
+        
+        if (hasUnsavedChanges) {
+          set(
+            {
+              isUnsavedChangesDialogOpen: true,
+              pendingNavigation: navigationCallback,
+            },
+            false,
+            "showUnsavedChangesDialog"
+          );
+          return false; // Block navigation
+        }
+        
+        return true; // Allow navigation
+      },
+
+      confirmUnsavedChangesDialog: () => {
+        set(
+          {
+            isUnsavedChangesDialogOpen: false,
+            pendingNavigation: null,
+          },
+          false,
+          "closeUnsavedChangesDialog"
+        );
+      },
+
+      cancelUnsavedChangesDialog: () => {
+        set(
+          {
+            isUnsavedChangesDialogOpen: false,
+            pendingNavigation: null,
+          },
+          false,
+          "cancelUnsavedChangesDialog"
+        );
+      },
+
+      discardChangesAndNavigate: () => {
+        const { pendingNavigation } = get();
+        
+        set(
+          {
+            hasUnsavedChanges: false,
+            pendingChanges: [],
+            isUnsavedChangesDialogOpen: false,
+            pendingNavigation: null,
+          },
+          false,
+          "discardChangesAndNavigate"
+        );
+
+        // Execute the pending navigation
+        if (pendingNavigation) {
+          pendingNavigation();
+        }
+      },
+
+      // Mode switching method
+      setMode: (mode: 'schema' | 'content') => {
+        set({ mode }, false, "setMode");
       },
     }),
     {

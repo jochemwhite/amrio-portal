@@ -15,6 +15,8 @@ import { PayloadSection } from "./PayloadSection";
 import { PageSettingsDialog } from "./PageSettingsDialog";
 import { SectionDialog } from "./SectionDialog";
 import { FieldDialog } from "./FieldDialog";
+import { ContentEditor } from "./ContentEditor";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface PayloadStylePageBuilderProps {
   initialPage: any;
@@ -77,6 +79,9 @@ export function PayloadStylePageBuilder({ initialPage, websiteId }: PayloadStyle
     reorderSections,
     reorderSectionFields,
     saveChanges,
+    // Mode switching
+    mode,
+    setMode,
   } = usePageBuilderStore();
 
   // Initialize the store with page data
@@ -201,15 +206,23 @@ export function PayloadStylePageBuilder({ initialPage, websiteId }: PayloadStyle
           </CardContent>
         </Card>
 
-        {/* Content Blocks */}
-        <div className="space-y-6">
+        {/* Mode Tabs */}
+        <Tabs value={mode} onValueChange={(value) => setMode(value as 'schema' | 'content')} className="space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-medium ">Content Blocks</h2>
-            <Button onClick={() => setShowAddMenu("page")} className=" ">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Block
-            </Button>
+            <TabsList className="grid w-[400px] grid-cols-2">
+              <TabsTrigger value="schema">Schema Builder</TabsTrigger>
+              <TabsTrigger value="content">Content Editor</TabsTrigger>
+            </TabsList>
+            {mode === 'schema' && (
+              <Button onClick={() => setShowAddMenu("page")} className=" ">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Block
+              </Button>
+            )}
           </div>
+
+          {/* Schema Builder Tab */}
+          <TabsContent value="schema" className="space-y-6">
 
           {sections.length === 0 ? (
             <Card className="border-2 border-dashed ">
@@ -254,7 +267,13 @@ export function PayloadStylePageBuilder({ initialPage, websiteId }: PayloadStyle
 
           {/* Add Block Menu */}
           {showAddMenu === "page" && <AddBlockMenu onAddSection={handleAddSection} onClose={() => setShowAddMenu(null)} fieldTypes={FIELD_TYPES} />}
-        </div>
+          </TabsContent>
+
+          {/* Content Editor Tab */}
+          <TabsContent value="content">
+            <ContentEditor pageId={page?.id} />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Page Settings Dialog */}

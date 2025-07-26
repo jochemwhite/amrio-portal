@@ -23,6 +23,8 @@ import { FieldsPanel } from "./FieldsPanel";
 import { SectionDialog } from "./SectionDialog";
 import { FieldDialog } from "./FieldDialog";
 import { PageInfoCard } from "./PageInfoCard";
+import { UnsavedChangesDialog } from "@/components/dialogs/UnsavedChangesDialog";
+import { useUnsavedChangesProtection } from "@/hooks/useUnsavedChangesProtection";
 
 interface PageBuilderClientPageProps {
   initialPage: any;
@@ -41,6 +43,9 @@ const FIELD_TYPES = [
 
 export function PageBuilderClientPage({ initialPage, websiteId }: PageBuilderClientPageProps) {
   const router = useRouter();
+  
+  // Initialize unsaved changes protection
+  useUnsavedChangesProtection();
 
   // Get all state and actions from Zustand store
   const {
@@ -83,6 +88,9 @@ export function PageBuilderClientPage({ initialPage, websiteId }: PageBuilderCli
     // Drag and drop actions
     reorderSections,
     reorderSectionFields,
+    
+    // Unsaved changes protection
+    checkUnsavedChanges,
   } = usePageBuilderStore();
 
   // Initialize the store with page data
@@ -91,11 +99,14 @@ export function PageBuilderClientPage({ initialPage, websiteId }: PageBuilderCli
   }, [initialPage, websiteId, initializeStore]);
 
   const handleBackToPages = () => {
-    if (hasUnsavedChanges) {
-      const confirmed = confirm("You have unsaved changes. Are you sure you want to leave?");
-      if (!confirmed) return;
+    const navigationCallback = () => {
+      router.push(`/dashboard/websites/${websiteId}/pages`);
+    };
+    
+    const canNavigate = checkUnsavedChanges(navigationCallback);
+    if (canNavigate) {
+      navigationCallback();
     }
-    router.push(`/dashboard/websites/${websiteId}/pages`);
   };
 
   const handleSectionSubmit = async (e: React.FormEvent) => {
@@ -188,6 +199,9 @@ export function PageBuilderClientPage({ initialPage, websiteId }: PageBuilderCli
 
       {/* Page Info */}
       <PageInfoCard page={page} sectionsCount={sections.length} />
+
+      {/* Unsaved Changes Protection */}
+      <UnsavedChangesDialog />
     </>
   );
 }

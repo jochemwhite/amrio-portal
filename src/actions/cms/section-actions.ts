@@ -37,6 +37,25 @@ interface UpdateFieldData {
   order?: number;
 }
 
+interface BulkSavePayload {
+  pageId: string;
+  changes: Array<{
+    type: 'create' | 'update' | 'delete';
+    entity: 'section' | 'field';
+    id?: string;
+    data?: any;
+    tempId?: string;
+  }>;
+  sectionOrder: string[];
+  fieldOrders: Record<string, string[]>; // sectionId -> fieldIds[]
+}
+
+interface BulkSaveResult {
+  success: boolean;
+  error?: string;
+  tempIdMap: Record<string, string>; // Maps temp IDs to real IDs
+}
+
 // Section Management
 export async function createSection(data: CreateSectionData): Promise<ActionResponse<Section>> {
   const supabase = await createClient();
@@ -463,5 +482,175 @@ export async function reorderSections(pageId: string, sectionIds: string[]): Pro
   } catch (error) {
     console.error("Unexpected error reordering sections:", error);
     return { success: false, error: "An unexpected error occurred." };
+  }
+}
+
+export async function bulkSavePageChanges(payload: BulkSavePayload): Promise<BulkSaveResult> {
+  const supabase = await createClient();
+  
+  // Check authentication
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { success: false, error: "Unauthorized: User not authenticated.", tempIdMap: {} };
+  }
+
+  // Check admin role
+  const isAdmin = await checkRequiredRoles(user.id, ["system_admin"]);
+  if (!isAdmin) {
+    return { success: false, error: "Unauthorized: Only admins can modify sections.", tempIdMap: {} };
+  }
+
+  try {
+    const tempIdMap: Record<string, string> = {};
+
+    // Process changes in order: creates first, then updates, then deletes
+    const creates = payload.changes.filter(c => c.type === 'create');
+    const updates = payload.changes.filter(c => c.type === 'update');
+    const deletes = payload.changes.filter(c => c.type === 'delete');
+
+    // Process creates
+    for (const change of creates) {
+      if (change.entity === 'section') {
+        const { data: section, error } = await supabase
+          .from("cms_sections")
+          .insert({
+            ...change.data,
+            page_id: payload.pageId,
+          })
+          .select()
+          .single();
+        
+        if (error) {
+          throw new Error(`Failed to create section: ${error.message}`);
+        }
+        
+        if (change.tempId) {
+          tempIdMap[change.tempId] = section.id;
+        }
+      } else if (change.entity === 'field') {
+        // Replace temp section ID if it exists
+        const sectionId = tempIdMap[change.data.section_id] || change.data.section_id;
+        
+        const { data: field, error } = await supabase
+          .from("cms_fields")
+          .insert({
+            ...change.data,
+            section_id: sectionId,
+          })
+          .select()
+          .single();
+        
+        if (error) {
+          throw new Error(`Failed to create field: ${error.message}`);
+        }
+        
+        if (change.tempId) {
+          tempIdMap[change.tempId] = field.id;
+        }
+      }
+    }
+
+    // Process updates
+    for (const change of updates) {
+      if (change.entity === 'section') {
+        const { error } = await supabase
+          .from("cms_sections")
+          .update(change.data)
+          .eq("id", change.id!);
+        
+        if (error) {
+          throw new Error(`Failed to update section: ${error.message}`);
+        }
+      } else if (change.entity === 'field') {
+        const { error } = await supabase
+          .from("cms_fields")
+          .update(change.data)
+          .eq("id", change.id!);
+        
+        if (error) {
+          throw new Error(`Failed to update field: ${error.message}`);
+        }
+      }
+    }
+
+    // Process deletes
+    for (const change of deletes) {
+      if (change.entity === 'section') {
+        // Delete associated fields first
+        const { error: fieldsError } = await supabase
+          .from("cms_fields")
+          .delete()
+          .eq("section_id", change.id!);
+        
+        if (fieldsError) {
+          throw new Error(`Failed to delete section fields: ${fieldsError.message}`);
+        }
+        
+        // Then delete the section
+        const { error: sectionError } = await supabase
+          .from("cms_sections")
+          .delete()
+          .eq("id", change.id!);
+        
+        if (sectionError) {
+          throw new Error(`Failed to delete section: ${sectionError.message}`);
+        }
+      } else if (change.entity === 'field') {
+        const { error } = await supabase
+          .from("cms_fields")
+          .delete()
+          .eq("id", change.id!);
+        
+        if (error) {
+          throw new Error(`Failed to delete field: ${error.message}`);
+        }
+      }
+    }
+
+    // Handle section reordering
+    const finalSectionOrder = payload.sectionOrder.map(id => tempIdMap[id] || id);
+    for (let i = 0; i < finalSectionOrder.length; i++) {
+      const { error } = await supabase
+        .from("cms_sections")
+        .update({ order: i })
+        .eq("id", finalSectionOrder[i]);
+      
+      if (error) {
+        console.warn(`Failed to update section order for ${finalSectionOrder[i]}:`, error.message);
+      }
+    }
+
+    // Handle field reordering
+    for (const [sectionId, fieldIds] of Object.entries(payload.fieldOrders)) {
+      const finalSectionId = tempIdMap[sectionId] || sectionId;
+      const finalFieldIds = fieldIds.map(id => tempIdMap[id] || id);
+      
+      for (let i = 0; i < finalFieldIds.length; i++) {
+        const { error } = await supabase
+          .from("cms_fields")
+          .update({ order: i })
+          .eq("id", finalFieldIds[i])
+          .eq("section_id", finalSectionId);
+        
+        if (error) {
+          console.warn(`Failed to update field order for ${finalFieldIds[i]}:`, error.message);
+        }
+      }
+    }
+
+    // Revalidate the path to refresh data
+    revalidatePath('/dashboard');
+
+    return {
+      success: true,
+      tempIdMap,
+    };
+  } catch (error) {
+    console.error('Bulk save error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      tempIdMap: {},
+    };
   }
 }

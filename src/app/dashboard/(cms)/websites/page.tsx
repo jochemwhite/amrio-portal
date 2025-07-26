@@ -93,7 +93,7 @@ export default async function WebsitesClientOverview() {
               {websites.map((website) => (
                 <TableRow key={website.id}>
                   <TableCell>
-                    <Link href={`/dashboard/websites/${website.id}/pages`}>{website.name}</Link>
+                    <Link href={`/dashboard/websites/${website.id}`}>{website.name}</Link>
                   </TableCell>
                   <TableCell>
                     <a href={`https://${website.domain}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
