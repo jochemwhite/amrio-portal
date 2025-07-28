@@ -10,6 +10,7 @@ import { ChevronDown, ChevronRight, GripVertical, Plus, Settings, Trash2 } from 
 import { useState } from "react";
 import { AddFieldMenu } from "./AddFieldMenu";
 import { PayloadField } from "./PayloadField";
+import { FIELD_TYPES } from "../shared/field-types";
 
 interface PayloadSectionProps {
   section: any;
@@ -26,16 +27,6 @@ interface PayloadSectionProps {
   showAddMenu: boolean;
   onShowAddMenu: () => void;
 }
-
-const FIELD_TYPES = [
-  { value: "text", label: "Text", icon: "📝", description: "Simple text input" },
-  { value: "richtext", label: "Rich Text", icon: "📄", description: "WYSIWYG editor" },
-  { value: "number", label: "Number", icon: "🔢", description: "Numeric input" },
-  { value: "boolean", label: "Checkbox", icon: "☑️", description: "True/false toggle" },
-  { value: "date", label: "Date", icon: "📅", description: "Date picker" },
-  { value: "image", label: "Image", icon: "🖼️", description: "Image upload" },
-  { value: "reference", label: "Relationship", icon: "🔗", description: "Reference to other content" },
-];
 
 export function PayloadSection({
   section,

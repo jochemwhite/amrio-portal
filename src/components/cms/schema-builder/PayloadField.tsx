@@ -4,7 +4,8 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { GripVertical, Edit, Trash2, Type, Hash, ToggleLeft, Calendar, FileText, Image, Link } from "lucide-react";
+import { GripVertical, Edit, Trash2 } from "lucide-react";
+import { getFieldIcon, getFieldTypeLabel, getFieldTypeColor } from "../shared/field-types";
 
 interface PayloadFieldProps {
   field: any;
@@ -12,53 +13,6 @@ interface PayloadFieldProps {
   onEdit: () => void;
   onDelete: () => void;
 }
-
-const getFieldIcon = (type: string) => {
-  switch (type) {
-    case "text":
-      return <Type className="h-4 w-4" />;
-    case "number":
-      return <Hash className="h-4 w-4" />;
-    case "boolean":
-      return <ToggleLeft className="h-4 w-4" />;
-    case "date":
-      return <Calendar className="h-4 w-4" />;
-    case "richtext":
-      return <FileText className="h-4 w-4" />;
-    case "image":
-      return <Image className="h-4 w-4" />;
-    case "reference":
-      return <Link className="h-4 w-4" />;
-    default:
-      return <Type className="h-4 w-4" />;
-  }
-};
-
-const getFieldTypeLabel = (type: string) => {
-  const types = {
-    text: "Text",
-    number: "Number",
-    boolean: "Checkbox",
-    date: "Date",
-    richtext: "Rich Text",
-    image: "Image",
-    reference: "Relationship",
-  };
-  return types[type as keyof typeof types] || type;
-};
-
-const getFieldTypeColor = (type: string) => {
-  const colors = {
-    text: "bg-blue-100 text-blue-800",
-    number: "bg-green-100 text-green-800",
-    boolean: "bg-purple-100 text-purple-800",
-    date: "bg-orange-100 text-orange-800",
-    richtext: "bg-indigo-100 text-indigo-800",
-    image: "bg-pink-100 text-pink-800",
-    reference: "bg-yellow-100 text-yellow-800",
-  };
-  return colors[type as keyof typeof colors] || "bg-gray-100 text-gray-800";
-};
 
 export function PayloadField({ field, isSaving, onEdit, onDelete }: PayloadFieldProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: field.id });

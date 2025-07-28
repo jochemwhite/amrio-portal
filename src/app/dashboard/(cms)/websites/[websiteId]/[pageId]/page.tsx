@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/supabaseServerClient";
 import { redirect, notFound } from "next/navigation";
-import { PayloadStylePageBuilder } from "@/components/cms/PayloadStylePageBuilder";
+import { PayloadStylePageBuilder } from "@/components/cms/schema-builder/PayloadStylePageBuilder";
+import { SupabasePageWithRelations } from "@/types/cms";
 
 interface PageBuilderProps {
   params: Promise<{
@@ -67,11 +68,12 @@ export default async function PageBuilder({ params }: PageBuilderProps) {
      // Sort fields within each section by order (since PostgREST can't handle nested ordering)
    const sortedPage = {
      ...page,
+     status: page.status || 'draft', // Provide default value for null status
      cms_sections: page.cms_sections?.map(section => ({
        ...section,
        cms_fields: section.cms_fields?.sort((a, b) => (a.order || 0) - (b.order || 0))
      }))
-   };
+   } as SupabasePageWithRelations;
 
   return (
     <PayloadStylePageBuilder 

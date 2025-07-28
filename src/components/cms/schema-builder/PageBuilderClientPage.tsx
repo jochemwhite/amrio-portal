@@ -22,7 +22,7 @@ import { SectionsPanel } from "./SectionsPanel";
 import { FieldsPanel } from "./FieldsPanel";
 import { SectionDialog } from "./SectionDialog";
 import { FieldDialog } from "./FieldDialog";
-import { PageInfoCard } from "./PageInfoCard";
+import { PageInfoCard } from "../shared/PageInfoCard";
 import { UnsavedChangesDialog } from "@/components/dialogs/UnsavedChangesDialog";
 import { useUnsavedChangesProtection } from "@/hooks/useUnsavedChangesProtection";
 
@@ -31,15 +31,7 @@ interface PageBuilderClientPageProps {
   websiteId: string;
 }
 
-const FIELD_TYPES = [
-  { value: "text", label: "Text" },
-  { value: "number", label: "Number" },
-  { value: "boolean", label: "Boolean" },
-  { value: "date", label: "Date" },
-  { value: "richtext", label: "Rich Text" },
-  { value: "image", label: "Image" },
-  { value: "reference", label: "Reference" },
-];
+
 
 export function PageBuilderClientPage({ initialPage, websiteId }: PageBuilderClientPageProps) {
   const router = useRouter();
@@ -100,7 +92,7 @@ export function PageBuilderClientPage({ initialPage, websiteId }: PageBuilderCli
 
   const handleBackToPages = () => {
     const navigationCallback = () => {
-      router.push(`/dashboard/websites/${websiteId}/pages`);
+      router.push(`/dashboard/websites/${websiteId}/`);
     };
     
     const canNavigate = checkUnsavedChanges(navigationCallback);

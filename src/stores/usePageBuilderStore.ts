@@ -3,6 +3,7 @@ import { devtools } from "zustand/middleware";
 import { toast } from "sonner";
 import { bulkSavePageChanges } from "@/actions/cms/section-actions";
 import { arrayMove } from "@dnd-kit/sortable";
+import { SupabasePageWithRelations, SupabaseSectionWithRelations } from "@/types/cms";
 
 // Types for tracking changes
 interface PendingChange {
@@ -15,8 +16,8 @@ interface PendingChange {
 
 interface PageBuilderState {
   // Core data
-  page: any | null;
-  sections: any[];
+  page: SupabasePageWithRelations | null;
+  sections: SupabaseSectionWithRelations[];
   websiteId: string;
 
   // UI state
@@ -66,7 +67,7 @@ interface PageBuilderState {
   tempIdCounter: number;
 
   // Actions
-  initializeStore: (page: any, websiteId: string) => void;
+  initializeStore: (page: SupabasePageWithRelations, websiteId: string) => void;
   setSelectedSection: (sectionId: string | null) => void;
 
   // Section actions
@@ -162,7 +163,7 @@ export const usePageBuilderStore = create<PageBuilderState>()(
       tempIdCounter: 1,
 
       // Initialize store with page data
-      initializeStore: (page: any, websiteId: string) => {
+      initializeStore: (page: SupabasePageWithRelations, websiteId: string) => {
         set(
           {
             page,
@@ -238,6 +239,11 @@ export const usePageBuilderStore = create<PageBuilderState>()(
 
         if (!sectionFormData.name.trim()) {
           toast.error("Section name is required");
+          return;
+        }
+
+        if (!page) {
+          toast.error("No page loaded");
           return;
         }
 
@@ -415,7 +421,7 @@ export const usePageBuilderStore = create<PageBuilderState>()(
 
       // Submit field (create or update) - LOCAL ONLY
       submitField: () => {
-        const { fieldFormData, editingFieldId, selectedSectionId, sections, pendingChanges, tempIdCounter } = get();
+        const { fieldFormData, editingFieldId, selectedSectionId, sections, pendingChanges, tempIdCounter, page } = get();
 
         if (!fieldFormData.name.trim()) {
           toast.error("Field name is required");
@@ -424,6 +430,11 @@ export const usePageBuilderStore = create<PageBuilderState>()(
 
         if (!selectedSectionId) {
           toast.error("No section selected");
+          return;
+        }
+
+        if (!page) {
+          toast.error("No page loaded");
           return;
         }
 
@@ -617,7 +628,7 @@ export const usePageBuilderStore = create<PageBuilderState>()(
 
           // Call the bulk save action
           const result = await bulkSavePageChanges({
-            pageId: page.id,
+            pageId: page?.id || "",
             changes: pendingChanges,
             sectionOrder,
             fieldOrders,
@@ -719,10 +730,10 @@ export const usePageBuilderStore = create<PageBuilderState>()(
           // For now, just update local state
           set(
             (state) => ({
-              page: {
+              page: state.page ? {
                 ...state.page,
                 ...pageSettingsData,
-              },
+              } : null,
               isPageSettingsOpen: false,
               hasUnsavedChanges: true,
               isSaving: false,

@@ -10,7 +10,7 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Database } from "@/types/supabase";
 import WebsiteStats from "./website-stats";
-import PageFormModal from "../modals/page-form-modal";
+import PageFormModal from "@/components/modals/page-form-modal";
 
 interface PageOverviewProps {
   pages: Database["public"]["Tables"]["cms_pages"]["Row"][];

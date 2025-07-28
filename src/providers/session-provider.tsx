@@ -92,14 +92,12 @@ export const UserSessionProvider: React.FC<UserSessionProviderProps> = ({ childr
   }, [getSupabaseUserSession]);
 
   const checkMFA = useCallback(async () => {
-    console.log("checkMFA");
     try {
       const { data, error } = await supabaseRef.current.auth.mfa.getAuthenticatorAssuranceLevel();
-      console.log("checkMFA data", data);
 
       if (error) {
         console.error("MFA check error:", error);
-        return;
+          return;
       }
       
       if (data.nextLevel === "aal2" && data.nextLevel !== data.currentLevel) {
@@ -187,18 +185,13 @@ export const UserSessionProvider: React.FC<UserSessionProviderProps> = ({ childr
     initializationRef.current = true;
 
     const initializeSession = async () => {
-      console.log("initializeSession");
       try {
         if (userData) {
-          console.log("initializeSession userData");
           setUserSession(userData);
           isUserAlreadySignedInRef.current = true;
           
       
-          console.log("initializeSession after getSession");
-
         } else {
-          console.log("initializeSession no userData");
           // Fetch fresh session
           await refreshSession(true);
           // Set signed in flag if we got a session
@@ -208,7 +201,6 @@ export const UserSessionProvider: React.FC<UserSessionProviderProps> = ({ childr
             lastSessionRef.current = session.access_token;
           }
         }
-        console.log("initializeSession after");
         await checkMFA();
         setLoadingSession(false);
       } catch (error) {
@@ -227,7 +219,6 @@ export const UserSessionProvider: React.FC<UserSessionProviderProps> = ({ childr
     const { data: { subscription: authSubscription } } = supabaseRef.current.auth.onAuthStateChange(
       async (event, session) => {
 
-        console.log("authSubscription event", event);
         
         // Ignore token refresh events that don't require UI updates
         if (event === 'TOKEN_REFRESHED') {
@@ -241,8 +232,7 @@ export const UserSessionProvider: React.FC<UserSessionProviderProps> = ({ childr
                 const currentSessionId = session.access_token;
                 
                 // Check if this is actually a new sign-in or just a session restoration
-                if (lastSessionRef.current === currentSessionId && isUserAlreadySignedInRef.current) {
-                  console.log('Ignoring duplicate SIGNED_IN event - same session');
+                if (lastSessionRef.current === currentSessionId && isUserAlreadySignedInRef.current) {  
                   return;
                 }
                 

@@ -1,11 +1,4 @@
-export type FieldType = 
-  | "text" 
-  | "number" 
-  | "boolean" 
-  | "date" 
-  | "richtext" 
-  | "image" 
-  | "reference";
+
 
 export interface Field {
   id: string;
@@ -138,3 +131,57 @@ export interface WebsiteStore {
   // Get websites by tenant
   getWebsitesByTenant: (tenantId: string) => Website[];
 } 
+
+
+export interface FieldType {
+  value: string;
+  label: string;
+  icon: React.ReactNode;
+  description: string;
+  color: string;
+  component?: React.ComponentType<any>;
+}
+
+
+export type SupabasePageWithRelations = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  status: string;
+  website_id: string;
+  created_at: string;
+  updated_at: string;
+  cms_websites: {
+    id: string;
+    name: string;
+    domain: string;
+  };
+  cms_sections: {
+    id: string;
+    name: string;
+    description: string | null;
+    page_id: string;
+    order: number;
+    cms_fields: {
+      id: string;
+      name: string;
+      type: string;
+      required: boolean;
+      section_id: string;
+      default_value: string | null;
+      validation: string | null;
+      order: number;
+    }[];
+  }[];
+}
+
+
+export type SupabaseSectionWithRelations = {
+  id: string;
+  name: string;
+  description: string | null;
+  page_id: string;
+  order: number;
+  cms_fields: SupabaseField[];
+}

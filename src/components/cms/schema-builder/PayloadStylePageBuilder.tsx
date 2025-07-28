@@ -12,14 +12,15 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AddBlockMenu } from "./AddBlockMenu";
 import { PayloadSection } from "./PayloadSection";
-import { PageSettingsDialog } from "./PageSettingsDialog";
+import { PageSettingsDialog } from "../shared/PageSettingsDialog";
 import { SectionDialog } from "./SectionDialog";
 import { FieldDialog } from "./FieldDialog";
-import { ContentEditor } from "./ContentEditor";
+import { ContentEditor } from "../content-editor/ContentEditor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SupabasePageWithRelations } from "@/types/cms";
 
 interface PayloadStylePageBuilderProps {
-  initialPage: any;
+  initialPage: SupabasePageWithRelations;
   websiteId: string;
 }
 
@@ -271,7 +272,7 @@ export function PayloadStylePageBuilder({ initialPage, websiteId }: PayloadStyle
 
           {/* Content Editor Tab */}
           <TabsContent value="content">
-            <ContentEditor pageId={page?.id} />
+            <ContentEditor pageId={page?.id || ""} />
           </TabsContent>
         </Tabs>
       </div>

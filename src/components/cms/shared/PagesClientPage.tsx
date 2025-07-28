@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { PageOverview } from "@/components/cms/PageOverview";
+import { PageOverview } from "./PageOverview";
 import { PageForm } from "@/components/forms/PageForm";
 import { Page } from "@/types/cms";
 import { Database } from "@/types/supabase";

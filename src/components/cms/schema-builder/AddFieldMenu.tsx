@@ -7,22 +7,16 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { X } from "lucide-react";
-import { Card } from "../ui/card";
-
-interface FieldType {
-  value: string;
-  label: string;
-  icon: string;
-  description: string;
-}
+import { Card } from "@/components/ui/card";
+import { FIELD_TYPES, type FieldType } from "../shared/field-types";
 
 interface AddFieldMenuProps {
   onAddField: (fieldData: any) => void;
   onClose: () => void;
-  fieldTypes: FieldType[];
+  fieldTypes?: FieldType[];
 }
 
-export function AddFieldMenu({ onAddField, onClose, fieldTypes }: AddFieldMenuProps) {
+export function AddFieldMenu({ onAddField, onClose, fieldTypes = FIELD_TYPES }: AddFieldMenuProps) {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [fieldData, setFieldData] = useState({
     name: "",

@@ -1,20 +1,19 @@
 "use client";
 
-import { useContentEditorStore } from "@/stores/useContentEditorStore";
-import { usePageBuilderStore } from "@/stores/usePageBuilderStore";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Save, RotateCcw } from "lucide-react";
-import { useState, useEffect } from "react";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
+import { useContentEditorStore } from "@/stores/useContentEditorStore";
+import { usePageBuilderStore } from "@/stores/usePageBuilderStore";
+import { format } from "date-fns";
+import { CalendarIcon, RotateCcw, Save } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface ContentEditorProps {
   pageId: string;
@@ -23,7 +22,6 @@ interface ContentEditorProps {
 export function ContentEditor({ pageId }: ContentEditorProps) {
   const { sections } = usePageBuilderStore();
   const {
-    contentValues,
     hasUnsavedChanges,
     isSaving,
     isLoading,
