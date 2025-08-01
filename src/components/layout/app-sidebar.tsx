@@ -17,8 +17,8 @@ const data = {
       icon: Bot,
       items: [
         {
-          title: "All Pages",
-          url: "/dashboard/pages",
+          title: "Your Websites",
+          url: "/dashboard/websites",
         },
         {
           title: "Drafts",

@@ -86,6 +86,11 @@ interface PageBuilderState {
   submitField: () => void;
   deleteFieldById: (fieldId: string) => void;
 
+  // Nested field actions
+  openAddNestedFieldDialog: (parentSectionId: string) => void;
+  openEditNestedFieldDialog: (field: any, parentSectionId: string) => void;
+  deleteNestedFieldById: (fieldId: string, parentSectionId: string) => void;
+
   // Reordering actions
   reorderSections: (activeId: string, overId: string) => void;
   reorderSectionFields: (sectionId: string, activeId: string, overId: string) => void;
@@ -167,7 +172,7 @@ export const usePageBuilderStore = create<PageBuilderState>()(
         set(
           {
             page,
-            sections: page.cms_sections || [],
+            sections: (page.cms_sections || []) as any,
             websiteId,
             selectedSectionId: page.cms_sections?.[0]?.id || null,
             hasUnsavedChanges: false,
@@ -674,7 +679,7 @@ export const usePageBuilderStore = create<PageBuilderState>()(
         const { page } = get();
         set(
           {
-            sections: page?.cms_sections || [],
+            sections: (page?.cms_sections || []) as any,
             selectedSectionId: page?.cms_sections?.[0]?.id || null,
             pendingChanges: [],
             hasUnsavedChanges: false,
@@ -809,6 +814,99 @@ export const usePageBuilderStore = create<PageBuilderState>()(
         if (pendingNavigation) {
           pendingNavigation();
         }
+      },
+
+      // Nested field actions
+      openAddNestedFieldDialog: (parentSectionId: string) => {
+        set(
+          {
+            fieldFormData: {
+              name: "",
+              type: "text",
+              required: false,
+              default_value: "",
+              validation: "",
+            },
+            selectedSectionId: parentSectionId, // Set the parent section as selected
+            isAddFieldOpen: true,
+          },
+          false,
+          "openAddNestedFieldDialog"
+        );
+      },
+
+      openEditNestedFieldDialog: (field: any, parentSectionId: string) => {
+        set(
+          {
+            fieldFormData: {
+              name: field.name,
+              type: field.type,
+              required: field.required || false,
+              default_value: field.default_value || "",
+              validation: field.validation || "",
+            },
+            editingFieldId: field.id,
+            selectedSectionId: parentSectionId, // Set the parent section as selected
+            isEditFieldOpen: true,
+          },
+          false,
+          "openEditNestedFieldDialog"
+        );
+      },
+
+      deleteNestedFieldById: (fieldId: string, parentSectionId: string) => {
+        set(
+          (state) => {
+            const isTemp = fieldId.startsWith('temp_');
+            let newPendingChanges = state.pendingChanges;
+            
+            if (isTemp) {
+              // Remove from pending changes if it's a temp item
+              newPendingChanges = state.pendingChanges.filter(c => c.tempId !== fieldId);
+            } else {
+              // Add delete change for real fields, remove any existing changes for this field
+              newPendingChanges = [
+                ...state.pendingChanges.filter(c => !(c.entity === 'field' && c.id === fieldId)),
+                {
+                  type: 'delete',
+                  entity: 'field',
+                  id: fieldId,
+                }
+              ];
+            }
+
+            return {
+              sections: state.sections.map((section: any) => {
+                // Find and update the nested section recursively
+                if (section.id === parentSectionId) {
+                  return {
+                    ...section,
+                    cms_fields: section.cms_fields.filter((field: any) => field.id !== fieldId),
+                  };
+                }
+                // Also check if this section contains nested sections
+                if (section.sections) {
+                  return {
+                    ...section,
+                    sections: section.sections.map((nestedSection: any) =>
+                      nestedSection.id === parentSectionId
+                        ? {
+                            ...nestedSection,
+                            cms_fields: nestedSection.cms_fields?.filter((field: any) => field.id !== fieldId) || [],
+                          }
+                        : nestedSection
+                    ),
+                  };
+                }
+                return section;
+              }) as any,
+              pendingChanges: newPendingChanges,
+              hasUnsavedChanges: newPendingChanges.length > 0,
+            };
+          },
+          false,
+          "deleteNestedFieldLocal"
+        );
       },
 
       // Mode switching method

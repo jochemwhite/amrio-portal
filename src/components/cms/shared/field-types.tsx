@@ -1,5 +1,14 @@
 import { FieldType } from "@/types/cms";
-import { Type, Hash, ToggleLeft, Calendar, FileText, Image, Link } from "lucide-react";
+import { Calendar, FileText, FolderOpen, Hash, Image, Link, ToggleLeft, Type, Video } from "lucide-react";
+import Boolean from "../content-editor/components/Boolean";
+import Date from "../content-editor/components/Date";
+import ImageComponent from "../content-editor/components/Image";
+import Number from "../content-editor/components/Number";
+import Reference from "../content-editor/components/Reference";
+import RichText from "../content-editor/components/RichText";
+import SectionField from "../content-editor/components/SectionField";
+import Text from "../content-editor/components/Text";
+import YoutubeVideo from "../content-editor/components/Video";
 
 export const FIELD_TYPES: FieldType[] = [
   {
@@ -8,6 +17,7 @@ export const FIELD_TYPES: FieldType[] = [
     icon: <Type className="h-4 w-4" />,
     description: "Simple text input",
     color: "bg-blue-100 text-blue-800",
+    cmsComponent: Text,
   },
   {
     value: "richtext",
@@ -15,6 +25,7 @@ export const FIELD_TYPES: FieldType[] = [
     icon: <FileText className="h-4 w-4" />,
     description: "WYSIWYG editor",
     color: "bg-indigo-100 text-indigo-800",
+    cmsComponent: RichText,
   },
   {
     value: "number",
@@ -22,6 +33,7 @@ export const FIELD_TYPES: FieldType[] = [
     icon: <Hash className="h-4 w-4" />,
     description: "Numeric input",
     color: "bg-green-100 text-green-800",
+    cmsComponent: Number,
   },
   {
     value: "boolean",
@@ -29,6 +41,7 @@ export const FIELD_TYPES: FieldType[] = [
     icon: <ToggleLeft className="h-4 w-4" />,
     description: "True/false toggle",
     color: "bg-purple-100 text-purple-800",
+    cmsComponent: Boolean,
   },
   {
     value: "date",
@@ -36,6 +49,7 @@ export const FIELD_TYPES: FieldType[] = [
     icon: <Calendar className="h-4 w-4" />,
     description: "Date picker",
     color: "bg-orange-100 text-orange-800",
+    cmsComponent: Date,
   },
   {
     value: "image",
@@ -43,13 +57,31 @@ export const FIELD_TYPES: FieldType[] = [
     icon: <Image className="h-4 w-4" />,
     description: "Image upload",
     color: "bg-pink-100 text-pink-800",
+    cmsComponent: ImageComponent,
   },
   {
     value: "reference",
     label: "Relationship",
-    icon: "🔗",
+    icon: <Link className="h-4 w-4" />,
     description: "Reference to other content",
     color: "bg-yellow-100 text-yellow-800",
+    cmsComponent: Reference,
+  },
+  {
+    value: "video",
+    label: "Video",
+    icon: <Video className="h-4 w-4" />,
+    description: "Video upload",
+    color: "bg-red-100 text-red-800",
+    cmsComponent: YoutubeVideo,
+  },
+  {
+    value: "section",
+    label: "Nested Section",
+    icon: <FolderOpen className="h-4 w-4" />,
+    description: "Embed another section within this section",
+    color: "bg-slate-100 text-slate-800",
+    cmsComponent: SectionField,
   },
 ];
 

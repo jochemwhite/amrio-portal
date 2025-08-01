@@ -15,6 +15,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { ArrowLeft, FileText, Globe, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { FIELD_TYPES } from "../shared/field-types";
 import { DraggableField } from './DraggableField';
 import { DraggableSection } from './DraggableSection';
 import { PageBuilderHeader } from "./PageBuilderHeader";
@@ -76,6 +77,11 @@ export function PageBuilderClientPage({ initialPage, websiteId }: PageBuilderCli
     setFieldFormData,
     submitField,
     deleteFieldById,
+
+    // Nested field actions
+    openAddNestedFieldDialog,
+    openEditNestedFieldDialog,
+    deleteNestedFieldById,
     
     // Drag and drop actions
     reorderSections,
@@ -133,12 +139,12 @@ export function PageBuilderClientPage({ initialPage, websiteId }: PageBuilderCli
   return (
     <>
       {/* Header */}
-      <PageBuilderHeader
+      {/* <PageBuilderHeader
         page={page}
         websiteId={websiteId}
         hasUnsavedChanges={hasUnsavedChanges}
         onBack={handleBackToPages}
-      />
+      /> */}
 
       {/* Page Builder Interface */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -163,6 +169,10 @@ export function PageBuilderClientPage({ initialPage, websiteId }: PageBuilderCli
           onAdd={openAddFieldDialog}
           reorderSectionFields={reorderSectionFields}
           selectedSectionId={selectedSectionId}
+          onAddNestedField={openAddNestedFieldDialog}
+          onEditNestedField={openEditNestedFieldDialog}
+          onDeleteNestedField={deleteNestedFieldById}
+          useNestedView={true}
         />
       </div>
 
@@ -190,7 +200,7 @@ export function PageBuilderClientPage({ initialPage, websiteId }: PageBuilderCli
       />
 
       {/* Page Info */}
-      <PageInfoCard page={page} sectionsCount={sections.length} />
+      {/* <PageInfoCard page={page} sectionsCount={sections.length} /> */}
 
       {/* Unsaved Changes Protection */}
       <UnsavedChangesDialog />

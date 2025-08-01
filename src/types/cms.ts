@@ -3,7 +3,7 @@
 export interface Field {
   id: string;
   name: string;
-  type: FieldType;
+  type: string; // Should be a string that matches FieldType.value
   required?: boolean;
   defaultValue?: string;
   validation?: string;
@@ -16,6 +16,9 @@ export interface Section {
   description?: string;
   order?: number;
   fields: Field[];
+  sections?: Section[]; // Nested sections
+  parentSectionId?: string; // Track parent for loop prevention
+  depth?: number; // Track nesting depth
 }
 
 export interface SupabaseSection {
@@ -23,6 +26,8 @@ export interface SupabaseSection {
   page_id: string;
   name: string;
   description?: string;
+  parent_section_id?: string; // For nested sections
+  depth?: number; // Track nesting depth
   created_at?: string;
   updated_at?: string;
 }
@@ -31,7 +36,7 @@ export interface SupabaseField {
   id: string;
   section_id: string;
   name: string;
-  type: FieldType;
+  type: string; // Should be a string that matches FieldType.value
   required?: boolean;
   default_value?: string;
   validation?: string;
@@ -133,13 +138,13 @@ export interface WebsiteStore {
 } 
 
 
-export interface FieldType {
+export interface FieldType<C = any> {
   value: string;
   label: string;
   icon: React.ReactNode;
   description: string;
   color: string;
-  component?: React.ComponentType<any>;
+  cmsComponent?: React.ComponentType<C>;
 }
 
 
@@ -184,4 +189,32 @@ export type SupabaseSectionWithRelations = {
   page_id: string;
   order: number;
   cms_fields: SupabaseField[];
+}
+
+export interface CMSStore {
+  sections: Section[];
+
+  // Section management
+  addSection: (name: string, description?: string) => void;
+  updateSection: (id: string, data: Partial<Section>) => void;
+  removeSection: (id: string) => void;
+
+  // Field management
+  addField: (sectionId: string, field: Omit<Field, 'id'>) => void;
+  updateField: (sectionId: string, fieldId: string, data: Partial<Field>) => void;
+  removeField: (sectionId: string, fieldId: string) => void;
+  reorderFields: (sectionId: string, newFields: Field[]) => void;
+
+  // Nested section management
+  addNestedSection: (parentSectionId: string, childSectionId: string) => void;
+  removeNestedSection: (parentSectionId: string, childSectionId: string) => void;
+
+  // Schema management
+  loadSchema: (sections: Section[]) => void;
+  exportSchema: () => Section[];
+
+  // Utility methods for nested sections
+  getSectionById: (id: string) => Section | null;
+  getAllSections: () => Section[];
+  getAvailableParentSections: (sectionId: string) => Section[];
 }

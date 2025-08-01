@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { toast } from "sonner";
+import { FIELD_TYPES } from "@/components/cms/shared/field-types";
+import { SupabaseField } from "@/types/cms";
 
 // Types for content values
 interface ContentValue {
@@ -24,6 +26,7 @@ interface ContentEditorState {
   initializeContent: (pageId: string, existingContent?: Record<string, any>) => void;
   setFieldValue: (fieldId: string, value: any) => void;
   getFieldValue: (fieldId: string) => any;
+  getFieldComponent: (field: SupabaseField) => React.ComponentType<any> | null;
   resetField: (fieldId: string) => void;
   resetAllFields: () => void;
   saveContent: () => Promise<void>;
@@ -98,6 +101,12 @@ export const useContentEditorStore = create<ContentEditorState>()(
       // Get a field value
       getFieldValue: (fieldId: string) => {
         return get().contentValues[fieldId];
+      },
+
+      // Get a field component
+      getFieldComponent: (field: SupabaseField) => {
+        const fieldType = FIELD_TYPES.find((type) => type.value === field.type);
+        return fieldType?.cmsComponent || null;
       },
 
       // Reset a single field to its original value
