@@ -4,20 +4,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePageBuilderStore } from "@/stores/usePageBuilderStore";
-import { closestCenter, DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { SupabasePageWithRelations } from "@/types/cms";
+import { closestCenter, DndContext, DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { ArrowLeft, Eye, Globe, Plus, Save, Settings } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { AddBlockMenu } from "./AddBlockMenu";
-import { PayloadSection } from "./PayloadSection";
-import { PageSettingsDialog } from "../shared/PageSettingsDialog";
-import { SectionDialog } from "./SectionDialog";
-import { FieldDialog } from "./FieldDialog";
 import { ContentEditor } from "../content-editor/ContentEditor";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SupabasePageWithRelations } from "@/types/cms";
+import { PageSettingsDialog } from "../shared/PageSettingsDialog";
+import { AddBlockMenu } from "./AddBlockMenu";
+import { FieldDialog } from "./FieldDialog";
+import { PayloadSection } from "./PayloadSection";
+import { SectionDialog } from "./SectionDialog";
 
 interface PayloadStylePageBuilderProps {
   initialPage: SupabasePageWithRelations;

@@ -8,7 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { X } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { FIELD_TYPES, type FieldType } from "../shared/field-types";
+import { FIELD_TYPES } from "../shared/field-types";
+import { FieldType } from "@/types/cms";
 
 interface AddFieldMenuProps {
   onAddField: (fieldData: any) => void;

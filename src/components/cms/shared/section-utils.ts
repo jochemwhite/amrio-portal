@@ -6,11 +6,7 @@ export const MAX_NESTING_DEPTH = 3;
 /**
  * Check if adding a section as a nested section would create a loop
  */
-export function wouldCreateLoop(
-  targetSection: Section,
-  sectionToNest: Section,
-  allSections: Section[]
-): boolean {
+export function wouldCreateLoop(targetSection: Section, sectionToNest: Section, allSections: Section[]): boolean {
   // A section cannot contain itself
   if (targetSection.id === sectionToNest.id) {
     return true;
@@ -23,11 +19,7 @@ export function wouldCreateLoop(
 /**
  * Recursively check if a section has a specific ancestor
  */
-function hasAncestor(
-  ancestorId: string,
-  section: Section,
-  allSections: Section[]
-): boolean {
+function hasAncestor(ancestorId: string, section: Section, allSections: Section[]): boolean {
   if (!section.sections || section.sections.length === 0) {
     return false;
   }
@@ -37,7 +29,7 @@ function hasAncestor(
     if (childSection.id === ancestorId) {
       return true;
     }
-    
+
     // Recursively check children's children
     if (hasAncestor(ancestorId, childSection, allSections)) {
       return true;
@@ -50,12 +42,9 @@ function hasAncestor(
 /**
  * Get sections that can be safely nested within a target section
  */
-export function getAvailableSectionsForNesting(
-  targetSection: Section,
-  allSections: Section[]
-): Section[] {
+export function getAvailableSectionsForNesting(targetSection: Section, allSections: Section[]): Section[] {
   const currentDepth = calculateSectionDepth(targetSection);
-  
+
   return allSections.filter((section) => {
     // Don't allow nesting if it would exceed max depth
     if (currentDepth >= MAX_NESTING_DEPTH) {
@@ -90,20 +79,15 @@ export function calculateSectionDepth(section: Section): number {
     return section.depth || 0;
   }
 
-  const maxChildDepth = Math.max(
-    ...section.sections.map(child => calculateSectionDepth(child))
-  );
-  
+  const maxChildDepth = Math.max(...section.sections.map((child) => calculateSectionDepth(child)));
+
   return (section.depth || 0) + maxChildDepth + 1;
 }
 
 /**
  * Check if a section is already nested somewhere
  */
-function isSectionAlreadyNested(
-  sectionToCheck: Section,
-  allSections: Section[]
-): boolean {
+function isSectionAlreadyNested(sectionToCheck: Section, allSections: Section[]): boolean {
   for (const section of allSections) {
     if (containsSection(section, sectionToCheck.id)) {
       return true;
@@ -135,16 +119,12 @@ function containsSection(section: Section, sectionId: string): boolean {
 /**
  * Get the full path of section names for breadcrumb display
  */
-export function getSectionPath(
-  sectionId: string,
-  allSections: Section[],
-  currentPath: string[] = []
-): string[] {
+export function getSectionPath(sectionId: string, allSections: Section[], currentPath: string[] = []): string[] {
   for (const section of allSections) {
     if (section.id === sectionId) {
       return [...currentPath, section.name];
     }
-    
+
     if (section.sections) {
       const path = getSectionPath(sectionId, section.sections, [...currentPath, section.name]);
       if (path.length > currentPath.length) {
@@ -152,7 +132,7 @@ export function getSectionPath(
       }
     }
   }
-  
+
   return currentPath;
 }
 
@@ -161,14 +141,14 @@ export function getSectionPath(
  */
 export function flattenSections(sections: Section[]): Section[] {
   const flattened: Section[] = [];
-  
+
   function addSection(section: Section) {
     flattened.push(section);
     if (section.sections) {
       section.sections.forEach(addSection);
     }
   }
-  
+
   sections.forEach(addSection);
   return flattened;
 }

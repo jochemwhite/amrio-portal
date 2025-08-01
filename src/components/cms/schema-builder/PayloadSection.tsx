@@ -10,6 +10,7 @@ import { ChevronDown, ChevronRight, GripVertical, Plus, Settings, Trash2 } from 
 import { useState } from "react";
 import { AddFieldMenu } from "./AddFieldMenu";
 import { PayloadField } from "./PayloadField";
+import { NestedPayloadField } from "./NestedPayloadField";
 import { FIELD_TYPES } from "../shared/field-types";
 
 interface PayloadSectionProps {
@@ -132,13 +133,39 @@ export function PayloadSection({
                   <SortableContext items={section.cms_fields?.map((f: any) => f.id) || []} strategy={verticalListSortingStrategy}>
                     <div className="">
                       {section.cms_fields?.map((field: any) => (
-                        <PayloadField
-                          key={field.id}
-                          field={field}
-                          isSaving={isSaving}
-                          onEdit={() => onEditField(field)}
-                          onDelete={() => onDeleteField(field.id)}
-                        />
+                        field.type === 'section' ? (
+                          <NestedPayloadField
+                            key={field.id}
+                            field={field}
+                            isSaving={isSaving}
+                            onEdit={() => onEditField(field)}
+                            onDelete={() => onDeleteField(field.id)}
+                            onAddNestedField={(parentSectionId) => {
+                              // For now, we'll show a simple alert
+                              alert(`Add field to nested section: ${parentSectionId}`);
+                            }}
+                            onEditNestedField={(nestedField, parentSectionId) => {
+                              // For now, we'll show a simple alert
+                              alert(`Edit nested field: ${nestedField.name} in ${parentSectionId}`);
+                            }}
+                            onDeleteNestedField={(fieldId, parentSectionId) => {
+                              // For now, we'll show a simple alert
+                              alert(`Delete nested field: ${fieldId} from ${parentSectionId}`);
+                            }}
+                            onReorderNestedFields={(parentSectionId, activeId, overId) => {
+                              // For now, we'll show a simple alert
+                              alert(`Reorder fields in ${parentSectionId}: ${activeId} -> ${overId}`);
+                            }}
+                          />
+                        ) : (
+                          <PayloadField
+                            key={field.id}
+                            field={field}
+                            isSaving={isSaving}
+                            onEdit={() => onEditField(field)}
+                            onDelete={() => onDeleteField(field.id)}
+                          />
+                        )
                       ))}
                     </div>
                   </SortableContext>
