@@ -41,6 +41,7 @@ export interface SupabaseField {
   default_value?: string;
   validation?: string;
   order: number;
+  parent_field_id?: string; // For nested fields - references the "section" field they belong to
   created_at?: string;
   updated_at?: string;
 }

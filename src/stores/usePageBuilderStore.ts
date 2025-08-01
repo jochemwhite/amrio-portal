@@ -38,6 +38,7 @@ interface PageBuilderState {
   isAddFieldOpen: boolean;
   isEditFieldOpen: boolean;
   editingFieldId: string | null;
+  parentFieldId: string | null; // Track which "section" field we're adding to
   fieldFormData: {
     name: string;
     type: string;
@@ -87,13 +88,14 @@ interface PageBuilderState {
   deleteFieldById: (fieldId: string) => void;
 
   // Nested field actions
-  openAddNestedFieldDialog: (parentSectionId: string) => void;
+  openAddNestedFieldDialog: (parentSectionId: string, parentFieldId?: string) => void;
   openEditNestedFieldDialog: (field: any, parentSectionId: string) => void;
   deleteNestedFieldById: (fieldId: string, parentSectionId: string) => void;
 
-  // Reordering actions
-  reorderSections: (activeId: string, overId: string) => void;
-  reorderSectionFields: (sectionId: string, activeId: string, overId: string) => void;
+        // Reordering actions
+      reorderSections: (activeId: string, overId: string) => void;
+      reorderSectionFields: (sectionId: string, activeId: string, overId: string) => void;
+      reorderNestedFields: (sectionId: string, activeId: string, overId: string) => void;
 
   // Save/Reset actions
   saveChanges: () => Promise<void>;
@@ -139,6 +141,7 @@ export const usePageBuilderStore = create<PageBuilderState>()(
       isAddFieldOpen: false,
       isEditFieldOpen: false,
       editingFieldId: null,
+      parentFieldId: null,
       fieldFormData: {
         name: "",
         type: "text",
@@ -408,6 +411,7 @@ export const usePageBuilderStore = create<PageBuilderState>()(
             isAddFieldOpen: false,
             isEditFieldOpen: false,
             editingFieldId: null,
+            parentFieldId: null,
           },
           false,
           "closeFieldDialog"
@@ -426,7 +430,7 @@ export const usePageBuilderStore = create<PageBuilderState>()(
 
       // Submit field (create or update) - LOCAL ONLY
       submitField: () => {
-        const { fieldFormData, editingFieldId, selectedSectionId, sections, pendingChanges, tempIdCounter, page } = get();
+        const { fieldFormData, editingFieldId, selectedSectionId, sections, pendingChanges, tempIdCounter, page, parentFieldId } = get();
 
         if (!fieldFormData.name.trim()) {
           toast.error("Field name is required");
@@ -478,11 +482,13 @@ export const usePageBuilderStore = create<PageBuilderState>()(
           // Create new field locally
           const selectedSection = sections.find((s: any) => s.id === selectedSectionId);
           const tempId = `temp_field_${tempIdCounter}`;
+          const nestedFields = selectedSection?.cms_fields?.filter((f: any) => f.parent_field_id === parentFieldId) || [];
           const newField = {
             id: tempId,
             ...fieldFormData,
             section_id: selectedSectionId,
-            order: selectedSection?.cms_fields?.length || 0,
+            parent_field_id: parentFieldId, // Include parent field ID for nested fields
+            order: parentFieldId ? nestedFields.length : (selectedSection?.cms_fields?.length || 0),
           };
           
           set(
@@ -504,12 +510,14 @@ export const usePageBuilderStore = create<PageBuilderState>()(
                   data: {
                     section_id: selectedSectionId,
                     ...fieldFormData,
-                    order: selectedSection?.cms_fields?.length || 0,
+                    parent_field_id: parentFieldId,
+                    order: parentFieldId ? nestedFields.length : (selectedSection?.cms_fields?.length || 0),
                   }
                 }
               ],
               tempIdCounter: state.tempIdCounter + 1,
               isAddFieldOpen: false,
+              parentFieldId: null,
               hasUnsavedChanges: true,
             }),
             false,
@@ -605,6 +613,50 @@ export const usePageBuilderStore = create<PageBuilderState>()(
           },
           false,
           "reorderSectionFields"
+        );
+      },
+
+      // Reorder nested fields within a section - LOCAL ONLY
+      reorderNestedFields: (sectionId: string, activeId: string, overId: string) => {
+        set(
+          (state) => {
+            const updatedSections = state.sections.map((section: any) => {
+              if (section.id === sectionId) {
+                // Find the parent field to get nested fields
+                const parentField = section.cms_fields.find((f: any) => 
+                  f.type === 'section' && f.cms_fields?.some((nf: any) => nf.id === activeId || nf.id === overId)
+                );
+                
+                if (!parentField) return section;
+
+                const nestedFields = section.cms_fields.filter((f: any) => f.parent_field_id === parentField.id);
+                const activeIndex = nestedFields.findIndex((f: any) => f.id === activeId);
+                const overIndex = nestedFields.findIndex((f: any) => f.id === overId);
+
+                if (activeIndex === -1 || overIndex === -1) return section;
+
+                // Reorder the nested fields
+                const reorderedNestedFields = arrayMove(nestedFields, activeIndex, overIndex);
+                
+                // Update the section with reordered fields
+                const otherFields = section.cms_fields.filter((f: any) => f.parent_field_id !== parentField.id);
+                const updatedFields = [...otherFields, ...reorderedNestedFields];
+
+                return {
+                  ...section,
+                  cms_fields: updatedFields,
+                };
+              }
+              return section;
+            });
+
+            return {
+              sections: updatedSections,
+              hasUnsavedChanges: true,
+            };
+          },
+          false,
+          "reorderNestedFields"
         );
       },
 
@@ -817,7 +869,8 @@ export const usePageBuilderStore = create<PageBuilderState>()(
       },
 
       // Nested field actions
-      openAddNestedFieldDialog: (parentSectionId: string) => {
+      openAddNestedFieldDialog: (parentSectionId: string, parentFieldId?: string) => {
+
         set(
           {
             fieldFormData: {
@@ -828,6 +881,7 @@ export const usePageBuilderStore = create<PageBuilderState>()(
               validation: "",
             },
             selectedSectionId: parentSectionId, // Set the parent section as selected
+            parentFieldId: parentFieldId || null, // Track the parent field
             isAddFieldOpen: true,
           },
           false,
@@ -847,6 +901,7 @@ export const usePageBuilderStore = create<PageBuilderState>()(
             },
             editingFieldId: field.id,
             selectedSectionId: parentSectionId, // Set the parent section as selected
+            parentFieldId: field.parent_field_id, // Preserve the parent field relationship
             isEditFieldOpen: true,
           },
           false,
@@ -877,25 +932,11 @@ export const usePageBuilderStore = create<PageBuilderState>()(
 
             return {
               sections: state.sections.map((section: any) => {
-                // Find and update the nested section recursively
+                // Remove the field from the section (works for both regular and nested fields)
                 if (section.id === parentSectionId) {
                   return {
                     ...section,
                     cms_fields: section.cms_fields.filter((field: any) => field.id !== fieldId),
-                  };
-                }
-                // Also check if this section contains nested sections
-                if (section.sections) {
-                  return {
-                    ...section,
-                    sections: section.sections.map((nestedSection: any) =>
-                      nestedSection.id === parentSectionId
-                        ? {
-                            ...nestedSection,
-                            cms_fields: nestedSection.cms_fields?.filter((field: any) => field.id !== fieldId) || [],
-                          }
-                        : nestedSection
-                    ),
                   };
                 }
                 return section;

@@ -10,6 +10,7 @@ import { GripVertical, Edit, Trash2, ChevronDown, ChevronRight, Plus, FolderOpen
 import { getFieldIcon, getFieldTypeLabel, getFieldTypeColor } from "../shared/field-types";
 import { DndContext, closestCenter, DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { PayloadField } from "./PayloadField";
 
 interface NestedPayloadFieldProps {
   field: any;
@@ -17,7 +18,9 @@ interface NestedPayloadFieldProps {
   onEdit: () => void;
   onDelete: () => void;
   depth?: number;
-  onAddNestedField?: (parentSectionId: string) => void;
+  parentSectionId?: string; // Add the real parent section ID
+  allFields?: any[]; // All fields in the parent section to find nested ones
+  onAddNestedField?: (parentSectionId: string, parentFieldId?: string) => void;
   onEditNestedField?: (field: any, parentSectionId: string) => void;
   onDeleteNestedField?: (fieldId: string, parentSectionId: string) => void;
   onReorderNestedFields?: (parentSectionId: string, activeId: string, overId: string) => void;
@@ -29,6 +32,8 @@ export function NestedPayloadField({
   onEdit,
   onDelete,
   depth = 0,
+  parentSectionId,
+  allFields = [],
   onAddNestedField,
   onEditNestedField,
   onDeleteNestedField,
@@ -46,34 +51,23 @@ export function NestedPayloadField({
   // Check if this is a nested section field
   const isNestedSectionField = field.type === "section";
 
-  // For now, we'll simulate having a nested section
-  // In a real implementation, the field would store a reference to the nested section
+  // Get actual nested fields for this section field
+  const nestedFields = isNestedSectionField 
+    ? allFields.filter((f: any) => f.parent_field_id === field.id)
+    : [];
+  
   const nestedSection = isNestedSectionField
     ? {
         id: `nested_${field.id}`,
         name: `${field.name} Section`,
-        fields: [
-          // Mock nested fields for demo
-          {
-            id: `${field.id}_demo_field_1`,
-            name: "Demo Field 1",
-            type: "text",
-            required: false,
-          },
-          {
-            id: `${field.id}_demo_field_2`,
-            name: "Demo Field 2",
-            type: "richtext",
-            required: true,
-          },
-        ],
+        fields: nestedFields,
       }
     : null;
 
   const handleNestedFieldDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over || active.id === over.id || !nestedSection?.id || !onReorderNestedFields) return;
-    onReorderNestedFields(nestedSection.id, active.id as string, over.id as string);
+    if (!over || active.id === over.id || !parentSectionId || !onReorderNestedFields) return;
+    onReorderNestedFields(parentSectionId, active.id as string, over.id as string);
   };
 
   const marginLeft = depth * 24; // 24px per depth level
@@ -168,12 +162,18 @@ export function NestedPayloadField({
                     {nestedSection.fields?.length || 0} fields
                   </Badge>
                 </div>
-                {onAddNestedField && (
-                  <Button size="sm" variant="outline" onClick={() => onAddNestedField(nestedSection.id)} disabled={isSaving} className="text-xs h-7">
-                    <Plus className="h-3 w-3 mr-1" />
-                    Add Field
-                  </Button>
-                )}
+                                  {onAddNestedField && parentSectionId && (
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => onAddNestedField(parentSectionId, field.id)} 
+                      disabled={isSaving} 
+                      className="text-xs h-7"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add Field
+                    </Button>
+                  )}
               </div>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -186,17 +186,12 @@ export function NestedPayloadField({
                   <SortableContext items={nestedSection.fields.map((f: any) => f.id)} strategy={verticalListSortingStrategy}>
                     <div className="space-y-1">
                       {nestedSection.fields.map((nestedField: any) => (
-                        <NestedPayloadField
+                        <PayloadField
                           key={nestedField.id}
                           field={nestedField}
                           isSaving={isSaving}
-                          onEdit={() => onEditNestedField?.(nestedField, nestedSection.id)}
-                          onDelete={() => onDeleteNestedField?.(nestedField.id, nestedSection.id)}
-                          depth={depth + 1}
-                          onAddNestedField={onAddNestedField}
-                          onEditNestedField={onEditNestedField}
-                          onDeleteNestedField={onDeleteNestedField}
-                          onReorderNestedFields={onReorderNestedFields}
+                          onEdit={() => onEditNestedField?.(nestedField, parentSectionId!)}
+                          onDelete={() => onDeleteNestedField?.(nestedField.id, parentSectionId!)}
                         />
                       ))}
                     </div>
