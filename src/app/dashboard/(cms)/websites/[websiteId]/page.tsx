@@ -1,4 +1,4 @@
-import { PageOverview } from "@/components/cms/shared/PageOverview";
+import { PageOverview } from "@/components/cms/shared/pageOverview";
 import { createClient } from "@/lib/supabase/supabaseServerClient";
 
 interface PagesPageProps {

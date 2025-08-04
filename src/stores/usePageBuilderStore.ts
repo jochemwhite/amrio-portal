@@ -622,9 +622,11 @@ export const usePageBuilderStore = create<PageBuilderState>()(
           (state) => {
             const updatedSections = state.sections.map((section: any) => {
               if (section.id === sectionId) {
-                // Find the parent field to get nested fields
+                // Find the parent field by checking which section field has nested fields with the active/over IDs
                 const parentField = section.cms_fields.find((f: any) => 
-                  f.type === 'section' && f.cms_fields?.some((nf: any) => nf.id === activeId || nf.id === overId)
+                  f.type === 'section' && section.cms_fields.some((nf: any) => 
+                    nf.parent_field_id === f.id && (nf.id === activeId || nf.id === overId)
+                  )
                 );
                 
                 if (!parentField) return section;

@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { closestCenter, DndContext, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { closestCenter, DndContext, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ChevronDown, ChevronRight, GripVertical, Plus, Settings, Trash2 } from "lucide-react";
@@ -46,7 +46,8 @@ export function PayloadSection({
   onShowAddMenu,
 }: PayloadSectionProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+
   // Get nested field methods from store
   const { openAddNestedFieldDialog, openEditNestedFieldDialog, deleteNestedFieldById, reorderNestedFields } = usePageBuilderStore();
 
@@ -67,6 +68,52 @@ export function PayloadSection({
   };
 
   const fieldCount = section.cms_fields?.length || 0;
+
+  // Custom collision detection that respects nesting levels
+  const customCollisionDetection = (args: any) => {
+    const { active, droppableContainers } = args;
+
+    // If we're dragging a nested field, only allow drops on other nested fields within the same parent
+    const activeField = section.cms_fields?.find((f: any) => f.id === active.id);
+    if (activeField?.parent_field_id) {
+      // Only allow drops on fields with the same parent_field_id (exclude the parent field itself)
+      const validTargets = droppableContainers.filter((container: any) => {
+        const targetField = section.cms_fields?.find((f: any) => f.id === container.id);
+        return targetField && targetField.parent_field_id === activeField.parent_field_id && targetField.id !== activeField.parent_field_id; // Exclude the parent field itself
+      });
+      return closestCenter({ ...args, droppableContainers: validTargets });
+    }
+
+    // If we're dragging a top-level field, only allow drops on other top-level fields
+    const topLevelTargets = droppableContainers.filter((container: any) => {
+      const targetField = section.cms_fields?.find((f: any) => f.id === container.id);
+      return targetField && !targetField.parent_field_id;
+    });
+    return closestCenter({ ...args, droppableContainers: topLevelTargets });
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveDragId(event.active.id as string);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveDragId(null);
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) return;
+
+    // Check if this is a nested field reorder
+    const activeField = section.cms_fields?.find((f: any) => f.id === active.id);
+    const overField = section.cms_fields?.find((f: any) => f.id === over.id);
+
+    if (activeField?.parent_field_id || overField?.parent_field_id) {
+      // This is a nested field reorder
+      reorderNestedFields(section.id, active.id as string, over.id as string);
+    } else {
+      // This is a regular field reorder
+      onReorderFields(section.id, active.id as string, over.id as string);
+    }
+  };
 
   return (
     <div ref={setNodeRef} style={style} className={`group ${isDragging ? "opacity-50" : ""}`}>
@@ -125,42 +172,38 @@ export function PayloadSection({
               </div>
             ) : (
               <div className="p-4">
-                <DndContext 
-                  sensors={sensors}
-                  collisionDetection={closestCenter} 
-                  onDragEnd={(event) => {
-                    const { active, over } = event;
-                    if (!over || active.id === over.id) return;
-                    onReorderFields(section.id, active.id as string, over.id as string);
-                  }}
-                >
+                <DndContext sensors={sensors} collisionDetection={customCollisionDetection} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
                   <SortableContext items={section.cms_fields?.map((f: any) => f.id) || []} strategy={verticalListSortingStrategy}>
                     <div className="">
-                      {section.cms_fields?.filter((field: any) => !field.parent_field_id).map((field: any) => (
-                        field.type === 'section' ? (
-                          <NestedPayloadField
-                            key={field.id}
-                            field={field}
-                            isSaving={isSaving}
-                            parentSectionId={section.id} // Pass the real parent section ID
-                            allFields={section.cms_fields || []} // Pass all fields to find nested ones
-                            onEdit={() => onEditField(field)}
-                            onDelete={() => onDeleteField(field.id)}
-                            onAddNestedField={openAddNestedFieldDialog}
-                            onEditNestedField={openEditNestedFieldDialog}
-                            onDeleteNestedField={deleteNestedFieldById}
-                            onReorderNestedFields={reorderNestedFields}
-                          />
-                        ) : (
-                          <PayloadField
-                            key={field.id}
-                            field={field}
-                            isSaving={isSaving}
-                            onEdit={() => onEditField(field)}
-                            onDelete={() => onDeleteField(field.id)}
-                          />
-                        )
-                      ))}
+                      {section.cms_fields
+                        ?.filter((field: any) => !field.parent_field_id)
+                        .map((field: any) =>
+                          field.type === "section" ? (
+                            <NestedPayloadField
+                              key={field.id}
+                              field={field}
+                              isSaving={isSaving}
+                              parentSectionId={section.id} // Pass the real parent section ID
+                              allFields={section.cms_fields || []} // Pass all fields to find nested ones
+                              onEdit={() => onEditField(field)}
+                              onDelete={() => onDeleteField(field.id)}
+                              onAddNestedField={openAddNestedFieldDialog}
+                              onEditNestedField={openEditNestedFieldDialog}
+                              onDeleteNestedField={deleteNestedFieldById}
+                              activeDragId={activeDragId}
+                            />
+                          ) : (
+                            <PayloadField
+                              key={field.id}
+                              field={field}
+                              isSaving={isSaving}
+                              onEdit={() => onEditField(field)}
+                              onDelete={() => onDeleteField(field.id)}
+                              activeDragId={activeDragId}
+                              allFields={section.cms_fields || []}
+                            />
+                          )
+                        )}
                     </div>
                   </SortableContext>
                 </DndContext>

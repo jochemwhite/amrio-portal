@@ -8,8 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { GripVertical, Edit, Trash2, ChevronDown, ChevronRight, Plus, FolderOpen } from "lucide-react";
 import { getFieldIcon, getFieldTypeLabel, getFieldTypeColor } from "../shared/field-types";
-import { DndContext, closestCenter, DragEndEvent } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { PayloadField } from "./PayloadField";
 
 interface NestedPayloadFieldProps {
@@ -23,7 +21,7 @@ interface NestedPayloadFieldProps {
   onAddNestedField?: (parentSectionId: string, parentFieldId?: string) => void;
   onEditNestedField?: (field: any, parentSectionId: string) => void;
   onDeleteNestedField?: (fieldId: string, parentSectionId: string) => void;
-  onReorderNestedFields?: (parentSectionId: string, activeId: string, overId: string) => void;
+  activeDragId?: string | null; // Add activeDragId prop
 }
 
 export function NestedPayloadField({
@@ -37,7 +35,7 @@ export function NestedPayloadField({
   onAddNestedField,
   onEditNestedField,
   onDeleteNestedField,
-  onReorderNestedFields,
+  activeDragId,
 }: NestedPayloadFieldProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -52,10 +50,8 @@ export function NestedPayloadField({
   const isNestedSectionField = field.type === "section";
 
   // Get actual nested fields for this section field
-  const nestedFields = isNestedSectionField 
-    ? allFields.filter((f: any) => f.parent_field_id === field.id)
-    : [];
-  
+  const nestedFields = isNestedSectionField ? allFields.filter((f: any) => f.parent_field_id === field.id) : [];
+
   const nestedSection = isNestedSectionField
     ? {
         id: `nested_${field.id}`,
@@ -64,13 +60,17 @@ export function NestedPayloadField({
       }
     : null;
 
-  const handleNestedFieldDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id || !parentSectionId || !onReorderNestedFields) return;
-    onReorderNestedFields(parentSectionId, active.id as string, over.id as string);
-  };
-
   const marginLeft = depth * 24; // 24px per depth level
+
+  // Determine if this field should show drop indicator
+  const shouldShowDropIndicator = activeDragId && activeDragId !== field.id;
+  const activeField = allFields.find((f: any) => f.id === activeDragId);
+  const isCompatibleDropTarget = activeField && (
+    // If dragging a nested field, only show indicator on other nested fields with same parent (exclude parent field)
+    (activeField.parent_field_id && field.parent_field_id === activeField.parent_field_id && field.id !== activeField.parent_field_id) ||
+    // If dragging a top-level field, only show indicator on other top-level fields
+    (!activeField.parent_field_id && !field.parent_field_id)
+  );
 
   return (
     <div className="space-y-2">
@@ -78,7 +78,9 @@ export function NestedPayloadField({
       <div
         ref={setNodeRef}
         style={{ ...style, marginLeft: `${marginLeft}px` }}
-        className={`group rounded-lg border ${isDragging ? "opacity-50 shadow-lg" : "hover:shadow-sm"} `}
+        className={`group rounded-lg border ${isDragging ? "opacity-50 shadow-lg" : "hover:shadow-sm"} ${
+          shouldShowDropIndicator && isCompatibleDropTarget ? "ring-2 ring-blue-400 bg-blue-50" : ""
+        }`}
       >
         <div className="flex items-center justify-between p-3">
           <div className="flex items-center space-x-3 flex-1">
@@ -162,18 +164,18 @@ export function NestedPayloadField({
                     {nestedSection.fields?.length || 0} fields
                   </Badge>
                 </div>
-                                  {onAddNestedField && parentSectionId && (
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => onAddNestedField(parentSectionId, field.id)} 
-                      disabled={isSaving} 
-                      className="text-xs h-7"
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      Add Field
-                    </Button>
-                  )}
+                {onAddNestedField && parentSectionId && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onAddNestedField(parentSectionId, field.id)}
+                    disabled={isSaving}
+                    className="text-xs h-7"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add Field
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -182,21 +184,17 @@ export function NestedPayloadField({
                   <p className="text-xs text-muted-foreground">No fields in this nested section yet.</p>
                 </div>
               ) : (
-                <DndContext collisionDetection={closestCenter} onDragEnd={handleNestedFieldDragEnd}>
-                  <SortableContext items={nestedSection.fields.map((f: any) => f.id)} strategy={verticalListSortingStrategy}>
-                    <div className="space-y-1">
-                      {nestedSection.fields.map((nestedField: any) => (
-                        <PayloadField
-                          key={nestedField.id}
-                          field={nestedField}
-                          isSaving={isSaving}
-                          onEdit={() => onEditNestedField?.(nestedField, parentSectionId!)}
-                          onDelete={() => onDeleteNestedField?.(nestedField.id, parentSectionId!)}
-                        />
-                      ))}
-                    </div>
-                  </SortableContext>
-                </DndContext>
+                <div className="space-y-1">
+                  {nestedSection.fields.map((nestedField: any) => (
+                    <PayloadField
+                      key={nestedField.id}
+                      field={nestedField}
+                      isSaving={isSaving}
+                      onEdit={() => onEditNestedField?.(nestedField, parentSectionId!)}
+                      onDelete={() => onDeleteNestedField?.(nestedField.id, parentSectionId!)}
+                    />
+                  ))}
+                </div>
               )}
             </CardContent>
           </Card>

@@ -12,9 +12,11 @@ interface PayloadFieldProps {
   isSaving: boolean;
   onEdit: () => void;
   onDelete: () => void;
+  activeDragId?: string | null; // Add activeDragId prop
+  allFields?: any[]; // Add allFields prop for compatibility checking
 }
 
-export function PayloadField({ field, isSaving, onEdit, onDelete }: PayloadFieldProps) {
+export function PayloadField({ field, isSaving, onEdit, onDelete, activeDragId, allFields = [] }: PayloadFieldProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: field.id });
 
   const style = {
@@ -22,11 +24,23 @@ export function PayloadField({ field, isSaving, onEdit, onDelete }: PayloadField
     transition,
   };
 
+  // Determine if this field should show drop indicator
+  const shouldShowDropIndicator = activeDragId && activeDragId !== field.id;
+  const activeField = allFields.find((f: any) => f.id === activeDragId);
+  const isCompatibleDropTarget = activeField && (
+    // If dragging a nested field, only show indicator on other nested fields with same parent (exclude parent field)
+    (activeField.parent_field_id && field.parent_field_id === activeField.parent_field_id && field.id !== activeField.parent_field_id) ||
+    // If dragging a top-level field, only show indicator on other top-level fields
+    (!activeField.parent_field_id && !field.parent_field_id)
+  );
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`group rounded-lg    ${isDragging ? "opacity-50 shadow-lg" : "hover:shadow-sm"}`}
+      className={`group rounded-lg border ${isDragging ? "opacity-50 shadow-lg" : "hover:shadow-sm"} ${
+        shouldShowDropIndicator && isCompatibleDropTarget ? "ring-2 ring-blue-400 bg-blue-50" : ""
+      }`}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3 flex-1">
@@ -35,7 +49,7 @@ export function PayloadField({ field, isSaving, onEdit, onDelete }: PayloadField
             {...listeners}
             className="cursor-grab hover:bg-gray-100 rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity"
           >
-            <GripVertical className="h-4 w-4 " />
+            <GripVertical className="h-4 w-4" />
           </div>
 
           <div className={`p-2 rounded-lg ${getFieldTypeColor(field.type)}`}>{getFieldIcon(field.type)}</div>
