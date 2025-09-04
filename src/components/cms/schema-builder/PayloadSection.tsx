@@ -13,6 +13,7 @@ import { PayloadField } from "./PayloadField";
 import { NestedPayloadField } from "./NestedPayloadField";
 import { FIELD_TYPES } from "../shared/field-types";
 import { usePageBuilderStore } from "@/stores/usePageBuilderStore";
+import { Field } from "@/types/cms";
 
 interface PayloadSectionProps {
   section: any;
@@ -38,7 +39,6 @@ export function PayloadSection({
   onSelect,
   onEdit,
   onDelete,
-  onAddField,
   onEditField,
   onDeleteField,
   onReorderFields,
@@ -49,7 +49,8 @@ export function PayloadSection({
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
 
   // Get nested field methods from store
-  const { openAddNestedFieldDialog, openEditNestedFieldDialog, deleteNestedFieldById, reorderNestedFields } = usePageBuilderStore();
+  const { openAddNestedFieldDialog, openEditNestedFieldDialog, deleteNestedFieldById, reorderNestedFields, openAddFieldDialog } =
+    usePageBuilderStore();
 
   // Configure sensors for field dragging
   const sensors = useSensors(
@@ -165,7 +166,7 @@ export function PayloadSection({
                 </div>
                 <h4 className="text-sm font-medium  mb-1">No fields yet</h4>
                 <p className="text-xs text-gray-500 mb-4">Add fields to collect content for this section</p>
-                <Button onClick={onShowAddMenu} size="sm" variant="outline" className="">
+                <Button onClick={() => openAddFieldDialog()} size="sm" variant="outline" className="">
                   <Plus className="mr-2 h-3 w-3" />
                   Add Field
                 </Button>
@@ -173,8 +174,8 @@ export function PayloadSection({
             ) : (
               <div className="p-4">
                 <DndContext sensors={sensors} collisionDetection={customCollisionDetection} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-                  <SortableContext items={section.cms_fields?.map((f: any) => f.id) || []} strategy={verticalListSortingStrategy}>
-                    <div className="">
+                  <SortableContext items={section.cms_fields?.map((f: Field) => f.id) || []} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-2">
                       {section.cms_fields
                         ?.filter((field: any) => !field.parent_field_id)
                         .map((field: any) =>
@@ -209,18 +210,11 @@ export function PayloadSection({
                 </DndContext>
 
                 <div className="mt-4 pt-4 border-t ">
-                  <Button onClick={onShowAddMenu} size="sm" variant="outline" className="w-full">
+                  <Button onClick={() => openAddFieldDialog()} size="sm" variant="outline" className="w-full">
                     <Plus className="mr-2 h-3 w-3" />
                     Add Field
                   </Button>
                 </div>
-              </div>
-            )}
-
-            {/* Add Field Menu */}
-            {showAddMenu && (
-              <div className="">
-                <AddFieldMenu onAddField={onAddField} onClose={onShowAddMenu} fieldTypes={FIELD_TYPES} />
               </div>
             )}
           </CardContent>

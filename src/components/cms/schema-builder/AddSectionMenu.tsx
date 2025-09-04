@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
 import { X, Layout, Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { usePageBuilderStore } from "@/stores/usePageBuilderStore";
 
 interface FieldType {
   value: string;
@@ -15,13 +16,8 @@ interface FieldType {
   description: string;
 }
 
-interface AddBlockMenuProps {
-  onAddSection: (name: string, description: string) => void;
-  onClose: () => void;
-  fieldTypes: FieldType[];
-}
-
-export function AddBlockMenu({ onAddSection, onClose, fieldTypes }: AddBlockMenuProps) {
+export function AddSectionMenu() {
+  const { isAddSectionOpen, setSectionFormData, submitSection, closeSectionDialog } = usePageBuilderStore();
   const [sectionData, setSectionData] = useState({
     name: "",
     description: "",
@@ -31,32 +27,30 @@ export function AddBlockMenu({ onAddSection, onClose, fieldTypes }: AddBlockMenu
     e.preventDefault();
     if (!sectionData.name.trim()) return;
 
-    onAddSection(sectionData.name, sectionData.description);
+    setSectionFormData(sectionData);
+    submitSection();
     setSectionData({ name: "", description: "" });
   };
 
   const handleCancel = () => {
     setSectionData({ name: "", description: "" });
-    onClose();
+    closeSectionDialog();
   };
 
   return (
-    <Card className="border-2 ">
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between mb-6">
+    <Dialog open={isAddSectionOpen} onOpenChange={closeSectionDialog}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
           <div className="flex items-center space-x-2">
-            <div className="p-2  rounded-lg">
-              <Layout className="h-5 w-5 " />
+            <div className="p-2 rounded-lg bg-muted">
+              <Layout className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-lg font-medium ">Add Content Block</h3>
-              <p className="text-sm text-gray-500">Create a new section to organize your content</p>
+              <DialogTitle>Add Section</DialogTitle>
+              <DialogDescription>Create a new section to organize your content</DialogDescription>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -87,17 +81,17 @@ export function AddBlockMenu({ onAddSection, onClose, fieldTypes }: AddBlockMenu
             />
           </div>
 
-          <div className="flex justify-end space-x-2 pt-4  ">
+          <div className="flex justify-end space-x-2 pt-4">
             <Button type="button" variant="outline" onClick={handleCancel}>
               Cancel
             </Button>
-            <Button type="submit" className="">
+            <Button type="submit">
               <Plus className="mr-2 h-4 w-4" />
-              Create Block
+              Create Section
             </Button>
           </div>
         </form>
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
   );
 }

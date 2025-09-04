@@ -1,161 +1,191 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { X } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { FIELD_TYPES } from "../shared/field-types";
+import { usePageBuilderStore } from "@/stores/usePageBuilderStore";
 import { FieldType } from "@/types/cms";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { FIELD_TYPES } from "../shared/field-types";
 
-interface AddFieldMenuProps {
-  onAddField: (fieldData: any) => void;
-  onClose: () => void;
-  fieldTypes?: FieldType[];
-}
+// Form validation schema
+const fieldSchema = z.object({
+  name: z
+    .string()
+    .min(1, "Field name is required")
+    .min(2, "Field name must be at least 2 characters")
+    .max(50, "Field name must be less than 50 characters")
+    .regex(/^[a-zA-Z][a-zA-Z0-9_]*$/, "Field name must start with a letter and contain only letters, numbers, and underscores"),
+  type: z.string().min(1, "Field type is required"),
+  required: z.boolean().default(false),
+  default_value: z.string().optional(),
+  validation: z.string().optional(),
+});
 
-export function AddFieldMenu({ onAddField, onClose, fieldTypes = FIELD_TYPES }: AddFieldMenuProps) {
-  const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [fieldData, setFieldData] = useState({
-    name: "",
-    type: "",
-    required: false,
-    default_value: "",
-    validation: "",
+type FieldFormData = z.infer<typeof fieldSchema>;
+
+export function AddFieldMenu() {
+  const { isAddFieldOpen, setFieldFormData, submitField, closeFieldDialog, fieldFormData } = usePageBuilderStore();
+  const [selectedType, setSelectedType] = useState<string | null>(fieldFormData.type || null);
+
+  const form = useForm<FieldFormData>({
+    resolver: zodResolver(fieldSchema),
+    defaultValues: {
+      name: fieldFormData.name,
+      type: fieldFormData.type,
+      required: fieldFormData.required,
+      default_value: fieldFormData.default_value,
+      validation: fieldFormData.validation,
+    },
   });
+
+  console.log("fieldFormData", fieldFormData);
 
   const handleTypeSelect = (type: FieldType) => {
     setSelectedType(type.value);
-    setFieldData((prev) => ({ ...prev, type: type.value }));
+    form.setValue("type", type.value);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!fieldData.name.trim() || !fieldData.type) return;
-
-    onAddField(fieldData);
-    setFieldData({
-      name: "",
-      type: "",
-      required: false,
-      default_value: "",
-      validation: "",
-    });
+  const handleBackToTypeSelection = () => {
     setSelectedType(null);
+    form.reset();
+  };
+
+  const onSubmit = (data: FieldFormData) => {
+    setFieldFormData({
+      name: data.name,
+      type: data.type,
+      required: data.required,
+      default_value: data.default_value || "",
+      validation: data.validation || "",
+    });
+    submitField();
+    handleCancel();
   };
 
   const handleCancel = () => {
-    setFieldData({
-      name: "",
-      type: "",
-      required: false,
-      default_value: "",
-      validation: "",
-    });
+    console.log("handleCancel");
+    form.reset();
     setSelectedType(null);
-    onClose();
+    closeFieldDialog();
   };
 
-  if (!selectedType) {
-    return (
-      <Card className="p-4 ">
-        <div className="flex items-center justify-between mb-4 p-2 rounded-lg">
-          <h3 className="text-sm font-medium ">Choose Field Type</h3>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-1 gap-2">
-          {fieldTypes.map((type) => (
-            <button key={type.value} onClick={() => handleTypeSelect(type)} className="flex items-center space-x-3 p-3 text-left border  rounded-lg ">
-              <span className="text-lg">{type.icon}</span>
-              <div>
-                <div className="font-medium ">{type.label}</div>
-                <div className="text-xs text-gray-500">{type.description}</div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </Card>
-    );
-  }
-
-  const selectedTypeInfo = fieldTypes.find((t) => t.value === selectedType);
-
   return (
-    <Card className=" ">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-2">
-          <span className="text-lg">{selectedTypeInfo?.icon}</span>
-          <h3 className="text-sm font-medium text-gray-900">Add {selectedTypeInfo?.label} Field</h3>
-        </div>
-        <Button variant="ghost" size="sm" onClick={handleCancel}>
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
+    <Dialog open={isAddFieldOpen} onOpenChange={handleCancel}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>{!selectedType ? "Add New Field" : `Add ${FIELD_TYPES.find((t) => t.value === selectedType)?.label} Field`}</DialogTitle>
+          <DialogDescription>
+            {!selectedType ? "Choose a field type to get started" : "Configure your field properties and validation rules"}
+          </DialogDescription>
+        </DialogHeader>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <Label htmlFor="field-name" className="text-sm font-medium">
-            Field Name *
-          </Label>
-          <Input
-            id="field-name"
-            value={fieldData.name}
-            onChange={(e) => setFieldData((prev) => ({ ...prev, name: e.target.value }))}
-            placeholder="Enter field name"
-            className="mt-1"
-            required
-          />
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <Switch id="field-required" checked={fieldData.required} onCheckedChange={(required) => setFieldData((prev) => ({ ...prev, required }))} />
-          <Label htmlFor="field-required" className="text-sm">
-            Required field
-          </Label>
-        </div>
-
-        {selectedType !== "boolean" && (
-          <div>
-            <Label htmlFor="field-default" className="text-sm font-medium">
-              Default Value
-            </Label>
-            <Input
-              id="field-default"
-              value={fieldData.default_value}
-              onChange={(e) => setFieldData((prev) => ({ ...prev, default_value: e.target.value }))}
-              placeholder="Enter default value (optional)"
-              className="mt-1"
-            />
+        {!selectedType ? (
+          <div className="grid grid-cols-1 gap-3 py-4">
+            {FIELD_TYPES.map((type) => (
+              <Button
+                key={type.value}
+                variant="outline"
+                onClick={() => handleTypeSelect(type)}
+                className="flex items-center justify-start space-x-3 p-4 h-auto text-left"
+              >
+                <span className="text-lg">{type.icon}</span>
+                <div>
+                  <div className="font-medium">{type.label}</div>
+                  <div className="text-xs text-muted-foreground">{type.description}</div>
+                </div>
+              </Button>
+            ))}
           </div>
+        ) : (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Field Name *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter field name" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      The unique identifier for this field. Must start with a letter and contain only letters, numbers, and underscores.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="required"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Required Field</FormLabel>
+                      <FormDescription>Make this field mandatory for content creation</FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              {selectedType !== "boolean" && (
+                <FormField
+                  control={form.control}
+                  name="default_value"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Default Value</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter default value (optional)" {...field} />
+                      </FormControl>
+                      <FormDescription>The default value that will be pre-filled for this field</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              <FormField
+                control={form.control}
+                name="validation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Validation Rules</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Enter validation rules (optional)" rows={3} {...field} />
+                    </FormControl>
+                    <FormDescription>Custom validation rules or constraints for this field</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex justify-between pt-4">
+                <Button type="button" variant="ghost" onClick={handleBackToTypeSelection}>
+                  ← Back to Field Types
+                </Button>
+                <div className="flex space-x-3">
+                  <Button type="button" variant="outline" onClick={handleCancel}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">Add Field</Button>
+                </div>
+              </div>
+            </form>
+          </Form>
         )}
-
-        <div>
-          <Label htmlFor="field-validation" className="text-sm font-medium">
-            Validation Rules
-          </Label>
-          <Textarea
-            id="field-validation"
-            value={fieldData.validation}
-            onChange={(e) => setFieldData((prev) => ({ ...prev, validation: e.target.value }))}
-            placeholder="Enter validation rules (optional)"
-            className="mt-1"
-            rows={2}
-          />
-        </div>
-
-        <div className="flex justify-end space-x-2 pt-2">
-          <Button type="button" variant="outline" onClick={handleCancel}>
-            Cancel
-          </Button>
-          <Button type="submit">Add Field</Button>
-        </div>
-      </form>
-    </Card>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -27,12 +27,12 @@ export function PayloadField({ field, isSaving, onEdit, onDelete, activeDragId, 
   // Determine if this field should show drop indicator
   const shouldShowDropIndicator = activeDragId && activeDragId !== field.id;
   const activeField = allFields.find((f: any) => f.id === activeDragId);
-  const isCompatibleDropTarget = activeField && (
+  const isCompatibleDropTarget =
+    activeField &&
     // If dragging a nested field, only show indicator on other nested fields with same parent (exclude parent field)
-    (activeField.parent_field_id && field.parent_field_id === activeField.parent_field_id && field.id !== activeField.parent_field_id) ||
-    // If dragging a top-level field, only show indicator on other top-level fields
-    (!activeField.parent_field_id && !field.parent_field_id)
-  );
+    ((activeField.parent_field_id && field.parent_field_id === activeField.parent_field_id && field.id !== activeField.parent_field_id) ||
+      // If dragging a top-level field, only show indicator on other top-level fields
+      (!activeField.parent_field_id && !field.parent_field_id));
 
   return (
     <div
@@ -42,7 +42,7 @@ export function PayloadField({ field, isSaving, onEdit, onDelete, activeDragId, 
         shouldShowDropIndicator && isCompatibleDropTarget ? "ring-2 ring-blue-400 bg-blue-50" : ""
       }`}
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between py-2">
         <div className="flex items-center space-x-3 flex-1">
           <div
             {...attributes}
@@ -54,7 +54,7 @@ export function PayloadField({ field, isSaving, onEdit, onDelete, activeDragId, 
 
           <div className={`p-2 rounded-lg ${getFieldTypeColor(field.type)}`}>{getFieldIcon(field.type)}</div>
 
-          <div className="flex-1">
+          <div>
             <div className="flex items-center space-x-2">
               <h4 className="font-medium ">{field.name}</h4>
               {field.required && (
@@ -63,7 +63,7 @@ export function PayloadField({ field, isSaving, onEdit, onDelete, activeDragId, 
                 </Badge>
               )}
             </div>
-            <div className="flex items-center space-x-2 mt-1">
+            <div className="flex items-center space-x-2 ">
               <span className="text-xs text-gray-500">{getFieldTypeLabel(field.type)}</span>
               {field.default_value && (
                 <>

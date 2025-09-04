@@ -3,12 +3,12 @@ import { devtools } from "zustand/middleware";
 import { toast } from "sonner";
 import { bulkSavePageChanges } from "@/actions/cms/section-actions";
 import { arrayMove } from "@dnd-kit/sortable";
-import { SupabasePageWithRelations, SupabaseSectionWithRelations } from "@/types/cms";
+import { Field, SupabasePageWithRelations, SupabaseSectionWithRelations } from "@/types/cms";
 
 // Types for tracking changes
 interface PendingChange {
-  type: 'create' | 'update' | 'delete';
-  entity: 'section' | 'field';
+  type: "create" | "update" | "delete";
+  entity: "section" | "field";
   id?: string;
   data?: any;
   tempId?: string; // For new items before they get real IDs
@@ -61,7 +61,6 @@ interface PageBuilderState {
   pendingNavigation: (() => void) | null;
 
   // Mode switching (schema builder vs content editor)
-  mode: 'schema' | 'content';
 
   // Pending changes tracking
   pendingChanges: PendingChange[];
@@ -92,10 +91,10 @@ interface PageBuilderState {
   openEditNestedFieldDialog: (field: any, parentSectionId: string) => void;
   deleteNestedFieldById: (fieldId: string, parentSectionId: string) => void;
 
-        // Reordering actions
-      reorderSections: (activeId: string, overId: string) => void;
-      reorderSectionFields: (sectionId: string, activeId: string, overId: string) => void;
-      reorderNestedFields: (sectionId: string, activeId: string, overId: string) => void;
+  // Reordering actions
+  reorderSections: (activeId: string, overId: string) => void;
+  reorderSectionFields: (sectionId: string, activeId: string, overId: string) => void;
+  reorderNestedFields: (sectionId: string, activeId: string, overId: string) => void;
 
   // Save/Reset actions
   saveChanges: () => Promise<void>;
@@ -114,7 +113,6 @@ interface PageBuilderState {
   discardChangesAndNavigate: () => void;
 
   // Mode switching
-  setMode: (mode: 'schema' | 'content') => void;
 }
 
 export const usePageBuilderStore = create<PageBuilderState>()(
@@ -126,7 +124,6 @@ export const usePageBuilderStore = create<PageBuilderState>()(
       websiteId: "",
       selectedSectionId: null,
       hasUnsavedChanges: false,
-      isSaving: false,
 
       // Section form state
       isAddSectionOpen: false,
@@ -164,7 +161,7 @@ export const usePageBuilderStore = create<PageBuilderState>()(
       pendingNavigation: null,
 
       // Mode switching
-      mode: 'schema',
+      mode: "schema",
 
       // Pending changes
       pendingChanges: [],
@@ -260,21 +257,19 @@ export const usePageBuilderStore = create<PageBuilderState>()(
           set(
             (state) => ({
               sections: state.sections.map((s: any) =>
-                s.id === editingSectionId 
-                  ? { ...s, name: sectionFormData.name, description: sectionFormData.description } 
-                  : s
+                s.id === editingSectionId ? { ...s, name: sectionFormData.name, description: sectionFormData.description } : s
               ),
               pendingChanges: [
-                ...state.pendingChanges.filter(c => !(c.entity === 'section' && c.id === editingSectionId)),
+                ...state.pendingChanges.filter((c) => !(c.entity === "section" && c.id === editingSectionId)),
                 {
-                  type: 'update',
-                  entity: 'section',
+                  type: "update",
+                  entity: "section",
                   id: editingSectionId,
                   data: {
                     name: sectionFormData.name,
                     description: sectionFormData.description,
-                  }
-                }
+                  },
+                },
               ],
               isEditSectionOpen: false,
               hasUnsavedChanges: true,
@@ -294,7 +289,7 @@ export const usePageBuilderStore = create<PageBuilderState>()(
             page_id: page.id,
             order: nextOrder,
           };
-          
+
           set(
             (state) => ({
               sections: [...state.sections, newSection],
@@ -302,16 +297,16 @@ export const usePageBuilderStore = create<PageBuilderState>()(
               pendingChanges: [
                 ...state.pendingChanges,
                 {
-                  type: 'create',
-                  entity: 'section',
+                  type: "create",
+                  entity: "section",
                   tempId: tempId,
                   data: {
                     page_id: page.id,
                     name: sectionFormData.name,
                     description: sectionFormData.description,
                     order: nextOrder,
-                  }
-                }
+                  },
+                },
               ],
               tempIdCounter: state.tempIdCounter + 1,
               isAddSectionOpen: false,
@@ -326,35 +321,32 @@ export const usePageBuilderStore = create<PageBuilderState>()(
       // Delete section - LOCAL ONLY
       deleteSectionById: (sectionId: string) => {
         const { selectedSectionId, sections, pendingChanges } = get();
-        
+
         set(
           (state) => {
-            const isTemp = sectionId.startsWith('temp_');
+            const isTemp = sectionId.startsWith("temp_");
             let newPendingChanges = state.pendingChanges;
-            
+
             if (isTemp) {
               // Remove from pending changes if it's a temp item
-              newPendingChanges = state.pendingChanges.filter(c => c.tempId !== sectionId);
+              newPendingChanges = state.pendingChanges.filter((c) => c.tempId !== sectionId);
             } else {
               // Add delete change for real sections, remove any existing changes for this section
               newPendingChanges = [
-                ...state.pendingChanges.filter(c => !(c.entity === 'section' && c.id === sectionId)),
+                ...state.pendingChanges.filter((c) => !(c.entity === "section" && c.id === sectionId)),
                 {
-                  type: 'delete',
-                  entity: 'section',
+                  type: "delete",
+                  entity: "section",
                   id: sectionId,
-                }
+                },
               ];
             }
 
             const remainingSections = state.sections.filter((s: any) => s.id !== sectionId);
-            
+
             return {
               sections: remainingSections,
-              selectedSectionId:
-                selectedSectionId === sectionId
-                  ? remainingSections[0]?.id || null
-                  : selectedSectionId,
+              selectedSectionId: selectedSectionId === sectionId ? remainingSections[0]?.id || null : selectedSectionId,
               pendingChanges: newPendingChanges,
               hasUnsavedChanges: newPendingChanges.length > 0,
             };
@@ -387,18 +379,19 @@ export const usePageBuilderStore = create<PageBuilderState>()(
         );
       },
 
-      openEditFieldDialog: (field: any) => {
+      openEditFieldDialog: (field: Field) => {
+        console.log("openEditFieldDialog", field);
         set(
           {
             fieldFormData: {
               name: field.name,
               type: field.type,
               required: field.required || false,
-              default_value: field.default_value || "",
+              default_value: field.defaultValue || "",
               validation: field.validation || "",
             },
             editingFieldId: field.id,
-            isEditFieldOpen: true,
+            isAddFieldOpen: true,
           },
           false,
           "openEditFieldDialog"
@@ -455,22 +448,18 @@ export const usePageBuilderStore = create<PageBuilderState>()(
                 section.id === selectedSectionId
                   ? {
                       ...section,
-                      cms_fields: section.cms_fields.map((field: any) => 
-                        field.id === editingFieldId 
-                          ? { ...field, ...fieldFormData } 
-                          : field
-                      ),
+                      cms_fields: section.cms_fields.map((field: any) => (field.id === editingFieldId ? { ...field, ...fieldFormData } : field)),
                     }
                   : section
               ),
               pendingChanges: [
-                ...state.pendingChanges.filter(c => !(c.entity === 'field' && c.id === editingFieldId)),
+                ...state.pendingChanges.filter((c) => !(c.entity === "field" && c.id === editingFieldId)),
                 {
-                  type: 'update',
-                  entity: 'field',
+                  type: "update",
+                  entity: "field",
                   id: editingFieldId,
                   data: fieldFormData,
-                }
+                },
               ],
               isEditFieldOpen: false,
               hasUnsavedChanges: true,
@@ -488,9 +477,9 @@ export const usePageBuilderStore = create<PageBuilderState>()(
             ...fieldFormData,
             section_id: selectedSectionId,
             parent_field_id: parentFieldId, // Include parent field ID for nested fields
-            order: parentFieldId ? nestedFields.length : (selectedSection?.cms_fields?.length || 0),
+            order: parentFieldId ? nestedFields.length : selectedSection?.cms_fields?.length || 0,
           };
-          
+
           set(
             (state) => ({
               sections: state.sections.map((section: any) =>
@@ -504,16 +493,16 @@ export const usePageBuilderStore = create<PageBuilderState>()(
               pendingChanges: [
                 ...state.pendingChanges,
                 {
-                  type: 'create',
-                  entity: 'field',
+                  type: "create",
+                  entity: "field",
                   tempId: tempId,
                   data: {
                     section_id: selectedSectionId,
                     ...fieldFormData,
                     parent_field_id: parentFieldId,
-                    order: parentFieldId ? nestedFields.length : (selectedSection?.cms_fields?.length || 0),
-                  }
-                }
+                    order: parentFieldId ? nestedFields.length : selectedSection?.cms_fields?.length || 0,
+                  },
+                },
               ],
               tempIdCounter: state.tempIdCounter + 1,
               isAddFieldOpen: false,
@@ -529,24 +518,24 @@ export const usePageBuilderStore = create<PageBuilderState>()(
       // Delete field - LOCAL ONLY
       deleteFieldById: (fieldId: string) => {
         const { selectedSectionId, pendingChanges } = get();
-        
+
         set(
           (state) => {
-            const isTemp = fieldId.startsWith('temp_');
+            const isTemp = fieldId.startsWith("temp_");
             let newPendingChanges = state.pendingChanges;
-            
+
             if (isTemp) {
               // Remove from pending changes if it's a temp item
-              newPendingChanges = state.pendingChanges.filter(c => c.tempId !== fieldId);
+              newPendingChanges = state.pendingChanges.filter((c) => c.tempId !== fieldId);
             } else {
               // Add delete change for real fields, remove any existing changes for this field
               newPendingChanges = [
-                ...state.pendingChanges.filter(c => !(c.entity === 'field' && c.id === fieldId)),
+                ...state.pendingChanges.filter((c) => !(c.entity === "field" && c.id === fieldId)),
                 {
-                  type: 'delete',
-                  entity: 'field',
+                  type: "delete",
+                  entity: "field",
                   id: fieldId,
-                }
+                },
               ];
             }
 
@@ -623,12 +612,12 @@ export const usePageBuilderStore = create<PageBuilderState>()(
             const updatedSections = state.sections.map((section: any) => {
               if (section.id === sectionId) {
                 // Find the parent field by checking which section field has nested fields with the active/over IDs
-                const parentField = section.cms_fields.find((f: any) => 
-                  f.type === 'section' && section.cms_fields.some((nf: any) => 
-                    nf.parent_field_id === f.id && (nf.id === activeId || nf.id === overId)
-                  )
+                const parentField = section.cms_fields.find(
+                  (f: any) =>
+                    f.type === "section" &&
+                    section.cms_fields.some((nf: any) => nf.parent_field_id === f.id && (nf.id === activeId || nf.id === overId))
                 );
-                
+
                 if (!parentField) return section;
 
                 const nestedFields = section.cms_fields.filter((f: any) => f.parent_field_id === parentField.id);
@@ -639,7 +628,7 @@ export const usePageBuilderStore = create<PageBuilderState>()(
 
                 // Reorder the nested fields
                 const reorderedNestedFields = arrayMove(nestedFields, activeIndex, overIndex);
-                
+
                 // Update the section with reordered fields
                 const otherFields = section.cms_fields.filter((f: any) => f.parent_field_id !== parentField.id);
                 const updatedFields = [...otherFields, ...reorderedNestedFields];
@@ -665,7 +654,7 @@ export const usePageBuilderStore = create<PageBuilderState>()(
       // Save all changes to database
       saveChanges: async () => {
         const { pendingChanges, sections, page, hasUnsavedChanges } = get();
-        
+
         if (!hasUnsavedChanges) {
           console.log("No changes to save");
           return;
@@ -676,7 +665,7 @@ export const usePageBuilderStore = create<PageBuilderState>()(
         try {
           // Prepare section order
           const sectionOrder = sections.map((s: any) => s.id);
-          
+
           // Prepare field orders for each section
           const fieldOrders: Record<string, string[]> = {};
           sections.forEach((section: any) => {
@@ -703,15 +692,14 @@ export const usePageBuilderStore = create<PageBuilderState>()(
               sections: state.sections.map((section: any) => ({
                 ...section,
                 id: result.tempIdMap[section.id] || section.id,
-                cms_fields: section.cms_fields?.map((field: any) => ({
-                  ...field,
-                  id: result.tempIdMap[field.id] || field.id,
-                  section_id: result.tempIdMap[field.section_id] || field.section_id,
-                })) || [],
+                cms_fields:
+                  section.cms_fields?.map((field: any) => ({
+                    ...field,
+                    id: result.tempIdMap[field.id] || field.id,
+                    section_id: result.tempIdMap[field.section_id] || field.section_id,
+                  })) || [],
               })),
-              selectedSectionId: state.selectedSectionId ? 
-                (result.tempIdMap[state.selectedSectionId] || state.selectedSectionId) : 
-                null,
+              selectedSectionId: state.selectedSectionId ? result.tempIdMap[state.selectedSectionId] || state.selectedSectionId : null,
               pendingChanges: [],
               hasUnsavedChanges: false,
             }),
@@ -779,7 +767,7 @@ export const usePageBuilderStore = create<PageBuilderState>()(
 
       submitPageSettings: async () => {
         const { pageSettingsData, page } = get();
-        
+
         if (!page) return;
 
         set({ isSaving: true }, false, "submitting");
@@ -789,10 +777,12 @@ export const usePageBuilderStore = create<PageBuilderState>()(
           // For now, just update local state
           set(
             (state) => ({
-              page: state.page ? {
-                ...state.page,
-                ...pageSettingsData,
-              } : null,
+              page: state.page
+                ? {
+                    ...state.page,
+                    ...pageSettingsData,
+                  }
+                : null,
               isPageSettingsOpen: false,
               hasUnsavedChanges: true,
               isSaving: false,
@@ -800,7 +790,7 @@ export const usePageBuilderStore = create<PageBuilderState>()(
             false,
             "submitPageSettings"
           );
-          
+
           toast.success("Page settings updated");
         } catch (error) {
           console.error("Error updating page settings:", error);
@@ -812,7 +802,7 @@ export const usePageBuilderStore = create<PageBuilderState>()(
       // Unsaved changes protection methods
       checkUnsavedChanges: (navigationCallback: () => void) => {
         const { hasUnsavedChanges } = get();
-        
+
         if (hasUnsavedChanges) {
           set(
             {
@@ -824,7 +814,7 @@ export const usePageBuilderStore = create<PageBuilderState>()(
           );
           return false; // Block navigation
         }
-        
+
         return true; // Allow navigation
       },
 
@@ -852,7 +842,7 @@ export const usePageBuilderStore = create<PageBuilderState>()(
 
       discardChangesAndNavigate: () => {
         const { pendingNavigation } = get();
-        
+
         set(
           {
             hasUnsavedChanges: false,
@@ -872,7 +862,6 @@ export const usePageBuilderStore = create<PageBuilderState>()(
 
       // Nested field actions
       openAddNestedFieldDialog: (parentSectionId: string, parentFieldId?: string) => {
-
         set(
           {
             fieldFormData: {
@@ -914,21 +903,21 @@ export const usePageBuilderStore = create<PageBuilderState>()(
       deleteNestedFieldById: (fieldId: string, parentSectionId: string) => {
         set(
           (state) => {
-            const isTemp = fieldId.startsWith('temp_');
+            const isTemp = fieldId.startsWith("temp_");
             let newPendingChanges = state.pendingChanges;
-            
+
             if (isTemp) {
               // Remove from pending changes if it's a temp item
-              newPendingChanges = state.pendingChanges.filter(c => c.tempId !== fieldId);
+              newPendingChanges = state.pendingChanges.filter((c) => c.tempId !== fieldId);
             } else {
               // Add delete change for real fields, remove any existing changes for this field
               newPendingChanges = [
-                ...state.pendingChanges.filter(c => !(c.entity === 'field' && c.id === fieldId)),
+                ...state.pendingChanges.filter((c) => !(c.entity === "field" && c.id === fieldId)),
                 {
-                  type: 'delete',
-                  entity: 'field',
+                  type: "delete",
+                  entity: "field",
                   id: fieldId,
-                }
+                },
               ];
             }
 
@@ -953,9 +942,6 @@ export const usePageBuilderStore = create<PageBuilderState>()(
       },
 
       // Mode switching method
-      setMode: (mode: 'schema' | 'content') => {
-        set({ mode }, false, "setMode");
-      },
     }),
     {
       name: "page-builder-store",
