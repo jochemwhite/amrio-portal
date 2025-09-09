@@ -2,9 +2,9 @@ import { closestCenter, DndContext, DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import React, { useState } from "react";
 import { usePageBuilderStore } from "@/stores/usePageBuilderStore";
-import { PayloadSection } from "./PayloadSection";
+import { Section } from "./Section";
 import { AddSectionMenu } from "./AddSectionMenu";
-import { FIELD_TYPES } from "../shared";
+import { EditSectionMenu } from "./EditSectionMenu";
 
 export const DraggableSectionsContainer = () => {
   const {
@@ -36,6 +36,7 @@ export const DraggableSectionsContainer = () => {
   };
 
   const handleAddField = (sectionId: string, fieldData: any) => {
+
     setSelectedSection(sectionId);
     setFieldFormData(fieldData);
     submitField();
@@ -47,7 +48,7 @@ export const DraggableSectionsContainer = () => {
         <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-4">
             {sections.map((section, index: number) => (
-              <PayloadSection
+              <Section
                 key={section.id}
                 section={section}
                 index={index}
@@ -60,8 +61,7 @@ export const DraggableSectionsContainer = () => {
                 onEditField={openEditFieldDialog}
                 onDeleteField={deleteFieldById}
                 onReorderFields={handleFieldReorder}
-                showAddMenu={false}
-                onShowAddMenu={() => {}}
+           
               />
             ))}
           </div>
@@ -69,6 +69,7 @@ export const DraggableSectionsContainer = () => {
       </DndContext>
 
       <AddSectionMenu />
+      <EditSectionMenu />
     </div>
   );
 };

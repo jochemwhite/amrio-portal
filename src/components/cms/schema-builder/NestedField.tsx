@@ -8,9 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { GripVertical, Edit, Trash2, ChevronDown, ChevronRight, Plus, FolderOpen } from "lucide-react";
 import { getFieldIcon, getFieldTypeLabel, getFieldTypeColor } from "../shared/field-types";
-import { PayloadField } from "./PayloadField";
+import { Field } from "./Field";
 
-interface NestedPayloadFieldProps {
+interface NestedFieldProps {
   field: any;
   isSaving: boolean;
   onEdit: () => void;
@@ -24,7 +24,7 @@ interface NestedPayloadFieldProps {
   activeDragId?: string | null; // Add activeDragId prop
 }
 
-export function NestedPayloadField({
+export function NestedField({
   field,
   isSaving,
   onEdit,
@@ -36,7 +36,7 @@ export function NestedPayloadField({
   onEditNestedField,
   onDeleteNestedField,
   activeDragId,
-}: NestedPayloadFieldProps) {
+}: NestedFieldProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: field.id });
@@ -44,6 +44,7 @@ export function NestedPayloadField({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    transformOrigin: "0 0", // Ensure drag preview starts from top-left
   };
 
   // Check if this is a nested section field
@@ -60,35 +61,20 @@ export function NestedPayloadField({
       }
     : null;
 
-  const marginLeft = depth * 24; // 24px per depth level
 
-  // Determine if this field should show drop indicator
-  const shouldShowDropIndicator = activeDragId && activeDragId !== field.id;
-  const activeField = allFields.find((f: any) => f.id === activeDragId);
-  const isCompatibleDropTarget = activeField && (
-    // If dragging a nested field, only show indicator on other nested fields with same parent (exclude parent field)
-    (activeField.parent_field_id && field.parent_field_id === activeField.parent_field_id && field.id !== activeField.parent_field_id) ||
-    // If dragging a top-level field, only show indicator on other top-level fields
-    (!activeField.parent_field_id && !field.parent_field_id)
-  );
+
 
   return (
-    <div className="space-y-2">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`space-y-2 ${isDragging ? "opacity-0" : ""}`}
+    >
       {/* Main Field */}
-      <div
-        ref={setNodeRef}
-        style={{ ...style, marginLeft: `${marginLeft}px` }}
-        className={`group rounded-lg border ${isDragging ? "opacity-50 shadow-lg" : "hover:shadow-sm"} ${
-          shouldShowDropIndicator && isCompatibleDropTarget ? "ring-2 ring-blue-400 bg-blue-50" : ""
-        }`}
-      >
+      <div className="group rounded-lg border hover:shadow-sm">
         <div className="flex items-center justify-between p-3">
           <div className="flex items-center space-x-3 flex-1">
-            <div
-              {...attributes}
-              {...listeners}
-              className="cursor-grab hover:bg-gray-100 rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
+            <div {...attributes} {...listeners} className="cursor-grab  rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <GripVertical className="h-4 w-4" />
             </div>
 
@@ -153,7 +139,7 @@ export function NestedPayloadField({
 
       {/* Nested Section Fields */}
       {isNestedSectionField && nestedSection && isExpanded && (
-        <div className="ml-6 space-y-2">
+        <div className={`ml-6 space-y-2 ${isDragging ? "hidden" : ""}`}>
           <Card className=" ">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
@@ -185,15 +171,32 @@ export function NestedPayloadField({
                 </div>
               ) : (
                 <div className="space-y-1">
-                  {nestedSection.fields.map((nestedField: any) => (
-                    <PayloadField
-                      key={nestedField.id}
-                      field={nestedField}
-                      isSaving={isSaving}
-                      onEdit={() => onEditNestedField?.(nestedField, parentSectionId!)}
-                      onDelete={() => onDeleteNestedField?.(nestedField.id, parentSectionId!)}
-                    />
-                  ))}
+                  {nestedSection.fields.map((nestedField: any) =>
+                    nestedField.type === "section" ? (
+                      <NestedField
+                        key={nestedField.id}
+                        field={nestedField}
+                        isSaving={isSaving}
+                        depth={depth + 1}
+                        parentSectionId={parentSectionId}
+                        allFields={allFields}
+                        onEdit={() => onEditNestedField?.(nestedField, parentSectionId!)}
+                        onDelete={() => onDeleteNestedField?.(nestedField.id, parentSectionId!)}
+                        onAddNestedField={onAddNestedField}
+                        onEditNestedField={onEditNestedField}
+                        onDeleteNestedField={onDeleteNestedField}
+                        activeDragId={activeDragId}
+                      />
+                    ) : (
+                      <Field
+                        key={nestedField.id}
+                        field={nestedField}
+                        isSaving={isSaving}
+                        onEdit={() => onEditNestedField?.(nestedField, parentSectionId!)}
+                        onDelete={() => onDeleteNestedField?.(nestedField.id, parentSectionId!)}
+                      />
+                    )
+                  )}
                 </div>
               )}
             </CardContent>

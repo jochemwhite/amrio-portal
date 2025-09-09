@@ -504,7 +504,19 @@ export async function bulkSavePageChanges(payload: BulkSavePayload): Promise<Bul
     const tempIdMap: Record<string, string> = {};
 
     // Process changes in order: creates first, then updates, then deletes
-    const creates = payload.changes.filter(c => c.type === 'create');
+    // Sort creates to ensure parent fields are created before their children
+    const creates = payload.changes
+      .filter(c => c.type === 'create')
+      .sort((a, b) => {
+        // Fields without parent_field_id (parent fields) should be created first
+        if (a.entity === 'field' && b.entity === 'field') {
+          const aHasParent = !!a.data.parent_field_id;
+          const bHasParent = !!b.data.parent_field_id;
+          if (aHasParent && !bHasParent) return 1;  // b goes first
+          if (!aHasParent && bHasParent) return -1; // a goes first
+        }
+        return 0; // maintain original order
+      });
     const updates = payload.changes.filter(c => c.type === 'update');
     const deletes = payload.changes.filter(c => c.type === 'delete');
 
@@ -531,11 +543,17 @@ export async function bulkSavePageChanges(payload: BulkSavePayload): Promise<Bul
         // Replace temp section ID if it exists
         const sectionId = tempIdMap[change.data.section_id] || change.data.section_id;
         
+        // Replace temp parent field ID if it exists
+        const parentFieldId = change.data.parent_field_id 
+          ? (tempIdMap[change.data.parent_field_id] || change.data.parent_field_id)
+          : null;
+        
         const { data: field, error } = await supabase
           .from("cms_fields")
           .insert({
             ...change.data,
             section_id: sectionId,
+            parent_field_id: parentFieldId, // Use the mapped parent field ID
           })
           .select()
           .single();
@@ -562,9 +580,15 @@ export async function bulkSavePageChanges(payload: BulkSavePayload): Promise<Bul
           throw new Error(`Failed to update section: ${error.message}`);
         }
       } else if (change.entity === 'field') {
+        // Replace temp parent field ID if it exists in updates
+        const updateData = { ...change.data };
+        if (updateData.parent_field_id && tempIdMap[updateData.parent_field_id]) {
+          updateData.parent_field_id = tempIdMap[updateData.parent_field_id];
+        }
+        
         const { error } = await supabase
           .from("cms_fields")
-          .update(change.data)
+          .update(updateData)
           .eq("id", change.id!);
         
         if (error) {

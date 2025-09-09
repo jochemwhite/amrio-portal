@@ -11,6 +11,7 @@ import { PageSettingsDialog } from "../shared/PageSettingsDialog";
 import { DraggableSectionsContainer } from "./DraggableSectionsContainer";
 import { NoSectionCard } from "./NoSectionCard";
 import { AddSectionMenu } from "./AddSectionMenu";
+import { EditSectionMenu } from "./EditSectionMenu";
 import { AddFieldMenu } from "./AddFieldMenu";
 
 interface PayloadStylePageBuilderProps {
@@ -18,18 +19,7 @@ interface PayloadStylePageBuilderProps {
   websiteId: string;
 }
 
-const FIELD_TYPES = [
-  { value: "text", label: "Text", icon: "📝", description: "Simple text input" },
-  { value: "richtext", label: "Rich Text", icon: "📄", description: "WYSIWYG editor" },
-  { value: "number", label: "Number", icon: "🔢", description: "Numeric input" },
-  { value: "boolean", label: "Checkbox", icon: "☑️", description: "True/false toggle" },
-  { value: "date", label: "Date", icon: "📅", description: "Date picker" },
-  { value: "image", label: "Image", icon: "🖼️", description: "Image upload" },
-  { value: "reference", label: "Relationship", icon: "🔗", description: "Reference to other content" },
-];
-
-export function PayloadStylePageBuilder({ initialPage, websiteId }: PayloadStylePageBuilderProps) {
-  // Get all state and actions from Zustand store
+export function SchemaBuilder({ initialPage, websiteId }: PayloadStylePageBuilderProps) {
   const {
     sections,
     isSaving,
@@ -84,9 +74,8 @@ export function PayloadStylePageBuilder({ initialPage, websiteId }: PayloadStyle
       />
 
       <AddFieldMenu />
-
-
       <AddSectionMenu />
+      <EditSectionMenu />
     </div>
   );
 }

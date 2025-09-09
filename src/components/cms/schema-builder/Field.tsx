@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { GripVertical, Edit, Trash2 } from "lucide-react";
 import { getFieldIcon, getFieldTypeLabel, getFieldTypeColor } from "../shared/field-types";
 
-interface PayloadFieldProps {
+interface FieldProps {
   field: any;
   isSaving: boolean;
   onEdit: () => void;
@@ -16,7 +16,7 @@ interface PayloadFieldProps {
   allFields?: any[]; // Add allFields prop for compatibility checking
 }
 
-export function PayloadField({ field, isSaving, onEdit, onDelete, activeDragId, allFields = [] }: PayloadFieldProps) {
+export function Field({ field, isSaving, onEdit, onDelete, activeDragId, allFields = [] }: FieldProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: field.id });
 
   const style = {
@@ -38,17 +38,13 @@ export function PayloadField({ field, isSaving, onEdit, onDelete, activeDragId, 
     <div
       ref={setNodeRef}
       style={style}
-      className={`group rounded-lg border ${isDragging ? "opacity-50 shadow-lg" : "hover:shadow-sm"} ${
-        shouldShowDropIndicator && isCompatibleDropTarget ? "ring-2 ring-blue-400 bg-blue-50" : ""
+      className={`group rounded-lg border ${isDragging ? "opacity-0" : "hover:shadow-sm"} ${
+        shouldShowDropIndicator && isCompatibleDropTarget ? "" : ""
       }`}
     >
       <div className="flex items-center justify-between py-2">
         <div className="flex items-center space-x-3 flex-1">
-          <div
-            {...attributes}
-            {...listeners}
-            className="cursor-grab hover:bg-gray-100 rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-          >
+          <div {...attributes} {...listeners} className="cursor-grab  rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <GripVertical className="h-4 w-4" />
           </div>
 

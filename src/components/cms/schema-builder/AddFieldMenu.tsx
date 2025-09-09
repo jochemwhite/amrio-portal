@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { usePageBuilderStore } from "@/stores/usePageBuilderStore";
 import { FieldType } from "@/types/cms";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { FIELD_TYPES } from "../shared/field-types";
@@ -31,7 +31,9 @@ const fieldSchema = z.object({
 type FieldFormData = z.infer<typeof fieldSchema>;
 
 export function AddFieldMenu() {
-  const { isAddFieldOpen, setFieldFormData, submitField, closeFieldDialog, fieldFormData } = usePageBuilderStore();
+  const { isAddFieldOpen, isEditFieldOpen, setFieldFormData, submitField, closeFieldDialog, fieldFormData, editingFieldId } = usePageBuilderStore();
+  const isEditMode = !!editingFieldId;
+  const isDialogOpen = isAddFieldOpen || isEditFieldOpen; // Check both states
   const [selectedType, setSelectedType] = useState<string | null>(fieldFormData.type || null);
 
   const form = useForm<FieldFormData>({
@@ -45,7 +47,20 @@ export function AddFieldMenu() {
     },
   });
 
-  console.log("fieldFormData", fieldFormData);
+  // Update form when fieldFormData changes (important for edit mode)
+  useEffect(() => {
+    if (isDialogOpen) { // Use isDialogOpen instead of just isAddFieldOpen
+      form.reset({
+        name: fieldFormData.name,
+        type: fieldFormData.type,
+        required: fieldFormData.required,
+        default_value: fieldFormData.default_value,
+        validation: fieldFormData.validation,
+      });
+      setSelectedType(fieldFormData.type || null);
+    }
+  }, [isDialogOpen, fieldFormData, form]); // Use isDialogOpen
+
 
   const handleTypeSelect = (type: FieldType) => {
     setSelectedType(type.value);
@@ -70,23 +85,34 @@ export function AddFieldMenu() {
   };
 
   const handleCancel = () => {
-    console.log("handleCancel");
     form.reset();
     setSelectedType(null);
     closeFieldDialog();
   };
 
   return (
-    <Dialog open={isAddFieldOpen} onOpenChange={handleCancel}>
+    <Dialog open={isDialogOpen} onOpenChange={handleCancel}> {/* Use isDialogOpen */}
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>{!selectedType ? "Add New Field" : `Add ${FIELD_TYPES.find((t) => t.value === selectedType)?.label} Field`}</DialogTitle>
+          <DialogTitle>
+            {isEditMode 
+              ? `Edit ${FIELD_TYPES.find((t) => t.value === selectedType)?.label} Field`
+              : !selectedType 
+                ? "Add New Field" 
+                : `Add ${FIELD_TYPES.find((t) => t.value === selectedType)?.label} Field`
+            }
+          </DialogTitle>
           <DialogDescription>
-            {!selectedType ? "Choose a field type to get started" : "Configure your field properties and validation rules"}
+            {isEditMode 
+              ? "Update your field properties and validation rules"
+              : !selectedType 
+                ? "Choose a field type to get started" 
+                : "Configure your field properties and validation rules"
+            }
           </DialogDescription>
         </DialogHeader>
 
-        {!selectedType ? (
+        {!selectedType && !isEditMode ? (
           <div className="grid grid-cols-1 gap-3 py-4">
             {FIELD_TYPES.map((type) => (
               <Button
@@ -172,14 +198,16 @@ export function AddFieldMenu() {
               />
 
               <div className="flex justify-between pt-4">
-                <Button type="button" variant="ghost" onClick={handleBackToTypeSelection}>
-                  ← Back to Field Types
-                </Button>
-                <div className="flex space-x-3">
+                {!isEditMode && (
+                  <Button type="button" variant="ghost" onClick={handleBackToTypeSelection}>
+                    ← Back to Field Types
+                  </Button>
+                )}
+                <div className={`flex space-x-3 ${isEditMode ? 'ml-auto' : ''}`}>
                   <Button type="button" variant="outline" onClick={handleCancel}>
                     Cancel
                   </Button>
-                  <Button type="submit">Add Field</Button>
+                  <Button type="submit">{isEditMode ? 'Update Field' : 'Add Field'}</Button>
                 </div>
               </div>
             </form>

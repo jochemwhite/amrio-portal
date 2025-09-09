@@ -141,7 +141,7 @@ export const usePageBuilderStore = create<PageBuilderState>()(
       parentFieldId: null,
       fieldFormData: {
         name: "",
-        type: "text",
+        type: "",
         required: false,
         default_value: "",
         validation: "",
@@ -367,7 +367,7 @@ export const usePageBuilderStore = create<PageBuilderState>()(
           {
             fieldFormData: {
               name: "",
-              type: "text",
+              type: "",
               required: false,
               default_value: "",
               validation: "",
@@ -379,15 +379,14 @@ export const usePageBuilderStore = create<PageBuilderState>()(
         );
       },
 
-      openEditFieldDialog: (field: Field) => {
-        console.log("openEditFieldDialog", field);
+      openEditFieldDialog: (field: any) => {
         set(
           {
             fieldFormData: {
               name: field.name,
               type: field.type,
               required: field.required || false,
-              default_value: field.defaultValue || "",
+              default_value: field.default_value || field.defaultValue || "",
               validation: field.validation || "",
             },
             editingFieldId: field.id,
@@ -866,7 +865,7 @@ export const usePageBuilderStore = create<PageBuilderState>()(
           {
             fieldFormData: {
               name: "",
-              type: "text",
+              type: "",
               required: false,
               default_value: "",
               validation: "",

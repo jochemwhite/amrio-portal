@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/supabaseServerClient";
 import { redirect, notFound } from "next/navigation";
-import { PayloadStylePageBuilder } from "@/components/cms/schema-builder/PayloadStylePageBuilder";
+import { SchemaBuilder } from "@/components/cms/schema-builder/SchemaBuilder";
 import { SupabasePageWithRelations } from "@/types/cms";
 
 interface PageBuilderProps {
@@ -51,7 +51,8 @@ export default async function PageBuilder({ params }: PageBuilderProps) {
           section_id,
           default_value,
           validation,
-          "order"
+          "order",
+          parent_field_id
         )
       )
     `)
@@ -76,7 +77,7 @@ export default async function PageBuilder({ params }: PageBuilderProps) {
    } as SupabasePageWithRelations;
 
   return (
-    <PayloadStylePageBuilder 
+    <SchemaBuilder 
       initialPage={sortedPage}
       websiteId={websiteId}
     />

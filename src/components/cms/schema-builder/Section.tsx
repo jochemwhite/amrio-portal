@@ -3,19 +3,18 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { closestCenter, DndContext, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent } from "@dnd-kit/core";
+import { usePageBuilderStore } from "@/stores/usePageBuilderStore";
+import { Field as TField } from "@/types/cms";
+import { closestCenter, DndContext, DragEndEvent, DragStartEvent, DragOverlay, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ChevronDown, ChevronRight, GripVertical, Plus, Settings, Trash2 } from "lucide-react";
+import { getFieldIcon, getFieldTypeLabel, getFieldTypeColor } from "../shared/field-types";
 import { useState } from "react";
-import { AddFieldMenu } from "./AddFieldMenu";
-import { PayloadField } from "./PayloadField";
-import { NestedPayloadField } from "./NestedPayloadField";
-import { FIELD_TYPES } from "../shared/field-types";
-import { usePageBuilderStore } from "@/stores/usePageBuilderStore";
-import { Field } from "@/types/cms";
+import { Field } from "./Field";
+import { NestedField } from "./NestedField";
 
-interface PayloadSectionProps {
+interface SectionProps {
   section: any;
   index: number;
   isSelected: boolean;
@@ -27,11 +26,10 @@ interface PayloadSectionProps {
   onEditField: (field: any) => void;
   onDeleteField: (fieldId: string) => void;
   onReorderFields: (sectionId: string, activeId: string, overId: string) => void;
-  showAddMenu: boolean;
-  onShowAddMenu: () => void;
+  
 }
 
-export function PayloadSection({
+export function Section({
   section,
   index,
   isSelected,
@@ -42,9 +40,7 @@ export function PayloadSection({
   onEditField,
   onDeleteField,
   onReorderFields,
-  showAddMenu,
-  onShowAddMenu,
-}: PayloadSectionProps) {
+}: SectionProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
 
@@ -174,13 +170,13 @@ export function PayloadSection({
             ) : (
               <div className="p-4">
                 <DndContext sensors={sensors} collisionDetection={customCollisionDetection} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-                  <SortableContext items={section.cms_fields?.map((f: Field) => f.id) || []} strategy={verticalListSortingStrategy}>
+                  <SortableContext items={section.cms_fields?.map((f: TField) => f.id) || []} strategy={verticalListSortingStrategy}>
                     <div className="space-y-2">
                       {section.cms_fields
                         ?.filter((field: any) => !field.parent_field_id)
                         .map((field: any) =>
                           field.type === "section" ? (
-                            <NestedPayloadField
+                            <NestedField
                               key={field.id}
                               field={field}
                               isSaving={isSaving}
@@ -194,7 +190,7 @@ export function PayloadSection({
                               activeDragId={activeDragId}
                             />
                           ) : (
-                            <PayloadField
+                            <Field
                               key={field.id}
                               field={field}
                               isSaving={isSaving}
@@ -207,6 +203,50 @@ export function PayloadSection({
                         )}
                     </div>
                   </SortableContext>
+                  <DragOverlay>
+                    {activeDragId ? (
+                      (() => {
+                        const draggedField = section.cms_fields?.find((f: any) => f.id === activeDragId);
+                        if (!draggedField) return null;
+                        
+                        return draggedField.type === "section" ? (
+                          <div className="group rounded-lg border hover:shadow-sm">
+                            <div className="flex items-center justify-between p-3">
+                              <div className="flex items-center space-x-3 flex-1">
+                                <div className="cursor-grab rounded p-1 opacity-100">
+                                  <GripVertical className="h-4 w-4" />
+                                </div>
+                                <div className={`p-2 rounded-lg ${getFieldTypeColor(draggedField.type)}`}>
+                                  {getFieldIcon(draggedField.type)}
+                                </div>
+                                <div className="flex-1">
+                                  <h4 className="font-medium">{draggedField.name}</h4>
+                                  <span className="text-xs text-gray-500">Nested Section</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="group rounded-lg border hover:shadow-sm">
+                            <div className="flex items-center justify-between py-2">
+                              <div className="flex items-center space-x-3 flex-1">
+                                <div className="cursor-grab rounded p-1 opacity-100">
+                                  <GripVertical className="h-4 w-4" />
+                                </div>
+                                <div className={`p-2 rounded-lg ${getFieldTypeColor(draggedField.type)}`}>
+                                  {getFieldIcon(draggedField.type)}
+                                </div>
+                                <div>
+                                  <h4 className="font-medium">{draggedField.name}</h4>
+                                  <span className="text-xs text-gray-500">{getFieldTypeLabel(draggedField.type)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()
+                    ) : null}
+                  </DragOverlay>
                 </DndContext>
 
                 <div className="mt-4 pt-4 border-t ">
