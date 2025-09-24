@@ -2,9 +2,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { usePageBuilderStore } from "@/stores/usePageBuilderStore";
-import { ArrowLeft, Globe, Eye, Save } from "lucide-react";
+import { ArrowLeft, Globe, Save } from "lucide-react";
 import React from "react";
 import { useRouter } from "next/navigation";
+import { JsonPreview } from "./JsonPreview";
 
 export const CmsHeader = () => {
   const { page, hasUnsavedChanges, isSaving, saveChanges, websiteId } = usePageBuilderStore();
@@ -46,10 +47,7 @@ export const CmsHeader = () => {
                 Unsaved
               </Badge>
             )}
-            <Button variant="outline" size="sm">
-              <Eye className="mr-2 h-4 w-4" />
-              Preview
-            </Button>
+            <JsonPreview />
             <Button size="sm" disabled={isSaving || !hasUnsavedChanges} onClick={() => saveChanges()}>
               <Save className="mr-2 h-4 w-4" />
               {isSaving ? "Saving..." : "Save"}

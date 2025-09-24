@@ -1,83 +1,157 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { RichTextEditor } from "@/components/ui/rich-text-editor";
-import { Switch } from "@/components/ui/switch";
-import { cn } from "@/lib/utils";
 import { useContentEditorStore } from "@/stores/useContentEditorStore";
-import { usePageBuilderStore } from "@/stores/usePageBuilderStore";
-import { format } from "date-fns";
-import { CalendarIcon, RotateCcw, Save } from "lucide-react";
-import { useEffect, useState } from "react";
+import { SupabasePageWithRelations, RPCPageResponse } from "@/types/cms";
+import { useEffect, useState, useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Save, RotateCcw, AlertCircle, CheckCircle2, ChevronDown, ChevronRight, Expand, Minimize } from "lucide-react";
 import RenderComponent from "./RenderComponent";
+import { toast } from "sonner";
 
 interface ContentEditorProps {
   pageId: string;
+  existingContent: RPCPageResponse;
 }
 
-export function ContentEditor({ pageId }: ContentEditorProps) {
-  const { sections } = usePageBuilderStore();
+export function ContentEditor({ pageId, existingContent }: ContentEditorProps) {
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+
   const {
     hasUnsavedChanges,
     isSaving,
     isLoading,
     initializeContent,
-    setFieldValue,
-    getFieldValue,
+    contentValues,
     saveContent,
     resetAllFields,
-    validateField,
+    validateAllFields,
   } = useContentEditorStore();
 
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  // The RPC response already has the nested structure built-in
+  const processedSections = useMemo(() => {
+    return existingContent.sections || [];
+  }, [existingContent.sections]);
 
-  // Initialize content editor when component mounts
-  useEffect(() => {
-    initializeContent(pageId);
-  }, [pageId, initializeContent]);
+  // Helper function to extract value from content based on field type
+  const extractValueFromContent = (field: any): any => {
+    if (!field.content || field.content === null) {
+      return field.default_value || "";
+    }
 
-  // Validate field on blur
-  const handleFieldBlur = (field: any) => {
-    const error = validateField(field.id, field);
-    setValidationErrors(prev => ({
-      ...prev,
-      [field.id]: error || '',
-    }));
-  };
-
-  // Handle field value changes
-  const handleFieldChange = (fieldId: string, value: any) => {
-    setFieldValue(fieldId, value);
-    // Clear validation error when user starts typing
-    if (validationErrors[fieldId]) {
-      setValidationErrors(prev => ({
-        ...prev,
-        [fieldId]: '',
-      }));
+    switch (field.type) {
+      case 'text':
+      case 'number':
+      case 'boolean':
+      case 'date':
+        return field.content.value !== undefined ? field.content.value : field.default_value || "";
+      
+      case 'richtext':
+        return field.content.content !== undefined ? field.content.content : field.default_value || "";
+      
+      case 'image':
+      case 'video':
+        return field.content.url !== undefined ? field.content.url : 
+               field.content.value !== undefined ? field.content.value : field.default_value || "";
+      
+      case 'reference':
+        return field.content.id !== undefined ? field.content.id : 
+               field.content.value !== undefined ? field.content.value : field.default_value || "";
+      
+      case 'section':
+        return ""; // Section fields don't have content
+      
+      default:
+        // For unknown types, try to extract value or return as-is
+        return field.content.value !== undefined ? field.content.value : 
+               field.content !== null ? field.content : field.default_value || "";
     }
   };
 
+  // Helper function to recursively initialize field values
+  const initializeFieldValues = (fields: any[], content: Record<string, any>) => {
+    fields.forEach(field => {
+      if (field.type === 'section' && field.fields) {
+        // Initialize nested section field with an object containing its nested fields
+        const nestedValues: Record<string, any> = {};
+        initializeFieldValues(field.fields, nestedValues);
+        content[field.id] = nestedValues;
+      } else {
+        // Initialize regular fields with saved content or default values
+        content[field.id] = extractValueFromContent(field);
+      }
+    });
+  };
 
- 
+  useEffect(() => {
+    // Initialize content with existing values (if any)
+    const initialContent: Record<string, any> = {};
+    const initialExpandedState: Record<string, boolean> = {};
+    
+    // Process sections to handle nested fields
+    processedSections.forEach(section => {
+      // Expand all sections by default
+      initialExpandedState[section.id] = true;
+      
+      // Initialize field values recursively
+      initializeFieldValues(section.fields || [], initialContent);
+    });
+     
+    setExpandedSections(initialExpandedState);
+    initializeContent(pageId, initialContent);
+  }, [pageId, processedSections, initializeContent]);
+
+  const toggleSection = (sectionId: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [sectionId]: !prev[sectionId]
+    }));
+  };
+
+  const expandAllSections = () => {
+    const allExpanded: Record<string, boolean> = {};
+    processedSections.forEach(section => {
+      allExpanded[section.id] = true;
+    });
+    setExpandedSections(allExpanded);
+  };
+
+  const collapseAllSections = () => {
+    const allCollapsed: Record<string, boolean> = {};
+    processedSections.forEach(section => {
+      allCollapsed[section.id] = false;
+    });
+    setExpandedSections(allCollapsed);
+  };
+
+  const handleSave = async () => {
+    // Validate all fields before saving
+    const errors = validateAllFields(existingContent.sections || []);
+    setValidationErrors(errors);
+    
+    if (Object.keys(errors).length > 0) {
+      toast.error("Please fix validation errors before saving");
+      return;
+    }
+    
+    await saveContent();
+    setValidationErrors({});
+  };
+
+  const handleReset = () => {
+    resetAllFields();
+    setValidationErrors({});
+  };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading content...</div>
-      </div>
-    );
-  }
-
-  if (!sections.length) {
-    return (
-      <div className="text-center py-12">
-        <div className="text-muted-foreground">
-          No schema defined yet. Switch to Schema Builder mode to create fields first.
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading content...</p>
         </div>
       </div>
     );
@@ -85,61 +159,151 @@ export function ContentEditor({ pageId }: ContentEditorProps) {
 
   return (
     <div className="space-y-6">
-      {/* Action Bar */}
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <h2 className="text-lg font-semibold">Content Editor</h2>
-          {hasUnsavedChanges && (
-            <span className="text-sm text-amber-600 bg-amber-50 px-2 py-1 rounded">
-              Unsaved changes
-            </span>
-          )}
+        <div>
+          <h1 className="text-2xl font-bold">Content Editor</h1>
+          <p className="text-muted-foreground">
+            Edit content for "{existingContent.name}"
+          </p>
         </div>
-        <div className="flex items-center space-x-2">
+        
+        <div className="flex items-center gap-2">
+          {hasUnsavedChanges && (
+            <Badge variant="secondary" className="gap-1">
+              <AlertCircle className="h-3 w-3" />
+              Unsaved changes
+            </Badge>
+          )}
+          
+          {/* Section Controls */}
+          {processedSections.length > 1 && (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={expandAllSections}
+                className="gap-1 text-xs"
+              >
+                <Expand className="h-3 w-3" />
+                Expand All
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={collapseAllSections}
+                className="gap-1 text-xs"
+              >
+                <Minimize className="h-3 w-3" />
+                Collapse All
+              </Button>
+            </>
+          )}
+          
           <Button
             variant="outline"
-            onClick={resetAllFields}
+            onClick={handleReset}
             disabled={!hasUnsavedChanges || isSaving}
+            className="gap-2"
           >
-            <RotateCcw className="mr-2 h-4 w-4" />
+            <RotateCcw className="h-4 w-4" />
             Reset
           </Button>
+          
           <Button
-            onClick={saveContent}
+            onClick={handleSave}
             disabled={!hasUnsavedChanges || isSaving}
+            className="gap-2"
           >
-            <Save className="mr-2 h-4 w-4" />
-            {isSaving ? "Saving..." : "Save Content"}
+            {isSaving ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                Save Changes
+              </>
+            )}
           </Button>
         </div>
       </div>
 
-      {/* Content Form */}
+      {/* Content Sections */}
       <div className="space-y-6">
-        {sections.map((section) => (
-          <Card key={section.id}>
-            <CardHeader>
-              <CardTitle className="text-base">{section.name}</CardTitle>
-              {section.description && (
-                <p className="text-sm text-muted-foreground">{section.description}</p>
-              )}
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {section.cms_fields?.length > 0 ? (
-                section.cms_fields.map((field) => (
-                  <div key={field.id}>
-                    <RenderComponent field={field} />
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground italic">
-                  No fields defined in this section
-                </p>
-              )}
+        {processedSections.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <p className="text-muted-foreground">
+                No content sections found. Please add sections in the Schema Builder first.
+              </p>
             </CardContent>
           </Card>
-        ))}
+        ) : (
+          processedSections.map((section) => (
+            <Card key={section.id}>
+              <Collapsible
+                open={expandedSections[section.id] || false}
+                onOpenChange={() => toggleSection(section.id)}
+              >
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                    <CardTitle className="flex items-center gap-2">
+                      {expandedSections[section.id] ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                      {section.name}
+                      <Badge variant="outline" className="text-xs">
+                        {section.fields?.length || 0} fields
+                      </Badge>
+                    </CardTitle>
+                    {section.description && (
+                      <p className="text-sm text-muted-foreground">
+                        {section.description}
+                      </p>
+                    )}
+                  </CardHeader>
+                </CollapsibleTrigger>
+                
+                <CollapsibleContent>
+                  <CardContent className="space-y-4 pt-0">
+                    {section.fields?.length === 0 ? (
+                      <p className="text-sm text-muted-foreground italic">
+                        No fields in this section.
+                      </p>
+                    ) : (
+                      section.fields?.map((field) => (
+                        <div key={field.id}>
+                          <RenderComponent
+                            field={field}
+                            value={contentValues[field.id]}
+                            error={validationErrors[field.id]}
+                            // Pass section context for nested sections
+                            currentSection={section}
+                            allSections={existingContent.sections || []}
+                          />
+                        </div>
+                      ))
+                    )}
+                  </CardContent>
+                </CollapsibleContent>
+              </Collapsible>
+            </Card>
+          ))
+        )}
       </div>
+
+      {/* Success indicator */}
+      {!hasUnsavedChanges && !isLoading && Object.keys(contentValues).length > 0 && (
+        <div className="flex items-center justify-center p-4 text-green-600">
+          <CheckCircle2 className="h-4 w-4 mr-2" />
+          <span className="text-sm">All changes saved</span>
+        </div>
+      )}
     </div>
   );
 } 

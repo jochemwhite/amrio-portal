@@ -3,6 +3,7 @@ import { devtools } from "zustand/middleware";
 import { toast } from "sonner";
 import { FIELD_TYPES } from "@/components/cms/shared/field-types";
 import { SupabaseField } from "@/types/cms";
+import { savePageContent, loadPageContent } from "@/lib/actions/content";
 
 // Types for content values
 interface ContentValue {
@@ -163,11 +164,7 @@ export const useContentEditorStore = create<ContentEditorState>()(
         set({ isSaving: true }, false, "savingContent");
 
         try {
-          // TODO: Call server action to save content
-          // const result = await savePageContent(pageId, contentValues);
-          
-          // For now, simulate the save
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await savePageContent(pageId, contentValues);
           
           set(
             (state) => ({
@@ -196,17 +193,12 @@ export const useContentEditorStore = create<ContentEditorState>()(
         set({ isLoading: true }, false, "loadingContent");
 
         try {
-          // TODO: Call server action to load content
-          // const result = await loadPageContent(pageId);
-          
-          // For now, simulate loading
-          await new Promise(resolve => setTimeout(resolve, 500));
-          const loadedContent = {}; // This would come from the server
+          const result = await loadPageContent(pageId);
           
           set(
             {
-              contentValues: { ...loadedContent },
-              originalValues: { ...loadedContent },
+              contentValues: { ...result.contentValues },
+              originalValues: { ...result.contentValues },
               hasUnsavedChanges: false,
               isLoading: false,
             },
@@ -273,17 +265,28 @@ export const useContentEditorStore = create<ContentEditorState>()(
         return null;
       },
 
-      // Validate all fields
+      // Validate all fields recursively
       validateAllFields: (schema: any[]) => {
         const errors: Record<string, string> = {};
         
-        schema.forEach(section => {
-          section.cms_fields?.forEach((field: any) => {
+        const validateFieldsRecursively = (fields: any[]) => {
+          fields.forEach((field: any) => {
             const error = get().validateField(field.id, field);
             if (error) {
               errors[field.id] = error;
             }
+            
+            // If this field has nested fields (section type), validate them too
+            if (field.fields && Array.isArray(field.fields)) {
+              validateFieldsRecursively(field.fields);
+            }
           });
+        };
+        
+        schema.forEach(section => {
+          // Handle both old structure (cms_fields) and new structure (fields)
+          const fields = section.cms_fields || section.fields || [];
+          validateFieldsRecursively(fields);
         });
 
         return errors;

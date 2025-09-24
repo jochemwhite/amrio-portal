@@ -76,6 +76,9 @@ export default async function PageBuilder({ params }: PageBuilderProps) {
      }))
    } as SupabasePageWithRelations;
 
+
+
+
   return (
     <SchemaBuilder 
       initialPage={sortedPage}

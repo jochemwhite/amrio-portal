@@ -182,6 +182,45 @@ export type SupabasePageWithRelations = {
   }[];
 }
 
+// New type for the RPC function response
+export type RPCPageField = {
+  id: string;
+  name: string;
+  type: string;
+  order: number;
+  required: boolean;
+  created_at: string;
+  updated_at: string;
+  validation: string;
+  default_value: string;
+  parent_field_id: string | null;
+  content?: { value?: any } | null; // JSONB content column
+  fields?: RPCPageField[]; // For nested section fields
+}
+
+export type RPCPageSection = {
+  id: string;
+  name: string;
+  order: number;
+  fields: RPCPageField[];
+  page_id: string;
+  created_at: string;
+  updated_at: string;
+  description: string;
+}
+
+export type RPCPageResponse = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  status: string;
+  website_id: string;
+  created_at: string;
+  updated_at: string;
+  sections: RPCPageSection[];
+}
+
 
 export type SupabaseSectionWithRelations = {
   id: string;

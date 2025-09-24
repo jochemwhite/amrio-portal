@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -49,11 +49,13 @@ export type Database = {
       }
       cms_fields: {
         Row: {
+          content: Json | null
           created_at: string | null
           default_value: string | null
           id: string
           name: string
           order: number | null
+          parent_field_id: string | null
           required: boolean | null
           section_id: string
           type: Database["public"]["Enums"]["field_type"]
@@ -61,11 +63,13 @@ export type Database = {
           validation: string | null
         }
         Insert: {
+          content?: Json | null
           created_at?: string | null
           default_value?: string | null
           id?: string
           name: string
           order?: number | null
+          parent_field_id?: string | null
           required?: boolean | null
           section_id: string
           type: Database["public"]["Enums"]["field_type"]
@@ -73,11 +77,13 @@ export type Database = {
           validation?: string | null
         }
         Update: {
+          content?: Json | null
           created_at?: string | null
           default_value?: string | null
           id?: string
           name?: string
           order?: number | null
+          parent_field_id?: string | null
           required?: boolean | null
           section_id?: string
           type?: Database["public"]["Enums"]["field_type"]
@@ -559,19 +565,37 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      build_nested_fields_recursive: {
+        Args: { parent_field_id_param?: string; section_id_param: string }
+        Returns: Json
+      }
       create_user_profile_and_assign_role: {
         Args: {
-          p_user_id: string
           p_email: string
           p_first_name: string
           p_last_name: string
           p_role_type_id: string
+          p_user_id: string
         }
         Returns: boolean
       }
       get_all_users_with_roles: {
         Args: Record<PropertyKey, never>
         Returns: Json[]
+      }
+      get_page: {
+        Args: { page_id_param: string; website_id_param: string }
+        Returns: {
+          created_at: string
+          description: string
+          id: string
+          name: string
+          sections: Json
+          slug: string
+          status: Database["public"]["Enums"]["page_status"]
+          updated_at: string
+          website_id: string
+        }[]
       }
       get_user_session: {
         Args: Record<PropertyKey, never> | { p_uid: string }
@@ -580,11 +604,11 @@ export type Database = {
       has_global_role: {
         Args:
           | { role_name_input: string }
-          | { uid: string; role_name_input: string }
+          | { role_name_input: string; uid: string }
         Returns: boolean
       }
       revoke_global_role: {
-        Args: { user_id_input: string; role_name_input: string }
+        Args: { role_name_input: string; user_id_input: string }
         Returns: undefined
       }
       set_system_admin: {
@@ -601,6 +625,7 @@ export type Database = {
         | "richtext"
         | "image"
         | "reference"
+        | "section"
       global_roles: "default_user" | "system_admin"
       page_status: "draft" | "active" | "archived"
       subscription_status:
@@ -755,6 +780,7 @@ export const Constants = {
         "richtext",
         "image",
         "reference",
+        "section",
       ],
       global_roles: ["default_user", "system_admin"],
       page_status: ["draft", "active", "archived"],

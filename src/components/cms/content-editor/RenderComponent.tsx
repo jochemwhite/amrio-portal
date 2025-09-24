@@ -1,12 +1,12 @@
 import { useContentEditorStore } from "@/stores/useContentEditorStore";
-import { SupabaseField } from "@/types/cms";
+import { SupabaseField, RPCPageField } from "@/types/cms";
 
 interface RenderComponentProps {
-  field: SupabaseField;
+  field: SupabaseField | RPCPageField;
   value?: any;
   error?: string;
   onFieldChange?: (fieldId: string, value: any) => void;
-  onFieldBlur?: (field: SupabaseField) => void;
+  onFieldBlur?: (field: SupabaseField | RPCPageField) => void;
   // Additional props for nested sections
   currentSection?: any;
   allSections?: any[];
@@ -30,7 +30,7 @@ export default function RenderComponent({
     setFieldValue(fieldId, newValue);
   });
 
-  const handleFieldBlur = onFieldBlur || ((field: SupabaseField) => {
+  const handleFieldBlur = onFieldBlur || ((field: SupabaseField | RPCPageField) => {
     // Optional: trigger validation on blur
     const validationError = validateField(field.id, field);
     console.log("Field validation:", validationError);

@@ -73,7 +73,7 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
   const handleRowClick = (row: any) => {
     const page = row.original;
     if (page.id && page.website_id) {
-      router.push(`/dashboard/websites/${page.website_id}/${page.id}`);
+      router.push(`/dashboard/websites/${page.website_id}/${page.id}/content`);
     }
   };
 
