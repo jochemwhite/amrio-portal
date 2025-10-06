@@ -89,6 +89,7 @@ export const useContentEditorStore = create<ContentEditorState>()(
               key => !(key in newValues)
             );
 
+
             return {
               contentValues: newValues,
               hasUnsavedChanges: hasChanges,

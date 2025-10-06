@@ -14,6 +14,7 @@ const isEmpty = (value: any): boolean => {
 
 // Helper function to check if richtext content is empty
 const isRichTextEmpty = (value: any): boolean => {
+  console.log(`isRichTextEmpty: ${value}`);
   if (!value || typeof value !== 'object') return true;
   if (!value.content || !Array.isArray(value.content)) return true;
   return value.content.length === 0 || 
@@ -24,8 +25,8 @@ const isRichTextEmpty = (value: any): boolean => {
 
 // Format content based on field type
 const formatContentForFieldType = (fieldType: string, value: any): any => {
-  // If value is empty, return null regardless of field type
-  if (fieldType === 'richtext' && isRichTextEmpty(value)) {
+  if (fieldType === 'richtext') {
+    console.log(`Value is ${value}`);
     return null;
   } else if (isEmpty(value)) {
     return null;
@@ -87,9 +88,10 @@ const formatContentForFieldType = (fieldType: string, value: any): any => {
 };
 
 export async function savePageContent(pageId: string, contentValues: Record<string, any>) {
-  console.log(contentValues);
   try {
     const supabase = await createClient();
+
+    console.log(`savePageContent: ${pageId}, ${contentValues}`);
     
     // Get the current user
     const { data: { user }, error: authError } = await supabase.auth.getUser();

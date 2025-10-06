@@ -2,23 +2,24 @@
 
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import ToolBar from "./tool-bar";
 
 interface TiptapProps {
-  value?: any; // JSON object
+  initialValue?: any; // JSON object
   onChange?: (value: any) => void; // JSON object
   placeholder?: string;
   className?: string;
 }
 
-const Tiptap = ({ value, onChange, placeholder = "Start typing...", className }: TiptapProps) => {
+const Tiptap = ({ initialValue, onChange, placeholder = "Start typing...", className }: TiptapProps) => {
+  const [value, setValue] = useState(initialValue);
   const defaultContent = {
     type: "doc",
     content: [
       {
         type: "paragraph",
-        content: [],
+        content: null,
       },
     ],
   };
@@ -101,7 +102,7 @@ const Tiptap = ({ value, onChange, placeholder = "Start typing...", className }:
         },
       }),
     ],
-    content: value || defaultContent,
+    content: initialValue || defaultContent,
     editorProps: {
       attributes: {
         class: `min-h-[156px] rounded-md border py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${className || ""}`,
@@ -109,19 +110,13 @@ const Tiptap = ({ value, onChange, placeholder = "Start typing...", className }:
       },
     },
     onUpdate: ({ editor }) => {
+      setValue(editor.getJSON());
       if (onChange) {
         onChange(editor.getJSON());
       }
     },
     immediatelyRender: false, // Critical for proper SSR/client hydration
   });
-
-  // Update editor content when value prop changes
-  useEffect(() => {
-    if (editor && value && JSON.stringify(value) !== JSON.stringify(editor.getJSON())) {
-      editor.commands.setContent(value);
-    }
-  }, [editor, value]);
 
   if (!editor) return null;
 
