@@ -1,7 +1,9 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/supabaseServerClient";
+import { Section } from "@/types/cms";
 import { revalidatePath } from "next/cache";
+import { Field } from "@/types/cms";
 
 // Helper function to check if a value is empty
 const isEmpty = (value: any): boolean => {
@@ -37,7 +39,7 @@ const formatContentForFieldType = (fieldType: string, value: any): any => {
     
     case 'richtext':
       // Rich text is stored as-is (JSON object)
-      return { content: value };
+      return value;
     
     case 'number':
       return { value: Number(value) };
@@ -86,8 +88,7 @@ const formatContentForFieldType = (fieldType: string, value: any): any => {
   }
 };
 
-export async function savePageContent(pageId: string, contentValues: Record<string, any>) {
-  console.log(contentValues);
+export async function savePageContent(pageId: string, contentValues: (Field & { value?: any, fields?: any[] })[]) {
   try {
     const supabase = await createClient();
     
@@ -97,50 +98,32 @@ export async function savePageContent(pageId: string, contentValues: Record<stri
       throw new Error("Unauthorized");
     }
 
-    // First, get field information to determine field types
-    const { data: fields, error: fieldsError } = await supabase
-      .from('cms_fields')
-      .select(`
-        id,
-        type,
-        cms_sections!inner(page_id)
-      `)
-      .eq('cms_sections.page_id', pageId);
 
-    if (fieldsError) {
-      throw new Error("Failed to fetch field information");
-    }
-
-    // Create a map of field IDs to field types
-    const fieldTypeMap: Record<string, string> = {};
-    fields?.forEach(field => {
-      fieldTypeMap[field.id] = field.type;
-    });
-
-    // Transform content values to the format expected by the database
     const updates: Array<{ fieldId: string; content: any }> = [];
     
-    const processContentRecursively = (values: Record<string, any>) => {
-      Object.entries(values).forEach(([fieldId, value]) => {
-        if (typeof value === 'object' && value !== null && !Array.isArray(value) && 
-            Object.keys(value).some(key => typeof value[key] !== 'object' || Array.isArray(value[key]))) {
-          // This looks like nested section content
-          processContentRecursively(value);
-        } else {
-          // This is a regular field value
-          const fieldType = fieldTypeMap[fieldId];
-          if (fieldType && fieldType !== 'section') {
-            const formattedContent = formatContentForFieldType(fieldType, value);
-            updates.push({
-              fieldId,
-              content: formattedContent
-            });
-          }
-        }
-      });
+    // Recursive function to process fields and their nested fields
+    const processField = (field: Field & { value?: any, fields?: any[] }) => {
+      // Handle the field's own content (skip section type as they don't store content)
+      if (field.type !== 'section' && field.value !== undefined) {
+        const formattedContent = formatContentForFieldType(field.type, field.value);
+        updates.push({ 
+          fieldId: field.id, 
+          content: formattedContent 
+        });
+      }
+
+      // Process nested fields if this is a section type field
+      if (field.type === 'section' && field.fields && Array.isArray(field.fields)) {
+        field.fields.forEach(nestedField => {
+          processField(nestedField);
+        });
+      }
     };
 
-    processContentRecursively(contentValues);
+    // Process all fields recursively
+    for (const field of contentValues) {
+      processField(field);
+    }
 
     // Update each field's content in the database
     const updatePromises = updates.map(async ({ fieldId, content }) => {
@@ -156,6 +139,7 @@ export async function savePageContent(pageId: string, contentValues: Record<stri
     });
 
     await Promise.all(updatePromises);
+
 
     // Revalidate the page to ensure fresh data
     revalidatePath(`/dashboard/websites`);
@@ -199,9 +183,9 @@ const extractValueFromContent = (fieldType: string, content: any): any => {
   }
 };
 
-export async function loadPageContent(pageId: string) {
+export async function loadPageContent(pageId: string, websiteId: string) {
   try {
-    const supabase = await createClient();
+    const supabase: any = await createClient();
     
     // Get the current user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -209,32 +193,22 @@ export async function loadPageContent(pageId: string) {
       throw new Error("Unauthorized");
     }
 
-    // Get all fields for this page with their content and type information
-    const { data: fields, error } = await supabase
-      .from('cms_fields')
-      .select(`
-        id,
-        type,
-        content,
-        cms_sections!inner(page_id)
-      `)
-      .eq('cms_sections.page_id', pageId);
+    // Use RPC function to get page with nested sections and field content
+    const { data: pageData, error } = await supabase.rpc("get_page", {
+      page_id_param: pageId,
+      website_id_param: websiteId,
+    });
 
     if (error) {
       throw error;
     }
 
-    // Transform the content back to the format expected by the store
-    const contentValues: Record<string, any> = {};
-    
-    fields?.forEach(field => {
-      if (field.content !== null) {
-        contentValues[field.id] = extractValueFromContent(field.type, field.content);
-      }
-      // If content is null, don't add to contentValues (will use default value)
-    });
+    if (!pageData || !Array.isArray(pageData) || pageData.length === 0) {
+      throw new Error("Page not found");
+    }
 
-    return { contentValues };
+    // Extract the first (and only) page from the response array
+    return pageData[0];
   } catch (error) {
     console.error("Error loading content:", error);
     throw new Error(error instanceof Error ? error.message : "Failed to load content");

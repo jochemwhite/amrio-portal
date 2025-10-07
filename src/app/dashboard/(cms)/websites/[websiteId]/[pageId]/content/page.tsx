@@ -32,5 +32,9 @@ export default async function ContentPage({ params }: PageBuilderProps) {
   // Extract the first (and only) page from the response array
   const page: RPCPageResponse = pageData[0];
 
+
+
+
+
   return <ContentEditor pageId={pageId} existingContent={page} />;
 }

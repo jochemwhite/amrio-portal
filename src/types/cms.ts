@@ -8,6 +8,7 @@ export interface Field {
   defaultValue?: string;
   validation?: string;
   order?: number;
+  content?: any;
 }
 
 export interface Section {

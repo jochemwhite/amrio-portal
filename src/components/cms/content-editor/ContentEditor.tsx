@@ -20,16 +20,7 @@ export function ContentEditor({ pageId, existingContent }: ContentEditorProps) {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
-  const {
-    hasUnsavedChanges,
-    isSaving,
-    isLoading,
-    initializeContent,
-    contentValues,
-    saveContent,
-    resetAllFields,
-    validateAllFields,
-  } = useContentEditorStore();
+  const { hasUnsavedChanges, isSaving, isLoading, initializeContent, contentValues, saveContent, resetAllFields, getFieldValue } = useContentEditorStore();
 
   // The RPC response already has the nested structure built-in
   const processedSections = useMemo(() => {
@@ -43,38 +34,43 @@ export function ContentEditor({ pageId, existingContent }: ContentEditorProps) {
     }
 
     switch (field.type) {
-      case 'text':
-      case 'number':
-      case 'boolean':
-      case 'date':
+      case "text":
+      case "number":
+      case "boolean":
+      case "date":
         return field.content.value !== undefined ? field.content.value : field.default_value || "";
-      
-      case 'richtext':
+
+      case "richtext":
         return field.content.content !== undefined ? field.content.content : field.default_value || "";
-      
-      case 'image':
-      case 'video':
-        return field.content.url !== undefined ? field.content.url : 
-               field.content.value !== undefined ? field.content.value : field.default_value || "";
-      
-      case 'reference':
-        return field.content.id !== undefined ? field.content.id : 
-               field.content.value !== undefined ? field.content.value : field.default_value || "";
-      
-      case 'section':
+
+      case "image":
+      case "video":
+        return field.content.url !== undefined
+          ? field.content.url
+          : field.content.value !== undefined
+            ? field.content.value
+            : field.default_value || "";
+
+      case "reference":
+        return field.content.id !== undefined
+          ? field.content.id
+          : field.content.value !== undefined
+            ? field.content.value
+            : field.default_value || "";
+
+      case "section":
         return ""; // Section fields don't have content
-      
+
       default:
         // For unknown types, try to extract value or return as-is
-        return field.content.value !== undefined ? field.content.value : 
-               field.content !== null ? field.content : field.default_value || "";
+        return field.content.value !== undefined ? field.content.value : field.content !== null ? field.content : field.default_value || "";
     }
   };
 
   // Helper function to recursively initialize field values
   const initializeFieldValues = (fields: any[], content: Record<string, any>) => {
-    fields.forEach(field => {
-      if (field.type === 'section' && field.fields) {
+    fields.forEach((field) => {
+      if (field.type === "section" && field.fields) {
         // Initialize nested section field with an object containing its nested fields
         const nestedValues: Record<string, any> = {};
         initializeFieldValues(field.fields, nestedValues);
@@ -90,30 +86,30 @@ export function ContentEditor({ pageId, existingContent }: ContentEditorProps) {
     // Initialize content with existing values (if any)
     const initialContent: Record<string, any> = {};
     const initialExpandedState: Record<string, boolean> = {};
-    
+
     // Process sections to handle nested fields
-    processedSections.forEach(section => {
+    processedSections.forEach((section) => {
       // Expand all sections by default
       initialExpandedState[section.id] = true;
-      
+
       // Initialize field values recursively
       initializeFieldValues(section.fields || [], initialContent);
     });
-     
+
     setExpandedSections(initialExpandedState);
-    initializeContent(pageId, initialContent);
-  }, [pageId, processedSections, initializeContent]);
+    initializeContent(pageId, existingContent.website_id, existingContent);
+  }, [pageId, existingContent, processedSections, initializeContent]);
 
   const toggleSection = (sectionId: string) => {
-    setExpandedSections(prev => ({
+    setExpandedSections((prev) => ({
       ...prev,
-      [sectionId]: !prev[sectionId]
+      [sectionId]: !prev[sectionId],
     }));
   };
 
   const expandAllSections = () => {
     const allExpanded: Record<string, boolean> = {};
-    processedSections.forEach(section => {
+    processedSections.forEach((section) => {
       allExpanded[section.id] = true;
     });
     setExpandedSections(allExpanded);
@@ -121,7 +117,7 @@ export function ContentEditor({ pageId, existingContent }: ContentEditorProps) {
 
   const collapseAllSections = () => {
     const allCollapsed: Record<string, boolean> = {};
-    processedSections.forEach(section => {
+    processedSections.forEach((section) => {
       allCollapsed[section.id] = false;
     });
     setExpandedSections(allCollapsed);
@@ -129,16 +125,8 @@ export function ContentEditor({ pageId, existingContent }: ContentEditorProps) {
 
   const handleSave = async () => {
     // Validate all fields before saving
-    const errors = validateAllFields(existingContent.sections || []);
-    setValidationErrors(errors);
-    
-    if (Object.keys(errors).length > 0) {
-      toast.error("Please fix validation errors before saving");
-      return;
-    }
-    
+
     await saveContent();
-    setValidationErrors({});
   };
 
   const handleReset = () => {
@@ -163,11 +151,9 @@ export function ContentEditor({ pageId, existingContent }: ContentEditorProps) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Content Editor</h1>
-          <p className="text-muted-foreground">
-            Edit content for "{existingContent.name}"
-          </p>
+          <p className="text-muted-foreground">Edit content for "{existingContent.name}"</p>
         </div>
-        
+
         <div className="flex items-center gap-2">
           {hasUnsavedChanges && (
             <Badge variant="secondary" className="gap-1">
@@ -175,47 +161,28 @@ export function ContentEditor({ pageId, existingContent }: ContentEditorProps) {
               Unsaved changes
             </Badge>
           )}
-          
+
           {/* Section Controls */}
           {processedSections.length > 1 && (
             <>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={expandAllSections}
-                className="gap-1 text-xs"
-              >
+              <Button variant="ghost" size="sm" onClick={expandAllSections} className="gap-1 text-xs">
                 <Expand className="h-3 w-3" />
                 Expand All
               </Button>
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={collapseAllSections}
-                className="gap-1 text-xs"
-              >
+
+              <Button variant="ghost" size="sm" onClick={collapseAllSections} className="gap-1 text-xs">
                 <Minimize className="h-3 w-3" />
                 Collapse All
               </Button>
             </>
           )}
-          
-          <Button
-            variant="outline"
-            onClick={handleReset}
-            disabled={!hasUnsavedChanges || isSaving}
-            className="gap-2"
-          >
+
+          <Button variant="outline" onClick={handleReset} disabled={!hasUnsavedChanges || isSaving} className="gap-2">
             <RotateCcw className="h-4 w-4" />
             Reset
           </Button>
-          
-          <Button
-            onClick={handleSave}
-            disabled={!hasUnsavedChanges || isSaving}
-            className="gap-2"
-          >
+
+          <Button onClick={handleSave} disabled={!hasUnsavedChanges || isSaving} className="gap-2">
             {isSaving ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -236,51 +203,36 @@ export function ContentEditor({ pageId, existingContent }: ContentEditorProps) {
         {processedSections.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">
-              <p className="text-muted-foreground">
-                No content sections found. Please add sections in the Schema Builder first.
-              </p>
+              <p className="text-muted-foreground">No content sections found. Please add sections in the Schema Builder first.</p>
             </CardContent>
           </Card>
         ) : (
           processedSections.map((section) => (
             <Card key={section.id}>
-              <Collapsible
-                open={expandedSections[section.id] || false}
-                onOpenChange={() => toggleSection(section.id)}
-              >
+              <Collapsible open={expandedSections[section.id] || false} onOpenChange={() => toggleSection(section.id)}>
                 <CollapsibleTrigger asChild>
                   <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
                     <CardTitle className="flex items-center gap-2">
-                      {expandedSections[section.id] ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )}
+                      {expandedSections[section.id] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                       {section.name}
                       <Badge variant="outline" className="text-xs">
                         {section.fields?.length || 0} fields
                       </Badge>
                     </CardTitle>
-                    {section.description && (
-                      <p className="text-sm text-muted-foreground">
-                        {section.description}
-                      </p>
-                    )}
+                    {section.description && <p className="text-sm text-muted-foreground">{section.description}</p>}
                   </CardHeader>
                 </CollapsibleTrigger>
-                
+
                 <CollapsibleContent>
                   <CardContent className="space-y-4 pt-0">
                     {section.fields?.length === 0 ? (
-                      <p className="text-sm text-muted-foreground italic">
-                        No fields in this section.
-                      </p>
+                      <p className="text-sm text-muted-foreground italic">No fields in this section.</p>
                     ) : (
                       section.fields?.map((field) => (
                         <div key={field.id}>
                           <RenderComponent
                             field={field}
-                            value={contentValues[field.id]}
+                            value={getFieldValue(field.id)}
                             error={validationErrors[field.id]}
                             // Pass section context for nested sections
                             currentSection={section}
@@ -306,4 +258,4 @@ export function ContentEditor({ pageId, existingContent }: ContentEditorProps) {
       )}
     </div>
   );
-} 
+}

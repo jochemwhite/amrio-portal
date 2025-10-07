@@ -1,5 +1,6 @@
 import { useContentEditorStore } from "@/stores/useContentEditorStore";
 import { SupabaseField, RPCPageField } from "@/types/cms";
+import { useEffect } from "react";
 
 interface RenderComponentProps {
   field: SupabaseField | RPCPageField;
@@ -21,9 +22,9 @@ export default function RenderComponent({
   currentSection,
   allSections 
 }: RenderComponentProps) {
-  const { getFieldComponent, getFieldValue, setFieldValue, validateField } = useContentEditorStore();
+  const { getFieldComponent, getFieldValue, setFieldValue } = useContentEditorStore();
 
-  const Component = getFieldComponent(field);
+  const Component = getFieldComponent(field as SupabaseField);
   const fieldValue = value ?? getFieldValue(field.id);
 
   const handleFieldChange = onFieldChange || ((fieldId: string, newValue: any) => {
@@ -32,9 +33,10 @@ export default function RenderComponent({
 
   const handleFieldBlur = onFieldBlur || ((field: SupabaseField | RPCPageField) => {
     // Optional: trigger validation on blur
-    const validationError = validateField(field.id, field);
-    console.log("Field validation:", validationError);
+   
   });
+
+
 
   if (!Component) {
     return (

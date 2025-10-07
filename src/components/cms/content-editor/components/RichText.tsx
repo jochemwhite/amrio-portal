@@ -1,14 +1,16 @@
 "use client";
 import { Label } from "@/components/ui/label";
 import RichTextEditorComponent from "@/components/rich-editor/tiptap";
-import React from "react";
+import React, { useEffect } from "react";
+import { useContentEditorStore } from "@/stores/useContentEditorStore";
 
-export default function RichText({ field, fieldId, value, error, handleFieldChange, handleFieldBlur }: any) {
-
+export default function RichText({ field, fieldId, value, error, handleFieldChange }: any) {
+  const { getFieldValue } = useContentEditorStore();
   const handleChange = (json: unknown) => {
-
     handleFieldChange(field.id, json);
   };
+
+
 
   return (
     <div className="space-y-2">
