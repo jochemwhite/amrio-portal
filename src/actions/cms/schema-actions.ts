@@ -1,0 +1,610 @@
+"use server";
+
+import { createClient } from "@/lib/supabase/supabaseServerClient";
+import { checkRequiredRoles } from "@/server/auth/check-required-roles";
+import { ActionResponse } from "@/types/actions";
+import { revalidatePath } from "next/cache";
+import { Schema, SchemaSection, SchemaField } from "@/types/cms";
+
+// ============== SCHEMA MANAGEMENT ==============
+
+interface CreateSchemaData {
+  name: string;
+  description?: string;
+  template?: boolean;
+}
+
+interface UpdateSchemaData {
+  name?: string;
+  description?: string;
+  template?: boolean;
+}
+
+export async function createSchema(data: CreateSchemaData): Promise<ActionResponse<Schema>> {
+  const supabase = await createClient();
+  
+  // Check authentication
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { success: false, error: "Unauthorized: User not authenticated." };
+  }
+
+  // Check admin role
+  const isAdmin = await checkRequiredRoles(user.id, ["system_admin"]);
+  if (!isAdmin) {
+    return { success: false, error: "Unauthorized: Only admins can create schemas." };
+  }
+
+  try {
+    const { data: schema, error } = await supabase
+      .from("cms_schemas")
+      .insert({
+        name: data.name,
+        description: data.description,
+        template: data.template ?? false,
+        created_by: user.id,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating schema:", error);
+      return { success: false, error: error.message };
+    }
+
+    revalidatePath("/dashboard/schemas");
+    return { success: true, data: schema as Schema };
+  } catch (error) {
+    console.error("Unexpected error creating schema:", error);
+    return { success: false, error: "An unexpected error occurred." };
+  }
+}
+
+export async function updateSchema(schemaId: string, data: UpdateSchemaData): Promise<ActionResponse<Schema>> {
+  const supabase = await createClient();
+  
+  // Check authentication
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { success: false, error: "Unauthorized: User not authenticated." };
+  }
+
+  // Check admin role
+  const isAdmin = await checkRequiredRoles(user.id, ["system_admin"]);
+  if (!isAdmin) {
+    return { success: false, error: "Unauthorized: Only admins can update schemas." };
+  }
+
+  try {
+    const { data: schema, error } = await supabase
+      .from("cms_schemas")
+      .update(data)
+      .eq("id", schemaId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating schema:", error);
+      return { success: false, error: error.message };
+    }
+
+    revalidatePath("/dashboard/schemas");
+    return { success: true, data: schema as Schema };
+  } catch (error) {
+    console.error("Unexpected error updating schema:", error);
+    return { success: false, error: "An unexpected error occurred." };
+  }
+}
+
+export async function deleteSchema(schemaId: string): Promise<ActionResponse<void>> {
+  const supabase = await createClient();
+  
+  // Check authentication
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { success: false, error: "Unauthorized: User not authenticated." };
+  }
+
+  // Check admin role
+  const isAdmin = await checkRequiredRoles(user.id, ["system_admin"]);
+  if (!isAdmin) {
+    return { success: false, error: "Unauthorized: Only admins can delete schemas." };
+  }
+
+  try {
+    const { error } = await supabase
+      .from("cms_schemas")
+      .delete()
+      .eq("id", schemaId);
+
+    if (error) {
+      console.error("Error deleting schema:", error);
+      return { success: false, error: error.message };
+    }
+
+    revalidatePath("/dashboard/schemas");
+    return { success: true };
+  } catch (error) {
+    console.error("Unexpected error deleting schema:", error);
+    return { success: false, error: "An unexpected error occurred." };
+  }
+}
+
+// ============== SCHEMA SECTION MANAGEMENT ==============
+
+interface CreateSchemaSectionData {
+  schema_id: string;
+  name: string;
+  description?: string;
+  order?: number;
+}
+
+interface UpdateSchemaSectionData {
+  name?: string;
+  description?: string;
+  order?: number;
+}
+
+export async function createSchemaSection(data: CreateSchemaSectionData): Promise<ActionResponse<SchemaSection>> {
+  const supabase = await createClient();
+  
+  // Check authentication
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { success: false, error: "Unauthorized: User not authenticated." };
+  }
+
+  // Check admin role
+  const isAdmin = await checkRequiredRoles(user.id, ["system_admin"]);
+  if (!isAdmin) {
+    return { success: false, error: "Unauthorized: Only admins can create schema sections." };
+  }
+
+  try {
+    // Get the next order value if not provided
+    let order = data.order;
+    if (order === undefined) {
+      const { data: existingSections, error: countError } = await supabase
+        .from("cms_schema_sections")
+        .select("order")
+        .eq("schema_id", data.schema_id)
+        .order("order", { ascending: false })
+        .limit(1);
+      
+      if (countError) {
+        console.error("Error getting section count:", countError);
+        order = 0;
+      } else {
+        order = (existingSections?.[0]?.order ?? -1) + 1;
+      }
+    }
+
+    const { data: section, error } = await supabase
+      .from("cms_schema_sections")
+      .insert({
+        schema_id: data.schema_id,
+        name: data.name,
+        description: data.description,
+        order: order,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating schema section:", error);
+      return { success: false, error: error.message };
+    }
+
+    revalidatePath("/dashboard/schemas");
+    return { success: true, data: section as SchemaSection };
+  } catch (error) {
+    console.error("Unexpected error creating schema section:", error);
+    return { success: false, error: "An unexpected error occurred." };
+  }
+}
+
+export async function updateSchemaSection(sectionId: string, data: UpdateSchemaSectionData): Promise<ActionResponse<SchemaSection>> {
+  const supabase = await createClient();
+  
+  // Check authentication
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { success: false, error: "Unauthorized: User not authenticated." };
+  }
+
+  // Check admin role
+  const isAdmin = await checkRequiredRoles(user.id, ["system_admin"]);
+  if (!isAdmin) {
+    return { success: false, error: "Unauthorized: Only admins can update schema sections." };
+  }
+
+  try {
+    const { data: section, error } = await supabase
+      .from("cms_schema_sections")
+      .update(data)
+      .eq("id", sectionId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating schema section:", error);
+      return { success: false, error: error.message };
+    }
+
+    revalidatePath("/dashboard/schemas");
+    return { success: true, data: section as SchemaSection };
+  } catch (error) {
+    console.error("Unexpected error updating schema section:", error);
+    return { success: false, error: "An unexpected error occurred." };
+  }
+}
+
+export async function deleteSchemaSection(sectionId: string): Promise<ActionResponse<void>> {
+  const supabase = await createClient();
+  
+  // Check authentication
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { success: false, error: "Unauthorized: User not authenticated." };
+  }
+
+  // Check admin role
+  const isAdmin = await checkRequiredRoles(user.id, ["system_admin"]);
+  if (!isAdmin) {
+    return { success: false, error: "Unauthorized: Only admins can delete schema sections." };
+  }
+
+  try {
+    const { error } = await supabase
+      .from("cms_schema_sections")
+      .delete()
+      .eq("id", sectionId);
+
+    if (error) {
+      console.error("Error deleting schema section:", error);
+      return { success: false, error: error.message };
+    }
+
+    revalidatePath("/dashboard/schemas");
+    return { success: true };
+  } catch (error) {
+    console.error("Unexpected error deleting schema section:", error);
+    return { success: false, error: "An unexpected error occurred." };
+  }
+}
+
+// ============== SCHEMA FIELD MANAGEMENT ==============
+
+interface CreateSchemaFieldData {
+  schema_section_id: string;
+  name: string;
+  type: string;
+  required?: boolean;
+  default_value?: string;
+  validation?: string;
+  order?: number;
+  parent_field_id?: string;
+}
+
+interface UpdateSchemaFieldData {
+  name?: string;
+  type?: string;
+  required?: boolean;
+  default_value?: string;
+  validation?: string;
+  order?: number;
+}
+
+export async function createSchemaField(data: CreateSchemaFieldData): Promise<ActionResponse<SchemaField>> {
+  const supabase = await createClient();
+  
+  // Check authentication
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { success: false, error: "Unauthorized: User not authenticated." };
+  }
+
+  // Check admin role
+  const isAdmin = await checkRequiredRoles(user.id, ["system_admin"]);
+  if (!isAdmin) {
+    return { success: false, error: "Unauthorized: Only admins can create schema fields." };
+  }
+
+  try {
+    // Get the next order value if not provided
+    let order = data.order;
+    if (order === undefined) {
+      const { data: existingFields, error: countError } = await supabase
+        .from("cms_schema_fields")
+        .select("order")
+        .eq("schema_section_id", data.schema_section_id)
+        .order("order", { ascending: false })
+        .limit(1);
+      
+      if (countError) {
+        console.error("Error getting field count:", countError);
+        order = 0;
+      } else {
+        order = (existingFields?.[0]?.order ?? -1) + 1;
+      }
+    }
+
+    const { data: field, error } = await supabase
+      .from("cms_schema_fields")
+      .insert({
+        schema_section_id: data.schema_section_id,
+        name: data.name,
+        type: data.type,
+        required: data.required ?? false,
+        default_value: data.default_value,
+        validation: data.validation,
+        order: order,
+        parent_field_id: data.parent_field_id,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating schema field:", error);
+      return { success: false, error: error.message };
+    }
+
+    revalidatePath("/dashboard/schemas");
+    return { success: true, data: field as SchemaField };
+  } catch (error) {
+    console.error("Unexpected error creating schema field:", error);
+    return { success: false, error: "An unexpected error occurred." };
+  }
+}
+
+export async function updateSchemaField(fieldId: string, data: UpdateSchemaFieldData): Promise<ActionResponse<SchemaField>> {
+  const supabase = await createClient();
+  
+  // Check authentication
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { success: false, error: "Unauthorized: User not authenticated." };
+  }
+
+  // Check admin role
+  const isAdmin = await checkRequiredRoles(user.id, ["system_admin"]);
+  if (!isAdmin) {
+    return { success: false, error: "Unauthorized: Only admins can update schema fields." };
+  }
+
+  try {
+    const { data: field, error } = await supabase
+      .from("cms_schema_fields")
+      .update(data)
+      .eq("id", fieldId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating schema field:", error);
+      return { success: false, error: error.message };
+    }
+
+    revalidatePath("/dashboard/schemas");
+    return { success: true, data: field as SchemaField };
+  } catch (error) {
+    console.error("Unexpected error updating schema field:", error);
+    return { success: false, error: "An unexpected error occurred." };
+  }
+}
+
+export async function deleteSchemaField(fieldId: string): Promise<ActionResponse<void>> {
+  const supabase = await createClient();
+  
+  // Check authentication
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { success: false, error: "Unauthorized: User not authenticated." };
+  }
+
+  // Check admin role
+  const isAdmin = await checkRequiredRoles(user.id, ["system_admin"]);
+  if (!isAdmin) {
+    return { success: false, error: "Unauthorized: Only admins can delete schema fields." };
+  }
+
+  try {
+    const { error } = await supabase
+      .from("cms_schema_fields")
+      .delete()
+      .eq("id", fieldId);
+
+    if (error) {
+      console.error("Error deleting schema field:", error);
+      return { success: false, error: error.message };
+    }
+
+    revalidatePath("/dashboard/schemas");
+    return { success: true };
+  } catch (error) {
+    console.error("Unexpected error deleting schema field:", error);
+    return { success: false, error: "An unexpected error occurred." };
+  }
+}
+
+// ============== BULK SAVE SCHEMA CHANGES ==============
+
+interface BulkSaveSchemaPayload {
+  schemaId: string;
+  changes: Array<{
+    type: 'create' | 'update' | 'delete';
+    entity: 'section' | 'field';
+    id?: string;
+    data?: any;
+    tempId?: string;
+  }>;
+  sectionOrder: string[];
+  fieldOrders: Record<string, string[]>; // sectionId -> fieldIds[]
+}
+
+interface BulkSaveSchemaResult {
+  success: boolean;
+  error?: string;
+  tempIdMap: Record<string, string>; // Maps temp IDs to real IDs
+}
+
+export async function bulkSaveSchemaChanges(payload: BulkSaveSchemaPayload): Promise<BulkSaveSchemaResult> {
+  const supabase = await createClient();
+  
+  // Check authentication
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { success: false, error: "Unauthorized", tempIdMap: {} };
+  }
+
+  // Check admin role
+  const isAdmin = await checkRequiredRoles(user.id, ["system_admin"]);
+  if (!isAdmin) {
+    return { success: false, error: "Unauthorized: Only admins can save schema changes.", tempIdMap: {} };
+  }
+
+  try {
+    const tempIdMap: Record<string, string> = {};
+
+    // Process changes in order: creates first, then updates, then deletes
+    const creates = payload.changes.filter(c => c.type === 'create');
+    const updates = payload.changes.filter(c => c.type === 'update');
+    const deletes = payload.changes.filter(c => c.type === 'delete');
+
+    // 1. Process creates
+    for (const change of creates) {
+      if (change.entity === 'section') {
+        const { data: section, error } = await supabase
+          .from("cms_schema_sections")
+          .insert({
+            schema_id: payload.schemaId,
+            name: change.data.name,
+            description: change.data.description,
+            order: 0, // Will update order later
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        if (change.tempId && section) {
+          tempIdMap[change.tempId] = section.id;
+        }
+      } else if (change.entity === 'field') {
+        // Map temp section IDs to real IDs
+        const sectionId = change.data.schema_section_id.startsWith('temp_') 
+          ? tempIdMap[change.data.schema_section_id]
+          : change.data.schema_section_id;
+
+        const parentFieldId = change.data.parent_field_id?.startsWith('temp_')
+          ? tempIdMap[change.data.parent_field_id]
+          : change.data.parent_field_id;
+
+        const { data: field, error } = await supabase
+          .from("cms_schema_fields")
+          .insert({
+            schema_section_id: sectionId,
+            name: change.data.name,
+            type: change.data.type,
+            required: change.data.required ?? false,
+            default_value: change.data.default_value,
+            validation: change.data.validation,
+            order: 0, // Will update order later
+            parent_field_id: parentFieldId,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        if (change.tempId && field) {
+          tempIdMap[change.tempId] = field.id;
+        }
+      }
+    }
+
+    // 2. Process updates
+    for (const change of updates) {
+      if (change.entity === 'section' && change.id) {
+        const { error } = await supabase
+          .from("cms_schema_sections")
+          .update({
+            name: change.data.name,
+            description: change.data.description,
+          })
+          .eq("id", change.id);
+
+        if (error) throw error;
+      } else if (change.entity === 'field' && change.id) {
+        const parentFieldId = change.data.parent_field_id?.startsWith('temp_')
+          ? tempIdMap[change.data.parent_field_id]
+          : change.data.parent_field_id;
+
+        const { error } = await supabase
+          .from("cms_schema_fields")
+          .update({
+            name: change.data.name,
+            type: change.data.type,
+            required: change.data.required,
+            default_value: change.data.default_value,
+            validation: change.data.validation,
+            parent_field_id: parentFieldId,
+          })
+          .eq("id", change.id);
+
+        if (error) throw error;
+      }
+    }
+
+    // 3. Process deletes (in reverse order to avoid FK issues)
+    for (const change of deletes.reverse()) {
+      if (change.entity === 'field' && change.id) {
+        const { error } = await supabase
+          .from("cms_schema_fields")
+          .delete()
+          .eq("id", change.id);
+
+        if (error) throw error;
+      } else if (change.entity === 'section' && change.id) {
+        const { error } = await supabase
+          .from("cms_schema_sections")
+          .delete()
+          .eq("id", change.id);
+
+        if (error) throw error;
+      }
+    }
+
+    // 4. Update section order
+    const sectionOrderUpdates = payload.sectionOrder.map((sectionId, index) => {
+      const realId = sectionId.startsWith('temp_') ? tempIdMap[sectionId] : sectionId;
+      return supabase
+        .from("cms_schema_sections")
+        .update({ order: index })
+        .eq("id", realId);
+    });
+    await Promise.all(sectionOrderUpdates);
+
+    // 5. Update field orders within each section
+    const fieldOrderUpdates = Object.entries(payload.fieldOrders).flatMap(([sectionId, fieldIds]) => {
+      const realSectionId = sectionId.startsWith('temp_') ? tempIdMap[sectionId] : sectionId;
+      return fieldIds.map((fieldId, index) => {
+        const realFieldId = fieldId.startsWith('temp_') ? tempIdMap[fieldId] : fieldId;
+        return supabase
+          .from("cms_schema_fields")
+          .update({ order: index })
+          .eq("id", realFieldId);
+      });
+    });
+    await Promise.all(fieldOrderUpdates);
+
+    revalidatePath("/dashboard/schemas");
+    return { success: true, tempIdMap };
+  } catch (error) {
+    console.error("Error in bulk save:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "An unexpected error occurred.", 
+      tempIdMap: {} 
+    };
+  }
+}
+

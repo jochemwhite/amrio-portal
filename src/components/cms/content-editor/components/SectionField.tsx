@@ -36,18 +36,18 @@ interface SectionFieldProps {
   nestingLevel?: number; // Track nesting depth for styling
 }
 
-export default function SectionField({ 
-  field, 
-  fieldId, 
-  value, 
-  error, 
-  handleFieldChange, 
+export default function SectionField({
+  field,
+  fieldId,
+  value,
+  error,
+  handleFieldChange,
   handleFieldBlur,
   currentSection,
-  allSections = []
+  allSections = [],
 }: SectionFieldProps) {
   const [isExpanded, setIsExpanded] = useState(true);
-  
+
   // Check if this field has its own nested fields defined
   const hasNestedFields = field.fields && field.fields.length > 0;
 
@@ -59,9 +59,7 @@ export default function SectionField({
           {field.required && <span className="text-destructive ml-1">*</span>}
         </Label>
         <div className="p-4 border border-dashed rounded-md">
-          <p className="text-sm text-muted-foreground">
-            This section field has no nested fields defined.
-          </p>
+          <p className="text-sm text-muted-foreground">This section field has no nested fields defined.</p>
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
         {field.description && <p className="text-sm text-muted-foreground">{field.description}</p>}
@@ -72,7 +70,6 @@ export default function SectionField({
   return (
     <div className="space-y-2">
       <Label htmlFor={fieldId}>
-        {field.name}
         {field.required && <span className="text-destructive ml-1">*</span>}
         <Badge variant="outline" className="ml-2 text-xs">
           {field.fields?.length || 0} fields
@@ -84,25 +81,17 @@ export default function SectionField({
           <CollapsibleTrigger asChild>
             <CardHeader className="pb-3 cursor-pointer transition-colors">
               <CardTitle className="text-sm flex items-center gap-2">
-                {isExpanded ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
+                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                 <FolderOpen className="h-4 w-4" />
                 {field.name}
                 <Badge variant="secondary" className="text-xs">
                   Section
                 </Badge>
               </CardTitle>
-              {field.description && (
-                <p className="text-xs">
-                  {field.description}
-                </p>
-              )}
+              {field.description && <p className="text-xs">{field.description}</p>}
             </CardHeader>
           </CollapsibleTrigger>
-          
+
           <CollapsibleContent>
             <CardContent className="pt-0 space-y-4">
               {field.fields?.map((nestedField) => (
@@ -110,22 +99,14 @@ export default function SectionField({
                   <RenderComponent
                     field={{
                       ...nestedField,
-                      id: `${field.id}.${nestedField.id}`,
+                      id: nestedField.id,
                       section_id: field.id,
                       default_value: nestedField.default_value ?? undefined,
                       validation: nestedField.validation ?? undefined,
                       order: nestedField.order || 0,
                     }}
                     value={value?.[nestedField.id]}
-                    onFieldChange={(nestedFieldId, nestedValue) => {
-                      // Update the nested field value within this section field's value
-                      const currentValue = value || {};
-                      const updatedValue = {
-                        ...currentValue,
-                        [nestedField.id]: nestedValue
-                      };
-                      handleFieldChange(field.id, updatedValue);
-                    }}
+                    onFieldChange={(nestedFieldId, nestedValue) => handleFieldChange(nestedFieldId, nestedValue)}
                     onFieldBlur={handleFieldBlur}
                     currentSection={currentSection}
                     allSections={allSections}

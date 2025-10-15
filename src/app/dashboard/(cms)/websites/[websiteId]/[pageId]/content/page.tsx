@@ -32,9 +32,30 @@ export default async function ContentPage({ params }: PageBuilderProps) {
   // Extract the first (and only) page from the response array
   const page: RPCPageResponse = pageData[0];
 
+  // Recursively flatten all fields including nested fields
+  const flattenFields = (fields: any[]): any[] => {
+    return fields.flatMap(field => {
+      if (field.type === "section" && field.fields) {
+        // Recursively flatten nested fields, but exclude the section field itself
+        return flattenFields(field.fields);
+      }
+      return [field];
+    });
+  };
+
+  const fields: { id: string, type: string, content: any }[] = page.sections
+    .flatMap(section => flattenFields(section.fields))
+    .map(field => ({
+      id: field.id,
+      type: field.type,
+      content: field.content
+    }));
 
 
 
 
-  return <ContentEditor pageId={pageId} existingContent={page} />;
+
+
+
+  return <ContentEditor pageId={pageId} existingContent={page} originalFields={fields} />;
 }

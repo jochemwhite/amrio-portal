@@ -4,10 +4,13 @@ import { TenantFormValues } from "@/components/admin/forms/tenant-form";
 import { createClient } from "@/lib/supabase/supabaseServerClient";
 import { createMoneybirdContact } from "@/server/moneybird/contacts";
 import { createStripeCustomer } from "@/server/stripe/customers";
+import { createCMSBucketFolder } from "@/server/tenant/create-cms-bucket-folder";
 import { Database } from "@/types/supabase";
 
 export async function createTenant(tenant: TenantFormValues) {
   const supabase = await createClient();
+  
+  let tenantId: string | null = null;
   
 
   const { data, error } = await supabase
@@ -40,74 +43,87 @@ export async function createTenant(tenant: TenantFormValues) {
     throw new Error(error.message);
   }
 
-  const name = tenant.isBusinessContact ? tenant.company_name : `${tenant.firstname} ${tenant.lastname}`;
-  console.log("name", name);
+  try {
+    // create folder in cms storage
+    await createCMSBucketFolder(data.id);
 
-  if (!name) {
-    throw new Error("Missing required fields for Stripe customer creation: email is required");
-  }
+    const name = tenant.isBusinessContact ? tenant.company_name : `${tenant.firstname} ${tenant.lastname}`;
 
-  if (tenant.createStripe) {
-    if (
-      !tenant.contact_email ||
-      !tenant.address ||
-      !tenant.city ||
-      !tenant.stateOrProvince ||
-      !tenant.postal_code ||
-      !tenant.country ||
-      !tenant.phone
-    ) {
-      console.log("Missing required fields:", {
-        contact_email: !tenant.contact_email,
-        company_name: !tenant.company_name,
-        address: !tenant.address,
-        city: !tenant.city,
-        stateOrProvince: !tenant.stateOrProvince,
-        postal_code: !tenant.postal_code,
-        country: !tenant.country,
-        phone: !tenant.phone,
-      });
-      throw new Error("Missing required fields for Stripe customer creation: email, name, and address are required");
+    if (!name) {
+      throw new Error("Missing required fields for Stripe customer creation: email is required");
     }
 
-    await createStripeCustomer({
-      email: tenant.contact_email,
-      name: name,
-      phone: tenant.phone,
-      address: {
-        line1: tenant.address,
-        line2: tenant.address2 || "",
-        city: tenant.city,
-        state: tenant.stateOrProvince,
-        postal_code: tenant.postal_code,
-        country: tenant.country,
-      },
-      tenantId: data.id,
-    });
-  }
+    if (tenant.createStripe) {
+      if (
+        !tenant.contact_email ||
+        !tenant.address ||
+        !tenant.city ||
+        !tenant.stateOrProvince ||
+        !tenant.postal_code ||
+        !tenant.country ||
+        !tenant.phone
+      ) {
+        console.log("Missing required fields:", {
+          contact_email: !tenant.contact_email,
+          company_name: !tenant.company_name,
+          address: !tenant.address,
+          city: !tenant.city,
+          stateOrProvince: !tenant.stateOrProvince,
+          postal_code: !tenant.postal_code,
+          country: !tenant.country,
+          phone: !tenant.phone,
+        });
+        throw new Error("Missing required fields for Stripe customer creation: email, name, and address are required");
+      }
 
-  if (tenant.createMoneybird) {
-    await createMoneybirdContact(
-      {
-        customer_id: data.id,
-        company_name: tenant.company_name,
-        firstname: tenant.firstname,
-        lastname: tenant.lastname,
-        address1: tenant.address,
-        address2: tenant.address2,
-        city: tenant.city,
-        zipcode: tenant.postal_code,
-        country: tenant.country,
+      await createStripeCustomer({
+        email: tenant.contact_email,
+        name: name,
         phone: tenant.phone,
-        send_invoices_to_attention: tenant.contact_email,
-        send_invoices_to_email: tenant.contact_email,
-      },
-      data.id
-    );
-  }
+        address: {
+          line1: tenant.address,
+          line2: tenant.address2 || "",
+          city: tenant.city,
+          state: tenant.stateOrProvince,
+          postal_code: tenant.postal_code,
+          country: tenant.country,
+        },
+        tenantId: data.id,
+      });
+    }
 
-  return data;
+    if (tenant.createMoneybird) {
+      await createMoneybirdContact(
+        {
+          customer_id: data.id,
+          company_name: tenant.company_name,
+          firstname: tenant.firstname,
+          lastname: tenant.lastname,
+          address1: tenant.address,
+          address2: tenant.address2,
+          city: tenant.city,
+          zipcode: tenant.postal_code,
+          country: tenant.country,
+          phone: tenant.phone,
+          send_invoices_to_attention: tenant.contact_email,
+          send_invoices_to_email: tenant.contact_email,
+        },
+        data.id
+      );
+    }
+
+    return data;
+  } catch (err) {
+    // Rollback: Delete the tenant if any error occurs after creation
+    console.error("Error during tenant setup, rolling back tenant creation:", err);
+    
+    await supabase
+      .from("tenants")
+      .delete()
+      .eq("id", data.id);
+    
+    // Re-throw the original error
+    throw err;
+  }
 }
 
-// dd7e3c99-7ba6-4973-b44f-67b6e602864
-// dd7e3c99-7ba6-4973-b44f-67b6e6028642

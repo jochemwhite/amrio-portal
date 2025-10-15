@@ -77,7 +77,7 @@ export async function createSection(data: CreateSectionData): Promise<ActionResp
     let order = data.order;
     if (order === undefined) {
       const { data: existingSections, error: countError } = await supabase
-        .from("cms_sections")
+        .from("cms_content_sections")
         .select("order")
         .eq("page_id", data.page_id)
         .order("order", { ascending: false })
@@ -92,7 +92,7 @@ export async function createSection(data: CreateSectionData): Promise<ActionResp
     }
 
     const { data: section, error } = await supabase
-      .from("cms_sections")
+      .from("cms_content_sections")
       .insert({
         page_id: data.page_id,
         name: data.name,
@@ -140,7 +140,7 @@ export async function updateSection(id: string, data: UpdateSectionData): Promis
 
   try {
     const { data: section, error } = await supabase
-      .from("cms_sections")
+      .from("cms_content_sections")
       .update(data)
       .eq("id", id)
       .select()
@@ -182,7 +182,7 @@ export async function deleteSection(id: string): Promise<ActionResponse<void>> {
 
   try {
     const { error } = await supabase
-      .from("cms_sections")
+      .from("cms_content_sections")
       .delete()
       .eq("id", id);
 
@@ -211,7 +211,7 @@ export async function getSectionWithFields(sectionId: string): Promise<ActionRes
   try {
     // Get section details
     const { data: section, error: sectionError } = await supabase
-      .from("cms_sections")
+      .from("cms_content_sections")
       .select("*")
       .eq("id", sectionId)
       .single();
@@ -223,7 +223,7 @@ export async function getSectionWithFields(sectionId: string): Promise<ActionRes
 
     // Get fields
     const { data: fields, error: fieldsError } = await supabase
-      .from("cms_fields")
+      .from("cms_content_fields")
       .select("*")
       .eq("section_id", sectionId)
       .order("order", { ascending: true });
@@ -274,7 +274,7 @@ export async function createField(data: CreateFieldData): Promise<ActionResponse
 
   try {
     const { data: field, error } = await supabase
-      .from("cms_fields")
+      .from("cms_content_fields")
       .insert({
         section_id: data.section_id,
         name: data.name,
@@ -337,7 +337,7 @@ export async function updateField(id: string, data: UpdateFieldData): Promise<Ac
     if (data.order !== undefined) updateData.order = data.order;
 
     const { data: field, error } = await supabase
-      .from("cms_fields")
+      .from("cms_content_fields")
       .update(updateData)
       .eq("id", id)
       .select()
@@ -384,7 +384,7 @@ export async function deleteField(id: string): Promise<ActionResponse<void>> {
 
   try {
     const { error } = await supabase
-      .from("cms_fields")
+      .from("cms_content_fields")
       .delete()
       .eq("id", id);
 
@@ -420,7 +420,7 @@ export async function reorderFields(sectionId: string, fieldIds: string[]): Prom
     // Update order for each field
     const updates = fieldIds.map((fieldId, index) => 
       supabase
-        .from("cms_fields")
+        .from("cms_content_fields")
         .update({ order: index })
         .eq("id", fieldId)
         .eq("section_id", sectionId)
@@ -462,7 +462,7 @@ export async function reorderSections(pageId: string, sectionIds: string[]): Pro
     // Update order for each section
     const updates = sectionIds.map((sectionId, index) => 
       supabase
-        .from("cms_sections")
+        .from("cms_content_sections")
         .update({ order: index })
         .eq("id", sectionId)
         .eq("page_id", pageId)
@@ -524,7 +524,7 @@ export async function bulkSavePageChanges(payload: BulkSavePayload): Promise<Bul
     for (const change of creates) {
       if (change.entity === 'section') {
         const { data: section, error } = await supabase
-          .from("cms_sections")
+          .from("cms_content_sections")
           .insert({
             ...change.data,
             page_id: payload.pageId,
@@ -549,7 +549,7 @@ export async function bulkSavePageChanges(payload: BulkSavePayload): Promise<Bul
           : null;
         
         const { data: field, error } = await supabase
-          .from("cms_fields")
+          .from("cms_content_fields")
           .insert({
             ...change.data,
             section_id: sectionId,
@@ -572,7 +572,7 @@ export async function bulkSavePageChanges(payload: BulkSavePayload): Promise<Bul
     for (const change of updates) {
       if (change.entity === 'section') {
         const { error } = await supabase
-          .from("cms_sections")
+          .from("cms_content_sections")
           .update(change.data)
           .eq("id", change.id!);
         
@@ -587,7 +587,7 @@ export async function bulkSavePageChanges(payload: BulkSavePayload): Promise<Bul
         }
         
         const { error } = await supabase
-          .from("cms_fields")
+          .from("cms_content_fields")
           .update(updateData)
           .eq("id", change.id!);
         
@@ -602,7 +602,7 @@ export async function bulkSavePageChanges(payload: BulkSavePayload): Promise<Bul
       if (change.entity === 'section') {
         // Delete associated fields first
         const { error: fieldsError } = await supabase
-          .from("cms_fields")
+          .from("cms_content_fields")
           .delete()
           .eq("section_id", change.id!);
         
@@ -612,7 +612,7 @@ export async function bulkSavePageChanges(payload: BulkSavePayload): Promise<Bul
         
         // Then delete the section
         const { error: sectionError } = await supabase
-          .from("cms_sections")
+          .from("cms_content_sections")
           .delete()
           .eq("id", change.id!);
         
@@ -621,7 +621,7 @@ export async function bulkSavePageChanges(payload: BulkSavePayload): Promise<Bul
         }
       } else if (change.entity === 'field') {
         const { error } = await supabase
-          .from("cms_fields")
+          .from("cms_content_fields")
           .delete()
           .eq("id", change.id!);
         
@@ -635,7 +635,7 @@ export async function bulkSavePageChanges(payload: BulkSavePayload): Promise<Bul
     const finalSectionOrder = payload.sectionOrder.map(id => tempIdMap[id] || id);
     for (let i = 0; i < finalSectionOrder.length; i++) {
       const { error } = await supabase
-        .from("cms_sections")
+        .from("cms_content_sections")
         .update({ order: i })
         .eq("id", finalSectionOrder[i]);
       
@@ -651,7 +651,7 @@ export async function bulkSavePageChanges(payload: BulkSavePayload): Promise<Bul
       
       for (let i = 0; i < finalFieldIds.length; i++) {
         const { error } = await supabase
-          .from("cms_fields")
+          .from("cms_content_fields")
           .update({ order: i })
           .eq("id", finalFieldIds[i])
           .eq("section_id", finalSectionId);

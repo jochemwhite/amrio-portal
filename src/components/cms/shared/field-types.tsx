@@ -60,8 +60,8 @@ export const FIELD_TYPES: FieldType[] = [
     cmsComponent: ImageComponent,
   },
   {
-    value: "reference",
-    label: "Relationship",
+    value: "collection",
+    label: "Collection",
     icon: <Link className="h-4 w-4" />,
     description: "Reference to other content",
     color: "bg-yellow-100 text-yellow-800",

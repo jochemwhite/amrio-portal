@@ -137,6 +137,75 @@ export interface WebsiteStore {
   
   // Get websites by tenant
   getWebsitesByTenant: (tenantId: string) => Website[];
+}
+
+// Schema types for template-based schemas
+export interface SchemaField {
+  id: string;
+  name: string;
+  type: string;
+  required: boolean;
+  default_value?: string | null;
+  validation?: string | null;
+  order: number;
+  parent_field_id?: string | null;
+  schema_section_id: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface SchemaSection {
+  id: string;
+  name: string;
+  description?: string | null;
+  order: number;
+  schema_id: string;
+  created_at?: string;
+  updated_at?: string;
+  cms_schema_fields?: SchemaField[];
+}
+
+export interface Schema {
+  id: string;
+  name: string;
+  description?: string | null;
+  template: boolean;
+  created_by: string;
+  created_at?: string;
+  updated_at?: string;
+  cms_schema_sections?: SchemaSection[];
+}
+
+export type SupabaseSchemaWithRelations = {
+  id: string;
+  name: string;
+  description: string | null;
+  template: boolean;
+  created_by: string;
+  created_at: string | null;
+  updated_at: string | null;
+  cms_schema_sections: {
+    id: string;
+    name: string;
+    description: string | null;
+    order: number | null;
+    schema_id: string | null;
+    created_at: string | null;
+    updated_at: string | null;
+    cms_schema_fields: {
+      id: string;
+      name: string;
+      type: string;
+      required: boolean;
+      default_value: string | null;
+      validation: string | null;
+      order: number | null;
+      parent_field_id: string | null;
+      schema_section_id: string | null;
+      created_at: string | null;
+      updated_at: string | null;
+    }[];
+  }[];
 } 
 
 

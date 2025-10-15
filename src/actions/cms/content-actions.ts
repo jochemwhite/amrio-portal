@@ -101,7 +101,7 @@ export async function savePageContent(pageId: string, contentValues: Record<stri
 
     // First, get field information to determine field types
     const { data: fields, error: fieldsError } = await supabase
-      .from('cms_fields')
+      .from('cms_content_fields')
       .select(`
         id,
         type,
@@ -147,7 +147,7 @@ export async function savePageContent(pageId: string, contentValues: Record<stri
     // Update each field's content in the database
     const updatePromises = updates.map(async ({ fieldId, content }) => {
       const { error } = await supabase
-        .from('cms_fields')
+        .from('cms_content_fields')
         .update({ content: content })
         .eq('id', fieldId);
       
@@ -213,7 +213,7 @@ export async function loadPageContent(pageId: string) {
 
     // Get all fields for this page with their content and type information
     const { data: fields, error } = await supabase
-      .from('cms_fields')
+      .from('cms_content_fields')
       .select(`
         id,
         type,

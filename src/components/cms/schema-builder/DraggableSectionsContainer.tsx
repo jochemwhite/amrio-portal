@@ -1,7 +1,7 @@
 import { closestCenter, DndContext, DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import React, { useState } from "react";
-import { usePageBuilderStore } from "@/stores/usePageBuilderStore";
+import { useSchemaBuilderStore } from "@/stores/useSchemaBuilderStore";
 import { Section } from "./Section";
 import { AddSectionMenu } from "./AddSectionMenu";
 import { EditSectionMenu } from "./EditSectionMenu";
@@ -20,7 +20,7 @@ export const DraggableSectionsContainer = () => {
     reorderSectionFields,
     setFieldFormData,
     submitField,
-  } = usePageBuilderStore();
+  } = useSchemaBuilderStore();
 
   // Drag and drop handlers
   const handleSectionDragEnd = (event: DragEndEvent) => {

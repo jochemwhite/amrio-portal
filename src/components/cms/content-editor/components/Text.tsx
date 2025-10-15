@@ -1,11 +1,9 @@
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import React, { useEffect } from "react";
 
 export default function Text({ field, fieldId, value, error, handleFieldChange, handleFieldBlur }: any) {
-
-
-
   return (
     <div className="space-y-2">
       <Label htmlFor={fieldId}>

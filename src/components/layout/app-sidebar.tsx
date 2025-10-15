@@ -1,5 +1,5 @@
 "use client";
-import { AudioWaveform, BookOpen, Bot, Building2, Cctv, Command, GalleryVerticalEnd, Settings, SquareTerminal, User } from "lucide-react";
+import { ArchiveRestore, AudioWaveform, BookOpen, Bot, Building2, Cctv, Command, GalleryVerticalEnd, Settings, SquareTerminal, User } from "lucide-react";
 
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar";
 import { useUserSession } from "@/providers/session-provider";
@@ -12,7 +12,7 @@ import { TeamSwitcher } from "./nav/team-switcher";
 const data = {
   navMain: [
     {
-      title: "Pages",
+      title: "Content",
       url: "/dashboard/pages",
       icon: Bot,
       items: [
@@ -25,6 +25,11 @@ const data = {
           url: "/dashboard/pages/drafts",
         },
       ],
+    },
+    {
+      title: "Storage",
+      url: "/dashboard/storage",
+      icon: ArchiveRestore,
     },
   ],
 

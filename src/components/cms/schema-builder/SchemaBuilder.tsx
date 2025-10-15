@@ -1,60 +1,76 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { usePageBuilderStore } from "@/stores/usePageBuilderStore";
-import { SupabasePageWithRelations } from "@/types/cms";
-import { Plus } from "lucide-react";
+import { useSchemaBuilderStore } from "@/stores/useSchemaBuilderStore";
+import { SupabaseSchemaWithRelations } from "@/types/cms";
+import { Plus, Save, RotateCcw } from "lucide-react";
 import { useEffect } from "react";
 import { CmsHeader } from "../shared/cmsHeader";
-import { PageInfo } from "../shared/PageInfo";
-import { PageSettingsDialog } from "../shared/PageSettingsDialog";
 import { DraggableSectionsContainer } from "./DraggableSectionsContainer";
 import { NoSectionCard } from "./NoSectionCard";
 import { AddSectionMenu } from "./AddSectionMenu";
 import { EditSectionMenu } from "./EditSectionMenu";
 import { AddFieldMenu } from "./AddFieldMenu";
+import { SchemaInfo } from "./SchemaInfo";
+import { SchemaSettingsDialog } from "./SchemaSettingsDialog";
 
-interface PayloadStylePageBuilderProps {
-  initialPage: SupabasePageWithRelations;
+interface SchemaBuilderProps {
+  initialSchema: SupabaseSchemaWithRelations;
+  pageId: string;
   websiteId: string;
 }
 
-export function SchemaBuilder({ initialPage, websiteId }: PayloadStylePageBuilderProps) {
+export function SchemaBuilder({ initialSchema, pageId, websiteId }: SchemaBuilderProps) {
   const {
     sections,
     isSaving,
-    // Page settings
-    isPageSettingsOpen,
-    pageSettingsData,
+    hasUnsavedChanges,
+    // Schema settings
+    isSchemaSettingsOpen,
+    schemaSettingsData,
     // Actions
     initializeStore,
-    // Page settings actions
-    closePageSettings,
-    setPageSettingsData,
-    submitPageSettings,
+    // Schema settings actions
+    closeSchemaSettings,
+    setSchemaSettingsData,
+    submitSchemaSettings,
     // Section actions
     openAddSectionDialog,
-  } = usePageBuilderStore();
+    // Save/Reset actions
+    saveChanges,
+    resetChanges,
+  } = useSchemaBuilderStore();
 
-  // Initialize the store with page data
+  // Initialize the store with schema data
   useEffect(() => {
-    initializeStore(initialPage, websiteId);
-  }, [initialPage, websiteId, initializeStore]);
+    initializeStore(initialSchema);
+  }, [initialSchema, initializeStore]);
 
-  const handlePageSettingsSubmit = (e: React.FormEvent) => {
+  const handleSchemaSettingsSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    submitPageSettings();
+    submitSchemaSettings();
   };
 
   return (
-    <div className="min-h-screen ">
+    <div className="min-h-screen">
       <CmsHeader />
 
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <PageInfo />
+        <SchemaInfo />
 
-        <div className="flex items-center justify-end mb-4">
-          <Button onClick={() => openAddSectionDialog()} className="">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Button onClick={saveChanges} disabled={!hasUnsavedChanges || isSaving} variant="default">
+              <Save className="mr-2 h-4 w-4" />
+              {isSaving ? "Saving..." : "Save Changes"}
+            </Button>
+            <Button onClick={resetChanges} disabled={!hasUnsavedChanges || isSaving} variant="outline">
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Reset
+            </Button>
+          </div>
+
+          <Button onClick={() => openAddSectionDialog()} variant="outline">
             <Plus className="mr-2 h-4 w-4" />
             Add Section
           </Button>
@@ -64,13 +80,13 @@ export function SchemaBuilder({ initialPage, websiteId }: PayloadStylePageBuilde
         {sections.length === 0 ? <NoSectionCard /> : <DraggableSectionsContainer />}
       </div>
 
-      <PageSettingsDialog
-        isOpen={isPageSettingsOpen}
+      <SchemaSettingsDialog
+        isOpen={isSchemaSettingsOpen}
         isSaving={isSaving}
-        formData={pageSettingsData}
-        onChange={setPageSettingsData}
-        onClose={closePageSettings}
-        onSubmit={handlePageSettingsSubmit}
+        formData={schemaSettingsData}
+        onChange={setSchemaSettingsData}
+        onClose={closeSchemaSettings}
+        onSubmit={handleSchemaSettingsSubmit}
       />
 
       <AddFieldMenu />

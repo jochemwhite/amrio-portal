@@ -1,62 +1,24 @@
+import { FIELD_TYPES } from "@/components/cms/shared/field-types";
+import { savePageContent } from "@/lib/actions/content";
+import { RPCPageResponse, SupabaseField } from "@/types/cms";
+import { toast } from "sonner";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
-import { toast } from "sonner";
-import { FIELD_TYPES } from "@/components/cms/shared/field-types";
-import { RPCPageResponse, RPCPageSection, RPCPageField, Section, Field, SupabaseField } from "@/types/cms";
-import { savePageContent, loadPageContent } from "@/lib/actions/content";
 
-// Helper function to convert RPCPageField to Field with content value
-const convertRPCFieldToField = (rpcField: RPCPageField): Field & { value?: any; fields?: Field[] } => {
-  const field: Field & { value?: any; fields?: Field[] } = {
-    id: rpcField.id,
-    name: rpcField.name,
-    type: rpcField.type,
-    required: rpcField.required,
-    defaultValue: rpcField.default_value,
-    validation: rpcField.validation,
-    order: rpcField.order,
-  };
-
-  // Handle richtext fields specially - content is stored directly, not under .value
-  if (rpcField.type === "richtext" && rpcField.content) {
-    field.value = rpcField.content;
-    field.content = rpcField.content;
-  } else if (rpcField.content?.value !== undefined) {
-    // Extract the value from content for other field types
-    field.value = rpcField.content.value;
-  }
-
-  // Handle nested section fields
-  if (rpcField.fields && rpcField.fields.length > 0) {
-    field.fields = rpcField.fields.map(convertRPCFieldToField);
-  }
-
-  return field;
-};
-
-// Helper function to convert RPCPageSection to Section
-const convertRPCSectionToSection = (rpcSection: RPCPageSection): Section => {
-  return {
-    id: rpcSection.id,
-    name: rpcSection.name,
-    description: rpcSection.description,
-    order: rpcSection.order,
-    fields: rpcSection.fields.map(convertRPCFieldToField),
-  };
-};
-
-// Helper function to convert RPCPageResponse to Section[]
-const convertRPCPageToSections = (rpcPage: RPCPageResponse): Section[] => {
-  return rpcPage.sections.map(convertRPCSectionToSection);
-};
+interface FieldWithValue {
+  id: string;
+  type: string;
+  content: any;
+}
 
 interface ContentEditorState {
   // Core data
-  pageId: string | null;
-  websiteId: string | null;
-  pageData: RPCPageResponse | null; // Full page structure from database
-  contentValues: Section[]; // Section structure with field values
-  originalValues: Section[]; // for tracking changes
+  originalFields: FieldWithValue[]; // Flattened array of all original fields
+  updatedFields: {
+    id: string;
+    content: any;
+    type: string;
+  }[]; // Only fields that have been modified (delta tracking)
 
   // UI state
   hasUnsavedChanges: boolean;
@@ -64,40 +26,31 @@ interface ContentEditorState {
   isLoading: boolean;
 
   // Actions
-  initializeContent: (pageId: string, websiteId: string, existingContent?: RPCPageResponse | null) => void;
+  initializeContent: (originalFields: FieldWithValue[]) => void;
   setFieldValue: (fieldId: string, value: any) => void;
   getFieldValue: (fieldId: string) => any;
   getFieldComponent: (field: SupabaseField) => React.ComponentType<any> | null;
   resetField: (fieldId: string) => void;
   resetAllFields: () => void;
   saveContent: () => Promise<void>;
-  loadContent: () => Promise<void>;
 }
 
 export const useContentEditorStore = create<ContentEditorState>()(
   devtools(
     (set, get) => ({
       // Initial state
-      pageId: null,
-      websiteId: null,
-      pageData: null,
-      contentValues: [],
-      originalValues: [],
+      updatedFields: [],
+      originalFields: [],
       hasUnsavedChanges: false,
       isSaving: false,
       isLoading: false,
 
       // Initialize store with page data
-      initializeContent: (pageId: string, websiteId: string, existingContent = null) => {
-        const sections = existingContent ? convertRPCPageToSections(existingContent) : [];
-
+      initializeContent: (originalFields: FieldWithValue[]) => {
         set(
           {
-            pageId,
-            websiteId,
-            pageData: existingContent,
-            contentValues: sections,
-            originalValues: JSON.parse(JSON.stringify(sections)), // Deep clone
+            originalFields: originalFields, // Store flattened fields only
+            updatedFields: [], // Start with no changes
             hasUnsavedChanges: false,
           },
           false,
@@ -109,37 +62,31 @@ export const useContentEditorStore = create<ContentEditorState>()(
       setFieldValue: (fieldId: string, value: any) => {
         set(
           (state) => {
-            // Deep clone the sections array
-            const newSections = JSON.parse(JSON.stringify(state.contentValues)) as Section[];
+            // Find the field in originalFields (flattened array)
+            const originalField = state.originalFields.find((f) => f.id === fieldId);
 
-            // Helper to recursively find and update field
-            const updateFieldRecursively = (fields: (Field & { value?: any; fields?: any[] })[]): boolean => {
-              for (const field of fields) {
-                if (field.id === fieldId) {
-                  field.value = value;
-                  return true;
-                }
-                // Check nested fields (for section fields)
-                if (field.fields && updateFieldRecursively(field.fields)) {
-                  return true;
-                }
-              }
-              return false;
-            };
-
-            // Find and update the field in sections
-            for (const section of newSections) {
-              if (updateFieldRecursively(section.fields)) {
-                break;
-              }
+            if (!originalField) {
+              console.error(`Field ${fieldId} not found in original fields`);
+              return state;
             }
 
-            // Check if there are unsaved changes by comparing with original
-            const hasChanges = JSON.stringify(newSections) !== JSON.stringify(state.originalValues);
+            // Clone updatedFields array
+            const newUpdatedFields = [...state.updatedFields];
+
+            // Check if this field is already in updatedFields
+            const existingIndex = newUpdatedFields.findIndex((f) => f.id === fieldId);
+
+            if (existingIndex >= 0) {
+              // Update existing entry
+              newUpdatedFields[existingIndex] = { id: fieldId, content: value, type: originalField.type };
+            } else {
+              // Add new entry
+              newUpdatedFields.push({ id: fieldId, content: value, type: originalField.type });
+            }
 
             return {
-              contentValues: newSections,
-              hasUnsavedChanges: hasChanges,
+              updatedFields: newUpdatedFields,
+              hasUnsavedChanges: newUpdatedFields.length > 0,
             };
           },
           false,
@@ -151,32 +98,15 @@ export const useContentEditorStore = create<ContentEditorState>()(
       getFieldValue: (fieldId: string) => {
         const state = get();
 
-        // Helper to recursively find field
-        const findFieldRecursively = (fields: (Field & { value?: any; fields?: any[] })[]): any => {
-          for (const field of fields) {
-            if (field.id === fieldId) {
-              return field.value;
-            }
-            // Check nested fields (for section fields)
-            if (field.fields) {
-              const found = findFieldRecursively(field.fields);
-              if (found !== undefined) {
-                return found;
-              }
-            }
-          }
-          return undefined;
-        };
-
-        // Search through all sections
-        for (const section of state.contentValues) {
-          const value = findFieldRecursively(section.fields);
-          if (value !== undefined) {
-            return value;
-          }
+        // First check if field has been updated
+        const updatedField = state.updatedFields.find((f) => f.id === fieldId);
+        if (updatedField) {
+          return updatedField.content;
         }
 
-        return undefined;
+        // Otherwise, get value from original fields (flattened array)
+        const originalField = state.originalFields.find((f) => f.id === fieldId);
+        return originalField?.content;
       },
 
       // Get a field component
@@ -189,61 +119,12 @@ export const useContentEditorStore = create<ContentEditorState>()(
       resetField: (fieldId: string) => {
         set(
           (state) => {
-            // Deep clone the sections array
-            const newSections = JSON.parse(JSON.stringify(state.contentValues)) as Section[];
-
-            // Helper to recursively find and get original value
-            const getOriginalValueRecursively = (fields: (Field & { value?: any; fields?: any[] })[]): any => {
-              for (const field of fields) {
-                if (field.id === fieldId) {
-                  return field.value;
-                }
-                if (field.fields) {
-                  const found = getOriginalValueRecursively(field.fields);
-                  if (found !== undefined) {
-                    return found;
-                  }
-                }
-              }
-              return undefined;
-            };
-
-            // Get original value
-            let originalValue: any = undefined;
-            for (const section of state.originalValues) {
-              originalValue = getOriginalValueRecursively(section.fields);
-              if (originalValue !== undefined) {
-                break;
-              }
-            }
-
-            // Helper to recursively find and reset field
-            const resetFieldRecursively = (fields: (Field & { value?: any; fields?: any[] })[]): boolean => {
-              for (const field of fields) {
-                if (field.id === fieldId) {
-                  field.value = originalValue;
-                  return true;
-                }
-                if (field.fields && resetFieldRecursively(field.fields)) {
-                  return true;
-                }
-              }
-              return false;
-            };
-
-            // Find and reset the field in sections
-            for (const section of newSections) {
-              if (resetFieldRecursively(section.fields)) {
-                break;
-              }
-            }
-
-            // Check if we still have unsaved changes
-            const hasChanges = JSON.stringify(newSections) !== JSON.stringify(state.originalValues);
+            // Remove field from updatedFields array
+            const newUpdatedFields = state.updatedFields.filter((f) => f.id !== fieldId);
 
             return {
-              contentValues: newSections,
-              hasUnsavedChanges: hasChanges,
+              updatedFields: newUpdatedFields,
+              hasUnsavedChanges: newUpdatedFields.length > 0,
             };
           },
           false,
@@ -254,10 +135,10 @@ export const useContentEditorStore = create<ContentEditorState>()(
       // Reset all fields to original values
       resetAllFields: () => {
         set(
-          (state) => ({
-            contentValues: JSON.parse(JSON.stringify(state.originalValues)),
+          {
+            updatedFields: [], // Clear all changes
             hasUnsavedChanges: false,
-          }),
+          },
           false,
           "resetAllFields"
         );
@@ -266,31 +147,39 @@ export const useContentEditorStore = create<ContentEditorState>()(
 
       // Save content values to the server
       saveContent: async () => {
-        const { pageId, contentValues } = get();
+        const { updatedFields } = get();
 
-        if (!pageId) {
-          toast.error("No page selected");
+        if (updatedFields.length === 0) {
+          toast.info("No changes to save");
           return;
         }
 
         set({ isSaving: true }, false, "savingContent");
 
         try {
-          // Flatten all fields from all sections (including nested fields)
-          const allFields: (Field & { value?: any; fields?: any[] })[] = [];
+          // Convert updatedFields to FieldWithValue format for savePageContent
 
-          contentValues.forEach((section) => {
-            allFields.push(...section.fields);
-          });
+          await savePageContent(updatedFields);
 
-          await savePageContent(pageId, allFields);
-
+          // After successful save, update originalFields with new values and clear updatedFields
           set(
-            (state) => ({
-              originalValues: JSON.parse(JSON.stringify(state.contentValues)),
-              hasUnsavedChanges: false,
-              isSaving: false,
-            }),
+            (state) => {
+              // Update the originalFields with the saved values (flattened array)
+              const newOriginalFields = state.originalFields.map((field) => {
+                const updatedField = state.updatedFields.find((f) => f.id === field.id);
+                if (updatedField) {
+                  return { ...field, content: updatedField.content };
+                }
+                return field;
+              });
+
+              return {
+                originalFields: newOriginalFields,
+                updatedFields: [], // Clear changes after save
+                hasUnsavedChanges: false,
+                isSaving: false,
+              };
+            },
             false,
             "saveContentSuccess"
           );
@@ -302,44 +191,12 @@ export const useContentEditorStore = create<ContentEditorState>()(
           set({ isSaving: false }, false, "saveContentError");
         }
       },
-
-      // Load content values from the server
-      loadContent: async () => {
-        const { pageId, websiteId } = get();
-
-        if (!pageId || !websiteId) return;
-
-        set({ isLoading: true }, false, "loadingContent");
-
-        try {
-          const result = await loadPageContent(pageId, websiteId);
-
-          // result should be RPCPageResponse
-          const sections = convertRPCPageToSections(result);
-
-          set(
-            {
-              pageData: result,
-              contentValues: sections,
-              originalValues: JSON.parse(JSON.stringify(sections)),
-              hasUnsavedChanges: false,
-              isLoading: false,
-            },
-            false,
-            "loadContentSuccess"
-          );
-        } catch (error) {
-          console.error("Error loading content:", error);
-          toast.error("Failed to load content");
-          set({ isLoading: false }, false, "loadContentError");
-        }
-      },
-
-    
-
     }),
     {
       name: "content-editor-store",
+      enabled: process.env.NODE_ENV === "development", // Only enable in development
+      trace: true, // Show stack traces in DevTools
+      anonymousActionType: "content-editor-action", // Name for anonymous actions
     }
   )
 );

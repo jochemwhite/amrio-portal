@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { usePageBuilderStore } from "@/stores/usePageBuilderStore";
+import { useSchemaBuilderStore } from "@/stores/useSchemaBuilderStore";
 import { Field as TField } from "@/types/cms";
 import { closestCenter, DndContext, DragEndEvent, DragStartEvent, DragOverlay, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -46,7 +46,7 @@ export function Section({
 
   // Get nested field methods from store
   const { openAddNestedFieldDialog, openEditNestedFieldDialog, deleteNestedFieldById, reorderNestedFields, openAddFieldDialog } =
-    usePageBuilderStore();
+    useSchemaBuilderStore();
 
   // Configure sensors for field dragging
   const sensors = useSensors(
@@ -64,18 +64,18 @@ export function Section({
     transition,
   };
 
-  const fieldCount = section.cms_fields?.length || 0;
+  const fieldCount = section.cms_schema_fields?.length || 0;
 
   // Custom collision detection that respects nesting levels
   const customCollisionDetection = (args: any) => {
     const { active, droppableContainers } = args;
 
     // If we're dragging a nested field, only allow drops on other nested fields within the same parent
-    const activeField = section.cms_fields?.find((f: any) => f.id === active.id);
+    const activeField = section.cms_schema_fields?.find((f: any) => f.id === active.id);
     if (activeField?.parent_field_id) {
       // Only allow drops on fields with the same parent_field_id (exclude the parent field itself)
       const validTargets = droppableContainers.filter((container: any) => {
-        const targetField = section.cms_fields?.find((f: any) => f.id === container.id);
+        const targetField = section.cms_schema_fields?.find((f: any) => f.id === container.id);
         return targetField && targetField.parent_field_id === activeField.parent_field_id && targetField.id !== activeField.parent_field_id; // Exclude the parent field itself
       });
       return closestCenter({ ...args, droppableContainers: validTargets });
@@ -83,7 +83,7 @@ export function Section({
 
     // If we're dragging a top-level field, only allow drops on other top-level fields
     const topLevelTargets = droppableContainers.filter((container: any) => {
-      const targetField = section.cms_fields?.find((f: any) => f.id === container.id);
+      const targetField = section.cms_schema_fields?.find((f: any) => f.id === container.id);
       return targetField && !targetField.parent_field_id;
     });
     return closestCenter({ ...args, droppableContainers: topLevelTargets });
@@ -100,8 +100,8 @@ export function Section({
     if (!over || active.id === over.id) return;
 
     // Check if this is a nested field reorder
-    const activeField = section.cms_fields?.find((f: any) => f.id === active.id);
-    const overField = section.cms_fields?.find((f: any) => f.id === over.id);
+    const activeField = section.cms_schema_fields?.find((f: any) => f.id === active.id);
+    const overField = section.cms_schema_fields?.find((f: any) => f.id === over.id);
 
     if (activeField?.parent_field_id || overField?.parent_field_id) {
       // This is a nested field reorder
@@ -170,9 +170,9 @@ export function Section({
             ) : (
               <div className="p-4">
                 <DndContext sensors={sensors} collisionDetection={customCollisionDetection} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-                  <SortableContext items={section.cms_fields?.map((f: TField) => f.id) || []} strategy={verticalListSortingStrategy}>
+                  <SortableContext items={section.cms_schema_fields?.map((f: TField) => f.id) || []} strategy={verticalListSortingStrategy}>
                     <div className="space-y-2">
-                      {section.cms_fields
+                      {section.cms_schema_fields
                         ?.filter((field: any) => !field.parent_field_id)
                         .map((field: any) =>
                           field.type === "section" ? (
@@ -181,7 +181,7 @@ export function Section({
                               field={field}
                               isSaving={isSaving}
                               parentSectionId={section.id} // Pass the real parent section ID
-                              allFields={section.cms_fields || []} // Pass all fields to find nested ones
+                              allFields={section.cms_schema_fields || []} // Pass all fields to find nested ones
                               onEdit={() => onEditField(field)}
                               onDelete={() => onDeleteField(field.id)}
                               onAddNestedField={openAddNestedFieldDialog}
@@ -197,7 +197,7 @@ export function Section({
                               onEdit={() => onEditField(field)}
                               onDelete={() => onDeleteField(field.id)}
                               activeDragId={activeDragId}
-                              allFields={section.cms_fields || []}
+                              allFields={section.cms_schema_fields || []}
                             />
                           )
                         )}
@@ -206,7 +206,7 @@ export function Section({
                   <DragOverlay>
                     {activeDragId ? (
                       (() => {
-                        const draggedField = section.cms_fields?.find((f: any) => f.id === activeDragId);
+                        const draggedField = section.cms_schema_fields?.find((f: any) => f.id === activeDragId);
                         if (!draggedField) return null;
                         
                         return draggedField.type === "section" ? (

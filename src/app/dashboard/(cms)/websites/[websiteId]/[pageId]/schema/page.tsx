@@ -1,88 +1,83 @@
 import { createClient } from "@/lib/supabase/supabaseServerClient";
 import { redirect, notFound } from "next/navigation";
 import { SchemaBuilder } from "@/components/cms/schema-builder/SchemaBuilder";
-import { SupabasePageWithRelations } from "@/types/cms";
+import { SupabaseSchemaWithRelations } from "@/types/cms";
 
-interface PageBuilderProps {
+interface SchemaPageProps {
   params: Promise<{
     websiteId: string;
     pageId: string;
   }>;
 }
 
-export default async function PageBuilder({ params }: PageBuilderProps) {
+export default async function SchemaPage({ params }: SchemaPageProps) {
   const { websiteId, pageId } = await params;
   const supabase = await createClient();
 
   // Check authentication
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
   if (authError || !user) {
     return redirect("/");
   }
 
-  // Fetch page with sections and fields
-  const { data: page, error: pageError } = await supabase
-    .from("cms_pages")
-    .select(`
-      id,
-      name,
-      slug,
-      description,
-      status,
-      website_id,
-      created_at,
-      updated_at,
-      cms_websites (
-        id,
-        name,
-        domain
-      ),
-      cms_sections (
-        id,
-        name,
-        description,
-        page_id,
-        "order",
-        cms_fields (
-          id,
-          name,
-          type,
-          required,
-          section_id,
-          default_value,
-          validation,
-          "order",
-          parent_field_id
-        )
-      )
-    `)
-    .eq("id", pageId)
-    .eq("website_id", websiteId)
-    .order("order", { referencedTable: "cms_sections", ascending: true })
-    .single();
+  // Fetch page to get the schema_id
+  const { data: page, error: pageError } = await supabase.from("cms_pages").select("id, name, schema_id").eq("id", pageId).single();
 
   if (pageError || !page) {
-    console.error('Error fetching page:', pageError);
+    console.error("Error fetching page:", pageError);
     return notFound();
   }
 
-     // Sort fields within each section by order (since PostgREST can't handle nested ordering)
-   const sortedPage = {
-     ...page,
-     status: page.status || 'draft', // Provide default value for null status
-     cms_sections: page.cms_sections?.map(section => ({
-       ...section,
-       cms_fields: section.cms_fields?.sort((a, b) => (a.order || 0) - (b.order || 0))
-     }))
-   } as SupabasePageWithRelations;
+  // If page doesn't have a schema, we need to create one or show a message
+  if (!page.schema_id) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">No Schema Assigned</h2>
+          <p className="text-muted-foreground">This page doesn't have a schema assigned yet. Please assign a schema to continue.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Fetch the schema with all its sections and fields
+  const { data: schema, error: schemaError } = await supabase
+    .from("cms_schemas")
+    .select(
+      `
+      *,
+      cms_schema_sections (
+        *,
+        cms_schema_fields (*)
+      )
+    `
+    )
+    .eq("id", page.schema_id)
+    .single();
+
+  if (schemaError || !schema) {
+    console.error("Error fetching schema:", schemaError);
+    return notFound();
+  }
+
+  // Sort sections and fields by order (create new arrays to avoid mutation)
+  const sortedSchema: SupabaseSchemaWithRelations = {
+    ...schema,
+    cms_schema_sections:
+      schema.cms_schema_sections
+        ?.map((section) => ({
+          ...section,
+          cms_schema_fields: section.cms_schema_fields 
+            ? [...section.cms_schema_fields].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+            : [],
+        }))
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) || [],
+  };
 
 
 
-
-  return (
-    <SchemaBuilder 
-      initialPage={sortedPage}
-      websiteId={websiteId}
-    />
-  );
-} 
+  return <SchemaBuilder initialSchema={sortedSchema} pageId={pageId} websiteId={websiteId} />;
+}
