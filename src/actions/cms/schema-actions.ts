@@ -334,7 +334,7 @@ export async function createSchemaField(data: CreateSchemaFieldData): Promise<Ac
       .insert({
         schema_section_id: data.schema_section_id,
         name: data.name,
-        type: data.type,
+        type: data.type as any, // Cast to any to handle enum type
         required: data.required ?? false,
         default_value: data.default_value,
         validation: data.validation,
@@ -373,12 +373,15 @@ export async function updateSchemaField(fieldId: string, data: UpdateSchemaField
   }
 
   try {
-    const { data: field, error } = await supabase
-      .from("cms_schema_fields")
-      .update(data)
-      .eq("id", fieldId)
-      .select()
-      .single();
+        const { data: field, error } = await supabase
+          .from("cms_schema_fields")
+          .update({
+            ...data,
+            type: data.type as any, // Cast to any to handle enum type
+          })
+          .eq("id", fieldId)
+          .select()
+          .single();
 
     if (error) {
       console.error("Error updating schema field:", error);
@@ -432,8 +435,8 @@ export async function deleteSchemaField(fieldId: string): Promise<ActionResponse
 interface BulkSaveSchemaPayload {
   schemaId: string;
   changes: Array<{
-    type: 'create' | 'update' | 'delete';
-    entity: 'section' | 'field';
+    type: 'create' | 'update' | 'delete' | 'reorder';
+    entity: 'section' | 'field' | 'sections' | 'fields';
     id?: string;
     data?: any;
     tempId?: string;
@@ -466,10 +469,11 @@ export async function bulkSaveSchemaChanges(payload: BulkSaveSchemaPayload): Pro
   try {
     const tempIdMap: Record<string, string> = {};
 
-    // Process changes in order: creates first, then updates, then deletes
+    // Process changes in order: creates first, then updates, then deletes, then reorders
     const creates = payload.changes.filter(c => c.type === 'create');
     const updates = payload.changes.filter(c => c.type === 'update');
     const deletes = payload.changes.filter(c => c.type === 'delete');
+    const reorders = payload.changes.filter(c => c.type === 'reorder');
 
     // 1. Process creates
     for (const change of creates) {
@@ -573,28 +577,58 @@ export async function bulkSaveSchemaChanges(payload: BulkSaveSchemaPayload): Pro
       }
     }
 
-    // 4. Update section order
-    const sectionOrderUpdates = payload.sectionOrder.map((sectionId, index) => {
-      const realId = sectionId.startsWith('temp_') ? tempIdMap[sectionId] : sectionId;
-      return supabase
-        .from("cms_schema_sections")
-        .update({ order: index })
-        .eq("id", realId);
-    });
-    await Promise.all(sectionOrderUpdates);
+    // 4. Process reorders from pendingChanges (if any)
+    for (const reorder of reorders) {
+      if (reorder.entity === 'sections' && reorder.data?.sectionOrder) {
+        // Update section order from reorder change
+        const sectionOrderUpdates = reorder.data.sectionOrder.map((sectionId: string, index: number) => {
+          const realId = sectionId.startsWith('temp_') ? tempIdMap[sectionId] : sectionId;
+          return supabase
+            .from("cms_schema_sections")
+            .update({ order: index })
+            .eq("id", realId);
+        });
+        await Promise.all(sectionOrderUpdates);
+      } else if (reorder.entity === 'fields' && reorder.data?.sectionId && reorder.data?.fieldOrder) {
+        // Update field order from reorder change
+        const realSectionId = reorder.data.sectionId.startsWith('temp_') ? tempIdMap[reorder.data.sectionId] : reorder.data.sectionId;
+        const fieldOrderUpdates = reorder.data.fieldOrder.map((fieldId: string, index: number) => {
+          const realFieldId = fieldId.startsWith('temp_') ? tempIdMap[fieldId] : fieldId;
+          return supabase
+            .from("cms_schema_fields")
+            .update({ order: index })
+            .eq("id", realFieldId);
+        });
+        await Promise.all(fieldOrderUpdates);
+      }
+    }
 
-    // 5. Update field orders within each section
-    const fieldOrderUpdates = Object.entries(payload.fieldOrders).flatMap(([sectionId, fieldIds]) => {
-      const realSectionId = sectionId.startsWith('temp_') ? tempIdMap[sectionId] : sectionId;
-      return fieldIds.map((fieldId, index) => {
-        const realFieldId = fieldId.startsWith('temp_') ? tempIdMap[fieldId] : fieldId;
+    // 5. Update section order (fallback to current state if no reorder changes)
+    if (reorders.filter(r => r.entity === 'sections').length === 0) {
+      const sectionOrderUpdates = payload.sectionOrder.map((sectionId, index) => {
+        const realId = sectionId.startsWith('temp_') ? tempIdMap[sectionId] : sectionId;
         return supabase
-          .from("cms_schema_fields")
+          .from("cms_schema_sections")
           .update({ order: index })
-          .eq("id", realFieldId);
+          .eq("id", realId);
       });
-    });
-    await Promise.all(fieldOrderUpdates);
+      await Promise.all(sectionOrderUpdates);
+    }
+
+    // 6. Update field orders within each section (fallback to current state if no reorder changes)
+    if (reorders.filter(r => r.entity === 'fields').length === 0) {
+      const fieldOrderUpdates = Object.entries(payload.fieldOrders).flatMap(([sectionId, fieldIds]) => {
+        const realSectionId = sectionId.startsWith('temp_') ? tempIdMap[sectionId] : sectionId;
+        return fieldIds.map((fieldId, index) => {
+          const realFieldId = fieldId.startsWith('temp_') ? tempIdMap[fieldId] : fieldId;
+          return supabase
+            .from("cms_schema_fields")
+            .update({ order: index })
+            .eq("id", realFieldId);
+        });
+      });
+      await Promise.all(fieldOrderUpdates);
+    }
 
     revalidatePath("/dashboard/schemas");
     return { success: true, tempIdMap };

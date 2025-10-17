@@ -1,5 +1,5 @@
 import { FIELD_TYPES } from "@/components/cms/shared/field-types";
-import { savePageContent } from "@/lib/actions/content";
+import { savePageContent } from "@/actions/cms/schema-content-actions";
 import { RPCPageResponse, SupabaseField } from "@/types/cms";
 import { toast } from "sonner";
 import { create } from "zustand";

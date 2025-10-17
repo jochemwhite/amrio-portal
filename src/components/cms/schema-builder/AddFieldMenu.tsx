@@ -6,7 +6,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { usePageBuilderStore } from "@/stores/usePageBuilderStore";
+import { useSchemaBuilderStore } from "@/stores/useSchemaBuilderStore";
 import { FieldType } from "@/types/cms";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, useEffect } from "react";
@@ -31,7 +31,7 @@ const fieldSchema = z.object({
 type FieldFormData = z.infer<typeof fieldSchema>;
 
 export function AddFieldMenu() {
-  const { isAddFieldOpen, isEditFieldOpen, setFieldFormData, submitField, closeFieldDialog, fieldFormData, editingFieldId } = usePageBuilderStore();
+  const { isAddFieldOpen, isEditFieldOpen, setFieldFormData, submitField, closeFieldDialog, fieldFormData, editingFieldId } = useSchemaBuilderStore();
   const isEditMode = !!editingFieldId;
   const isDialogOpen = isAddFieldOpen || isEditFieldOpen; // Check both states
   const [selectedType, setSelectedType] = useState<string | null>(fieldFormData.type || null);

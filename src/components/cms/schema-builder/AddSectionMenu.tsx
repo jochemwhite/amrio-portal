@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { X, Layout, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { usePageBuilderStore } from "@/stores/usePageBuilderStore";
+import { useSchemaBuilderStore } from "@/stores/useSchemaBuilderStore";
 
 interface FieldType {
   value: string;
@@ -17,7 +17,7 @@ interface FieldType {
 }
 
 export function AddSectionMenu() {
-  const { isAddSectionOpen, setSectionFormData, submitSection, closeSectionDialog } = usePageBuilderStore();
+  const { isAddSectionOpen, setSectionFormData, submitSection, closeSectionDialog } = useSchemaBuilderStore();
   const [sectionData, setSectionData] = useState({
     name: "",
     description: "",

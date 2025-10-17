@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useSchemaBuilderStore } from "@/stores/useSchemaBuilderStore";
 import { SupabaseSchemaWithRelations } from "@/types/cms";
 import { Plus, Save, RotateCcw } from "lucide-react";
@@ -13,6 +14,8 @@ import { EditSectionMenu } from "./EditSectionMenu";
 import { AddFieldMenu } from "./AddFieldMenu";
 import { SchemaInfo } from "./SchemaInfo";
 import { SchemaSettingsDialog } from "./SchemaSettingsDialog";
+import { SchemaUnsavedChangesDialog } from "@/components/dialogs/SchemaUnsavedChangesDialog";
+import { useSchemaUnsavedChangesProtection } from "@/hooks/useSchemaUnsavedChangesProtection";
 
 interface SchemaBuilderProps {
   initialSchema: SupabaseSchemaWithRelations;
@@ -25,6 +28,7 @@ export function SchemaBuilder({ initialSchema, pageId, websiteId }: SchemaBuilde
     sections,
     isSaving,
     hasUnsavedChanges,
+    pendingChanges,
     // Schema settings
     isSchemaSettingsOpen,
     schemaSettingsData,
@@ -40,6 +44,9 @@ export function SchemaBuilder({ initialSchema, pageId, websiteId }: SchemaBuilde
     saveChanges,
     resetChanges,
   } = useSchemaBuilderStore();
+
+  // Enable unsaved changes protection (navigation blocking)
+  useSchemaUnsavedChangesProtection();
 
   // Initialize the store with schema data
   useEffect(() => {
@@ -68,6 +75,11 @@ export function SchemaBuilder({ initialSchema, pageId, websiteId }: SchemaBuilde
               <RotateCcw className="mr-2 h-4 w-4" />
               Reset
             </Button>
+            {pendingChanges.length > 0 && (
+              <Badge variant="secondary" className="ml-2">
+                {pendingChanges.length} pending {pendingChanges.length === 1 ? 'change' : 'changes'}
+              </Badge>
+            )}
           </div>
 
           <Button onClick={() => openAddSectionDialog()} variant="outline">
@@ -92,6 +104,7 @@ export function SchemaBuilder({ initialSchema, pageId, websiteId }: SchemaBuilde
       <AddFieldMenu />
       <AddSectionMenu />
       <EditSectionMenu />
+      <SchemaUnsavedChangesDialog />
     </div>
   );
 }

@@ -7,8 +7,8 @@ import { SupabaseSchemaWithRelations, SchemaSection, SchemaField } from "@/types
 
 // Types for tracking changes
 interface PendingChange {
-  type: "create" | "update" | "delete";
-  entity: "section" | "field";
+  type: "create" | "update" | "delete" | "reorder";
+  entity: "section" | "field" | "sections" | "fields";
   id?: string;
   data?: any;
   tempId?: string; // For new items before they get real IDs
@@ -710,7 +710,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
 
       // Reordering actions
       reorderSections: (activeId: string, overId: string) => {
-        const { sections } = get();
+        const { sections, pendingChanges } = get();
         const oldIndex = sections.findIndex((s) => s.id === activeId);
         const newIndex = sections.findIndex((s) => s.id === overId);
 
@@ -719,10 +719,20 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
         const newSections = arrayMove(sections, oldIndex, newIndex);
 
         set(
-          {
+          (state) => ({
             sections: newSections,
+            pendingChanges: [
+              ...state.pendingChanges.filter((c) => !(c.type === "reorder" && c.entity === "sections")),
+              {
+                type: "reorder",
+                entity: "sections",
+                data: {
+                  sectionOrder: newSections.map((s) => s.id),
+                },
+              },
+            ],
             hasUnsavedChanges: true,
-          },
+          }),
           false,
           "reorderSections"
         );
@@ -745,6 +755,17 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
         set(
           (state) => ({
             sections: state.sections.map((s) => (s.id === sectionId ? { ...s, cms_schema_fields: newFields } : s)),
+            pendingChanges: [
+              ...state.pendingChanges.filter((c) => !(c.type === "reorder" && c.entity === "fields" && c.data?.sectionId === sectionId)),
+              {
+                type: "reorder",
+                entity: "fields",
+                data: {
+                  sectionId,
+                  fieldOrder: newFields.map((f: any) => f.id),
+                },
+              },
+            ],
             hasUnsavedChanges: true,
           }),
           false,
@@ -759,14 +780,14 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
 
       // Save changes to server
       saveChanges: async () => {
-        const { schema, sections, pendingChanges } = get();
+        const { schema, sections, pendingChanges, hasUnsavedChanges } = get();
 
         if (!schema) {
           toast.error("No schema loaded");
           return;
         }
 
-        if (pendingChanges.length === 0) {
+        if (!hasUnsavedChanges) {
           toast.info("No changes to save");
           return;
         }
@@ -774,10 +795,10 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
         set({ isSaving: true }, false, "startSaving");
 
         try {
-          // Build section order array
+          // Build section order array from current state
           const sectionOrder = sections.map((s) => s.id);
 
-          // Build field orders map
+          // Build field orders map from current state
           const fieldOrders: Record<string, string[]> = {};
           sections.forEach((section) => {
             if (section.cms_schema_fields && section.cms_schema_fields.length > 0) {

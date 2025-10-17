@@ -5,7 +5,6 @@ import { RPCPageResponse, RPCPageSection } from "@/types/cms";
 import { AlertCircle, Expand, Minimize, RotateCcw, Save } from "lucide-react";
 import React from "react";
 
-
 interface ContentEditorHeaderProps {
   existingContent: RPCPageResponse;
   processedSections: RPCPageSection[];
@@ -31,15 +30,10 @@ export default function ContentEditorHeader({ existingContent, processedSections
     setExpandedSections(allCollapsed);
   };
 
-  const handleSave = async () => {
+  const handleSave = async () => await saveContent();
 
+  const handleReset = () => resetAllFields();
 
-    await saveContent();
-  };
-
-  const handleReset = () => {
-    resetAllFields();
-  };
   return (
     <div className="flex items-center justify-between">
       <div>
@@ -78,7 +72,7 @@ export default function ContentEditorHeader({ existingContent, processedSections
         <Button onClick={handleSave} disabled={!hasUnsavedChanges || isSaving} className="gap-2">
           {isSaving ? (
             <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
               Saving...
             </>
           ) : (
