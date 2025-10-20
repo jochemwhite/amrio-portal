@@ -254,7 +254,7 @@ export type SupabasePageWithRelations = {
 
 // New type for the RPC function response
 export type RPCPageField = {
-  id: string;
+  id: string; // schema field ID
   name: string;
   type: string;
   order: number;
@@ -265,6 +265,7 @@ export type RPCPageField = {
   default_value: string;
   parent_field_id: string | null;
   content?: { value?: any } | null; // JSONB content column
+  content_field_id?: string | null; // ID of the cms_content_fields row for updates
   fields?: RPCPageField[]; // For nested section fields
 }
 

@@ -167,46 +167,47 @@ export type Database = {
         Row: {
           content: Json | null
           created_at: string | null
-          default_value: string | null
           id: string
           name: string
           order: number | null
           parent_field_id: string | null
-          required: boolean | null
+          schema_field_id: string | null
           section_id: string
           type: Database["public"]["Enums"]["field_type"]
           updated_at: string | null
-          validation: string | null
         }
         Insert: {
           content?: Json | null
           created_at?: string | null
-          default_value?: string | null
           id?: string
           name: string
           order?: number | null
           parent_field_id?: string | null
-          required?: boolean | null
+          schema_field_id?: string | null
           section_id: string
           type: Database["public"]["Enums"]["field_type"]
           updated_at?: string | null
-          validation?: string | null
         }
         Update: {
           content?: Json | null
           created_at?: string | null
-          default_value?: string | null
           id?: string
           name?: string
           order?: number | null
           parent_field_id?: string | null
-          required?: boolean | null
+          schema_field_id?: string | null
           section_id?: string
           type?: Database["public"]["Enums"]["field_type"]
           updated_at?: string | null
-          validation?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "cms_content_fields_schema_field_id_fkey"
+            columns: ["schema_field_id"]
+            isOneToOne: false
+            referencedRelation: "cms_schema_fields"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cms_fields_parent_field_id_fkey"
             columns: ["parent_field_id"]
@@ -321,7 +322,7 @@ export type Database = {
           order: number
           parent_field_id: string | null
           required: boolean
-          schema_section_id: string | null
+          schema_section_id: string
           type: Database["public"]["Enums"]["field_type"]
           updated_at: string
           validation: string | null
@@ -334,7 +335,7 @@ export type Database = {
           order?: number
           parent_field_id?: string | null
           required?: boolean
-          schema_section_id?: string | null
+          schema_section_id: string
           type: Database["public"]["Enums"]["field_type"]
           updated_at?: string
           validation?: string | null
@@ -347,7 +348,7 @@ export type Database = {
           order?: number
           parent_field_id?: string | null
           required?: boolean
-          schema_section_id?: string | null
+          schema_section_id?: string
           type?: Database["public"]["Enums"]["field_type"]
           updated_at?: string
           validation?: string | null
@@ -357,7 +358,7 @@ export type Database = {
             foreignKeyName: "cms_schema_fields_parent_field_id_fkey"
             columns: ["parent_field_id"]
             isOneToOne: false
-            referencedRelation: "cms_content_fields"
+            referencedRelation: "cms_schema_fields"
             referencedColumns: ["id"]
           },
           {
@@ -376,7 +377,7 @@ export type Database = {
           id: string
           name: string
           order: number | null
-          schema_id: string | null
+          schema_id: string
           updated_at: string | null
         }
         Insert: {
@@ -385,7 +386,7 @@ export type Database = {
           id?: string
           name: string
           order?: number | null
-          schema_id?: string | null
+          schema_id?: string
           updated_at?: string | null
         }
         Update: {
@@ -394,7 +395,7 @@ export type Database = {
           id?: string
           name?: string
           order?: number | null
-          schema_id?: string | null
+          schema_id?: string
           updated_at?: string | null
         }
         Relationships: [
@@ -948,6 +949,14 @@ export type Database = {
         Args: { parent_field_id_param?: string; section_id_param: string }
         Returns: Json
       }
+      build_schema_fields_with_content: {
+        Args: {
+          page_id_param: string
+          parent_field_id_param?: string
+          schema_section_id_param: string
+        }
+        Returns: Json
+      }
       calculate_tenant_storage: {
         Args: { p_tenant_id: string }
         Returns: number
@@ -989,6 +998,10 @@ export type Database = {
           description: string
           id: string
           name: string
+          schema_description: string
+          schema_id: string
+          schema_name: string
+          schema_template: boolean
           sections: Json
           slug: string
           status: Database["public"]["Enums"]["page_status"]
@@ -1014,8 +1027,20 @@ export type Database = {
           | { role_name_input: string; uid: string }
         Returns: boolean
       }
+      initialize_page_content: {
+        Args: { page_id_param: string; schema_id_param: string }
+        Returns: undefined
+      }
+      migrate_existing_content_to_schemas: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       revoke_global_role: {
         Args: { role_name_input: string; user_id_input: string }
+        Returns: undefined
+      }
+      save_page_content: {
+        Args: { field_updates: Json; page_id_param: string }
         Returns: undefined
       }
       set_system_admin: {

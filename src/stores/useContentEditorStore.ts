@@ -6,18 +6,20 @@ import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
 interface FieldWithValue {
-  id: string;
+  id: string; // schema field ID
   type: string;
   content: any;
+  content_field_id?: string | null; // actual content field ID for updates
 }
 
 interface ContentEditorState {
   // Core data
   originalFields: FieldWithValue[]; // Flattened array of all original fields
   updatedFields: {
-    id: string;
+    id: string; // schema field ID
     content: any;
     type: string;
+    content_field_id?: string | null; // actual content field ID for updates
   }[]; // Only fields that have been modified (delta tracking)
 
   // UI state
@@ -78,10 +80,20 @@ export const useContentEditorStore = create<ContentEditorState>()(
 
             if (existingIndex >= 0) {
               // Update existing entry
-              newUpdatedFields[existingIndex] = { id: fieldId, content: value, type: originalField.type };
+              newUpdatedFields[existingIndex] = { 
+                id: fieldId, 
+                content: value, 
+                type: originalField.type,
+                content_field_id: originalField.content_field_id 
+              };
             } else {
               // Add new entry
-              newUpdatedFields.push({ id: fieldId, content: value, type: originalField.type });
+              newUpdatedFields.push({ 
+                id: fieldId, 
+                content: value, 
+                type: originalField.type,
+                content_field_id: originalField.content_field_id 
+              });
             }
 
             return {

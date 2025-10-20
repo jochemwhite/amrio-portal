@@ -101,7 +101,12 @@ const extractValueFromContent = (fieldType: string, content: any): any => {
 };
 
 // Updated savePageContent function that works with schema-based fields
-export async function savePageContent(updatedFields: Array<{ id: string; content: any; type: string }>) {
+export async function savePageContent(updatedFields: Array<{ 
+  id: string; // schema field ID
+  content: any; 
+  type: string;
+  content_field_id?: string | null; // actual content field ID
+}>) {
   try {
     const supabase = await createClient();
     
@@ -117,19 +122,29 @@ export async function savePageContent(updatedFields: Array<{ id: string; content
 
     // Process each updated field
     const updatePromises = updatedFields.map(async (field) => {
-      const { id: fieldId, content: value, type: fieldType } = field;
+      const { id: schemaFieldId, content: value, type: fieldType, content_field_id } = field;
       
       // Format the content based on field type
       const formattedContent = formatContentForFieldType(fieldType, value);
       
-      // For now, use direct field update until the new RPC functions are deployed
-      const { data, error } = await supabase
+      // Update using content_field_id if available (for existing content)
+      // Otherwise use schema_field_id to find the content field
+      let query = supabase
         .from('cms_content_fields')
-        .update({ content: formattedContent, updated_at: new Date().toISOString() })
-        .eq('id', fieldId);
+        .update({ content: formattedContent, updated_at: new Date().toISOString() });
+      
+      if (content_field_id) {
+        // Update by content field ID (most direct method)
+        query = query.eq('id', content_field_id);
+      } else {
+        // Update by schema field ID (fallback for new content)
+        query = query.eq('schema_field_id', schemaFieldId);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
-        console.error(`Error saving field ${fieldId}:`, error);
+        console.error(`Error saving field ${schemaFieldId}:`, error);
         throw error;
       }
 
@@ -159,14 +174,14 @@ export async function initializePageContent(pageId: string, schemaId: string) {
       throw new Error("Unauthorized");
     }
 
-    // For now, we'll implement a simple version that creates content sections
-    // This will be replaced with the RPC function once it's deployed
-    const { error } = await supabase
-      .from('cms_pages')
-      .update({ schema_id: schemaId })
-      .eq('id', pageId);
+    // Call the new RPC function to initialize page content structure
+    const { error } = await supabase.rpc('initialize_page_content', {
+      page_id_param: pageId,
+      schema_id_param: schemaId
+    });
 
     if (error) {
+      console.error("Error calling initialize_page_content:", error);
       throw error;
     }
 

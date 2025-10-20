@@ -82,7 +82,7 @@ export function SchemaAssignmentDialog({
       if (updateError) throw updateError;
 
       // Initialize content fields from schema
-      const { error: initError } = await supabase.rpc('initialize_page_content_from_schema', {
+      const { error: initError } = await supabase.rpc('initialize_page_content', {
         page_id_param: pageId,
         schema_id_param: selectedSchemaId
       });

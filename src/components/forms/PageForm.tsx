@@ -1,6 +1,7 @@
 "use client";
 
 import { createPage } from "@/actions/cms/page-actions";
+import { initializePageContent } from "@/actions/cms/schema-content-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,11 +12,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Database } from "@/types/supabase";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertCircle, Check } from "lucide-react";
+import { AlertCircle, Check, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
+import { createClient } from "@/lib/supabase/supabaseClient";
 
 // Form validation schema
 const formSchema = z.object({
@@ -31,6 +33,7 @@ const formSchema = z.object({
     .regex(/^[a-z0-9-]+$/, "Slug can only contain lowercase letters, numbers, and hyphens")
     .refine((slug) => !slug.startsWith("-") && !slug.endsWith("-"), "Slug cannot start or end with a hyphen"),
   status: z.enum(["draft", "active", "archived"] as const),
+  schema_id: z.string().optional(), // Optional schema selection
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -45,6 +48,8 @@ interface PageFormProps {
 
 export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [schemas, setSchemas] = useState<Array<{ id: string; name: string; description: string | null; template: boolean }>>([]);
+  const [isLoadingSchemas, setIsLoadingSchemas] = useState(false);
 
   const isEditing = !!page;
 
@@ -55,11 +60,19 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
       description: "",
       slug: "",
       status: "draft",
+      schema_id: "",
     },
   });
 
   const watchedName = form.watch("name");
   const watchedSlug = form.watch("slug");
+
+  // Load schemas when dialog opens
+  useEffect(() => {
+    if (isOpen && !isEditing) {
+      loadSchemas();
+    }
+  }, [isOpen, isEditing]);
 
   // Initialize form data when editing
   useEffect(() => {
@@ -69,6 +82,7 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
         description: page.description || "",
         slug: page.slug,
         status: page.status || "draft",
+        schema_id: page.schema_id || "",
       });
     } else {
       // Reset form for create
@@ -77,9 +91,30 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
         description: "",
         slug: "",
         status: "draft",
+        schema_id: "",
       });
     }
   }, [isEditing, page, isOpen, form]);
+
+  // Load schemas function
+  const loadSchemas = async () => {
+    setIsLoadingSchemas(true);
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('cms_schemas')
+        .select('id, name, description, template')
+        .order('name');
+
+      if (error) throw error;
+      setSchemas(data || []);
+    } catch (error) {
+      console.error('Error loading schemas:', error);
+      toast.error('Failed to load schemas');
+    } finally {
+      setIsLoadingSchemas(false);
+    }
+  };
 
   // Auto-generate slug from name when slug field is empty (with debounce)
   useEffect(() => {
@@ -135,12 +170,23 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
           description: data.description?.trim() || undefined,
           slug: data.slug.trim(),
           status: data.status,
+          schema_id: data.schema_id || undefined,
         }, websiteId);
 
         if (result.success) {
-          toast.success("Page created successfully");
+          // If a schema was selected, initialize the content
+          if (data.schema_id) {
+            try {
+              await initializePageContent(result.data!.id, data.schema_id);
+              toast.success("Page created and content initialized successfully");
+            } catch (error) {
+              console.error("Error initializing content:", error);
+              toast.success("Page created successfully, but failed to initialize content");
+            }
+          } else {
+            toast.success("Page created successfully");
+          }
           onSuccess(result.data as Database["public"]["Tables"]["cms_pages"]["Row"]);
-          // TODO: create a server action to create the page in the database
         } else {
           toast.error(result.error || "Failed to create page");
           return;
@@ -233,6 +279,64 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
                     </FormItem>
                   )}
                 />
+
+                {/* Schema Selection (only for create) */}
+                {!isEditing && (
+                  <FormField
+                    control={form.control}
+                    name="schema_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Schema (Optional)</FormLabel>
+                        <Select 
+                          onValueChange={(value) => {
+                            // Convert "none" back to empty string
+                            field.onChange(value === "none" ? "" : value);
+                          }} 
+                          value={field.value || "none"}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Choose a schema..." />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="none">
+                              <div className="flex items-center">
+                                <span className="text-muted-foreground">No schema</span>
+                              </div>
+                            </SelectItem>
+                            {isLoadingSchemas ? (
+                              <SelectItem value="loading" disabled>
+                                <div className="flex items-center">
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Loading schemas...
+                                </div>
+                              </SelectItem>
+                            ) : (
+                              schemas.map((schema) => (
+                                <SelectItem key={schema.id} value={schema.id}>
+                                  <div className="flex items-center gap-2">
+                                    <span>{schema.name}</span>
+                                    {schema.template && (
+                                      <Badge variant="secondary" className="text-xs">
+                                        Template
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        <p className="text-sm text-muted-foreground">
+                          Select a schema to automatically create content fields for this page.
+                        </p>
+                      </FormItem>
+                    )}
+                  />
+                )}
               </div>
 
               <FormField
@@ -280,19 +384,17 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
               {isEditing && page && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Current Schema</CardTitle>
+                    <CardTitle className="text-lg">Page Information</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Sections:</span>
-                        <Badge variant="secondary">{page.sections?.length || 0}</Badge>
+                        <span className="text-sm text-muted-foreground">Schema ID:</span>
+                        <Badge variant="secondary">{page.schema_id || "None"}</Badge>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Total Fields:</span>
-                        <Badge variant="secondary">
-                          {page.sections?.reduce((acc: number, section: any) => acc + (section.fields?.length || 0), 0) || 0}
-                        </Badge>
+                        <span className="text-sm text-muted-foreground">Status:</span>
+                        <Badge variant="secondary">{page.status || "Draft"}</Badge>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">Last Updated:</span>
