@@ -1,5 +1,21 @@
 "use client";
-import { ArchiveRestore, AudioWaveform, BookOpen, Bot, Building2, Cctv, Command, GalleryVerticalEnd, Settings, SquareTerminal, User } from "lucide-react";
+import {
+  ArchiveRestore,
+  AudioWaveform,
+  BookOpen,
+  Bot,
+  Building2,
+  Cctv,
+  Command,
+  FileText,
+  FileUser,
+  GalleryVerticalEnd,
+  Library,
+  Settings,
+  SquareTerminal,
+  StickyNote,
+  User,
+} from "lucide-react";
 
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar";
 import { useUserSession } from "@/providers/session-provider";
@@ -12,24 +28,24 @@ import { TeamSwitcher } from "./nav/team-switcher";
 const data = {
   navMain: [
     {
-      title: "Content",
+      title: "Pages",
       url: "/dashboard/pages",
-      icon: Bot,
-      items: [
-        {
-          title: "Your Websites",
-          url: "/dashboard/websites",
-        },
-        {
-          title: "Drafts",
-          url: "/dashboard/pages/drafts",
-        },
-      ],
+      icon: StickyNote,
     },
     {
       title: "Storage",
       url: "/dashboard/storage",
       icon: ArchiveRestore,
+    },
+    {
+      title: "Forms",
+      url: "/dashboard/storage",
+      icon: FileUser,
+    },
+    {
+      title: "Collections",
+      url: "/dashboard/storage",
+      icon: Library,
     },
   ],
 
@@ -65,6 +81,11 @@ const data = {
       name: "Websites",
       url: "/dashboard/admin/websites",
       icon: GalleryVerticalEnd,
+    },
+    {
+      name: "Schemas",
+      url: "/dashboard/admin/schemas",
+      icon: FileText,
     },
   ],
 };

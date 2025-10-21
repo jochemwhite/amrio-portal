@@ -2,9 +2,12 @@
 
 import { createClient } from "@/lib/supabase/supabaseServerClient";
 import { checkRequiredRoles } from "@/server/auth/check-required-roles";
+import { getActiveTenantId } from "@/server/utils";
 import { ActionResponse } from "@/types/actions";
+import { Schema, SchemaField, SchemaSection } from "@/types/cms";
 import { revalidatePath } from "next/cache";
-import { Schema, SchemaSection, SchemaField } from "@/types/cms";
+
+
 
 // ============== SCHEMA MANAGEMENT ==============
 
@@ -35,6 +38,12 @@ export async function createSchema(data: CreateSchemaData): Promise<ActionRespon
     return { success: false, error: "Unauthorized: Only admins can create schemas." };
   }
 
+  // Get active tenant ID
+  const tenantId = await getActiveTenantId();
+  if (!tenantId) {
+    return { success: false, error: "No active tenant selected." };
+  }
+
   try {
     const { data: schema, error } = await supabase
       .from("cms_schemas")
@@ -43,6 +52,7 @@ export async function createSchema(data: CreateSchemaData): Promise<ActionRespon
         description: data.description,
         template: data.template ?? false,
         created_by: user.id,
+        tenant_id: tenantId,
       })
       .select()
       .single();
@@ -52,6 +62,7 @@ export async function createSchema(data: CreateSchemaData): Promise<ActionRespon
       return { success: false, error: error.message };
     }
 
+    revalidatePath("/dashboard/admin/schemas");
     revalidatePath("/dashboard/schemas");
     return { success: true, data: schema as Schema };
   } catch (error) {
@@ -75,11 +86,18 @@ export async function updateSchema(schemaId: string, data: UpdateSchemaData): Pr
     return { success: false, error: "Unauthorized: Only admins can update schemas." };
   }
 
+  // Get active tenant ID
+  const tenantId = await getActiveTenantId();
+  if (!tenantId) {
+    return { success: false, error: "No active tenant selected." };
+  }
+
   try {
     const { data: schema, error } = await supabase
       .from("cms_schemas")
       .update(data)
       .eq("id", schemaId)
+      .eq("tenant_id", tenantId)
       .select()
       .single();
 
@@ -88,6 +106,7 @@ export async function updateSchema(schemaId: string, data: UpdateSchemaData): Pr
       return { success: false, error: error.message };
     }
 
+    revalidatePath("/dashboard/admin/schemas");
     revalidatePath("/dashboard/schemas");
     return { success: true, data: schema as Schema };
   } catch (error) {
@@ -111,21 +130,157 @@ export async function deleteSchema(schemaId: string): Promise<ActionResponse<voi
     return { success: false, error: "Unauthorized: Only admins can delete schemas." };
   }
 
+  // Get active tenant ID
+  const tenantId = await getActiveTenantId();
+  if (!tenantId) {
+    return { success: false, error: "No active tenant selected." };
+  }
+
   try {
     const { error } = await supabase
       .from("cms_schemas")
       .delete()
-      .eq("id", schemaId);
+      .eq("id", schemaId)
+      .eq("tenant_id", tenantId);
 
     if (error) {
       console.error("Error deleting schema:", error);
       return { success: false, error: error.message };
     }
 
+    revalidatePath("/dashboard/admin/schemas");
     revalidatePath("/dashboard/schemas");
     return { success: true };
   } catch (error) {
     console.error("Unexpected error deleting schema:", error);
+    return { success: false, error: "An unexpected error occurred." };
+  }
+}
+
+export async function getAllSchemas(): Promise<ActionResponse<Schema[]>> {
+  const supabase = await createClient();
+  
+  // Check authentication
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { success: false, error: "Unauthorized: User not authenticated." };
+  }
+
+  // Check admin role
+  const isAdmin = await checkRequiredRoles(user.id, ["system_admin"]);
+  if (!isAdmin) {
+    return { success: false, error: "Unauthorized: Only admins can view all schemas." };
+  }
+
+  // Get active tenant ID
+  const tenantId = await getActiveTenantId();
+  if (!tenantId) {
+    return { success: false, error: "No active tenant selected." };
+  }
+
+  try {
+    const { data: schemas, error } = await supabase
+      .from("cms_schemas")
+      .select(`
+        *,
+        cms_schema_sections (
+          id,
+          order,
+          cms_schema_fields (
+            id,
+            order
+          )
+        )
+      `)
+      .eq("tenant_id", tenantId)
+      .order("created_at", { ascending: false })
+      .order("order", { ascending: true, referencedTable: "cms_schema_sections" })
+      .order("order", { ascending: true, referencedTable: "cms_schema_sections.cms_schema_fields" });
+
+    if (error) {
+      console.error("Error fetching schemas:", error);
+      return { success: false, error: error.message };
+    }
+
+    // Additional client-side sorting to ensure proper order for nested data
+    const sortedSchemas = schemas?.map((schema: any) => ({
+      ...schema,
+      cms_schema_sections: schema.cms_schema_sections
+        ?.map((section: any) => ({
+          ...section,
+          cms_schema_fields: section.cms_schema_fields?.sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)) || [],
+        }))
+        .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)) || [],
+    }));
+
+    return { success: true, data: sortedSchemas as Schema[] };
+  } catch (error) {
+    console.error("Unexpected error fetching schemas:", error);
+    return { success: false, error: "An unexpected error occurred." };
+  }
+}
+
+export async function getSchemaById(schemaId: string): Promise<ActionResponse<Schema>> {
+  const supabase = await createClient();
+  
+  // Check authentication
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { success: false, error: "Unauthorized: User not authenticated." };
+  }
+
+  // Check admin role
+  const isAdmin = await checkRequiredRoles(user.id, ["system_admin"]);
+  if (!isAdmin) {
+    return { success: false, error: "Unauthorized: Only admins can view schemas." };
+  }
+
+  // Get active tenant ID
+  const tenantId = await getActiveTenantId();
+  if (!tenantId) {
+    return { success: false, error: "No active tenant selected." };
+  }
+
+  try {
+    const { data: schema, error } = await supabase
+      .from("cms_schemas")
+      .select(`
+        *,
+        cms_schema_sections!inner (
+          *,
+          cms_schema_fields (
+            *
+          )
+        )
+      `)
+      .eq("id", schemaId)
+      .eq("tenant_id", tenantId)
+      .order("order", { ascending: true, referencedTable: "cms_schema_sections" })
+      .order("order", { ascending: true, referencedTable: "cms_schema_sections.cms_schema_fields" })
+      .single();
+
+    if (error) {
+      console.error("Error fetching schema:", error);
+      return { success: false, error: error.message };
+    }
+
+    // Additional client-side sorting to ensure proper order
+    if (schema && (schema as any).cms_schema_sections) {
+      const sortedSchema = {
+        ...schema,
+        cms_schema_sections: (schema as any).cms_schema_sections
+          .map((section: any) => ({
+            ...section,
+            cms_schema_fields: section.cms_schema_fields?.sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)) || [],
+          }))
+          .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)),
+      };
+      return { success: true, data: sortedSchema as Schema };
+    }
+
+    return { success: true, data: schema as Schema };
+  } catch (error) {
+    console.error("Unexpected error fetching schema:", error);
     return { success: false, error: "An unexpected error occurred." };
   }
 }

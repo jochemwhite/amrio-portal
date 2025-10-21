@@ -18,6 +18,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/supabaseClient";
+import { useActiveTenant } from "@/hooks/use-active-tenant";
 
 // Form validation schema
 const formSchema = z.object({
@@ -33,7 +34,8 @@ const formSchema = z.object({
     .regex(/^[a-z0-9-]+$/, "Slug can only contain lowercase letters, numbers, and hyphens")
     .refine((slug) => !slug.startsWith("-") && !slug.endsWith("-"), "Slug cannot start or end with a hyphen"),
   status: z.enum(["draft", "active", "archived"] as const),
-  schema_id: z.string().optional(), // Optional schema selection
+  schema_id: z.string().uuid().min(1, "Schema is required"),
+  website_id: z.string().uuid().min(1, "Website is required"),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -61,6 +63,7 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
       slug: "",
       status: "draft",
       schema_id: "",
+      website_id: websiteId,
     },
   });
 
@@ -101,16 +104,13 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
     setIsLoadingSchemas(true);
     try {
       const supabase = createClient();
-      const { data, error } = await supabase
-        .from('cms_schemas')
-        .select('id, name, description, template')
-        .order('name');
+      const { data, error } = await supabase.from("cms_schemas").select("id, name, description, template").order("name");
 
       if (error) throw error;
       setSchemas(data || []);
     } catch (error) {
-      console.error('Error loading schemas:', error);
-      toast.error('Failed to load schemas');
+      console.error("Error loading schemas:", error);
+      toast.error("Failed to load schemas");
     } finally {
       setIsLoadingSchemas(false);
     }
@@ -165,13 +165,16 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
         }
       } else {
         console.log("Creating page", data);
-        const result = await createPage({
-          name: data.name.trim(),
-          description: data.description?.trim() || undefined,
-          slug: data.slug.trim(),
-          status: data.status,
-          schema_id: data.schema_id || undefined,
-        }, websiteId);
+        const result = await createPage(
+          {
+            name: data.name.trim(),
+            description: data.description?.trim() || undefined,
+            slug: data.slug.trim(),
+            status: data.status,
+            schema_id: data.schema_id,
+          },
+          websiteId
+        );
 
         if (result.success) {
           // If a schema was selected, initialize the content
@@ -201,8 +204,6 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
     }
   };
 
-
-
   const handleSlugGenerate = () => {
     if (watchedName) {
       // Clear the slug field first, then let the auto-generation handle it
@@ -220,9 +221,12 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit, (errors) => {
-            console.log("Errors", errors);
-          })} className="space-y-6">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit, (errors) => {
+              console.log("Errors", errors);
+            })}
+            className="space-y-6"
+          >
             {/* Website Selection (for create only) */}
 
             <div className="flex flex-col gap-6">
@@ -288,11 +292,11 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Schema (Optional)</FormLabel>
-                        <Select 
+                        <Select
                           onValueChange={(value) => {
                             // Convert "none" back to empty string
                             field.onChange(value === "none" ? "" : value);
-                          }} 
+                          }}
                           value={field.value || "none"}
                         >
                           <FormControl>
@@ -330,9 +334,7 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
                           </SelectContent>
                         </Select>
                         <FormMessage />
-                        <p className="text-sm text-muted-foreground">
-                          Select a schema to automatically create content fields for this page.
-                        </p>
+                        <p className="text-sm text-muted-foreground">Select a schema to automatically create content fields for this page.</p>
                       </FormItem>
                     )}
                   />
@@ -347,10 +349,7 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
                     <FormLabel>Slug *</FormLabel>
                     <div className="flex space-x-2">
                       <FormControl>
-                        <Input
-                          placeholder="page-slug"
-                          {...field}
-                        />
+                        <Input placeholder="page-slug" {...field} />
                       </FormControl>
                       <Button type="button" variant="outline" size="sm" onClick={handleSlugGenerate} disabled={!watchedName}>
                         Generate

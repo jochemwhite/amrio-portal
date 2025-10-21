@@ -13,17 +13,9 @@ interface Props {
   onSuccess: (data: Database["public"]["Tables"]["cms_pages"]["Row"]) => void;
 }
 
-export default function PageFormModal({  isFormOpen, handleFormClose, page, websiteId, onSuccess }: Props) {
-
-
+export default function PageFormModal({ isFormOpen, handleFormClose, page, websiteId, onSuccess }: Props) {
   return (
-    <Modal
-      open={isFormOpen}
-      onOpenChange={handleFormClose}
-      title="Page Form"
-      description="This is the page form"
-      contentClassName="max-w-sm"
-    >
+    <Modal open={isFormOpen} onOpenChange={handleFormClose} title="Page Form" description="This is the page form" contentClassName="max-w-sm">
       <PageForm isOpen={isFormOpen} onClose={handleFormClose} page={page} websiteId={websiteId} onSuccess={onSuccess} />
     </Modal>
   );

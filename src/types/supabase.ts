@@ -268,9 +268,10 @@ export type Database = {
           description: string | null
           id: string
           name: string
-          schema_id: string | null
+          schema_id: string
           slug: string
           status: Database["public"]["Enums"]["page_status"] | null
+          tenant_id: string
           updated_at: string | null
           website_id: string | null
         }
@@ -279,9 +280,10 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
-          schema_id?: string | null
+          schema_id: string
           slug: string
           status?: Database["public"]["Enums"]["page_status"] | null
+          tenant_id: string
           updated_at?: string | null
           website_id?: string | null
         }
@@ -290,9 +292,10 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
-          schema_id?: string | null
+          schema_id?: string
           slug?: string
           status?: Database["public"]["Enums"]["page_status"] | null
+          tenant_id?: string
           updated_at?: string | null
           website_id?: string | null
         }
@@ -302,6 +305,13 @@ export type Database = {
             columns: ["schema_id"]
             isOneToOne: false
             referencedRelation: "cms_schemas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cms_pages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
           {
@@ -416,6 +426,7 @@ export type Database = {
           id: string
           name: string
           template: boolean
+          tenant_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -425,6 +436,7 @@ export type Database = {
           id?: string
           name: string
           template?: boolean
+          tenant_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -434,6 +446,7 @@ export type Database = {
           id?: string
           name?: string
           template?: boolean
+          tenant_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -442,6 +455,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cms_schemas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]

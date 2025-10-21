@@ -2,17 +2,27 @@
 
 import { createClient } from "@/lib/supabase/supabaseServerClient";
 import { checkRequiredRoles } from "@/server/auth/check-required-roles";
+import { getActiveTenantId } from "@/server/utils";
 import { ActionResponse } from "@/types/actions";
-import { revalidatePath } from "next/cache";
-import { Page, PageStatus, SupabasePage } from "@/types/cms";
 import { Database } from "@/types/supabase";
+import { revalidatePath } from "next/cache";
 
 export async function createPage(
-  data: Database["public"]["Tables"]["cms_pages"]["Insert"],
+  data: {
+    name: string;
+    description?: string;
+    slug: string;
+    status: "draft" | "active" | "archived";
+    schema_id: string;
+  },
   websiteId: string
 ): Promise<ActionResponse<Database["public"]["Tables"]["cms_pages"]["Row"]>> {
+  console.log("Creating page", websiteId);
   const supabase = await createClient();
-
+  const tenantId = await getActiveTenantId();
+  if (!tenantId) {
+    return { success: false, error: "No active tenant selected." };
+  }
   // Check authentication
   const {
     data: { user },
@@ -31,7 +41,7 @@ export async function createPage(
   try {
     const { data: page, error } = await supabase
       .from("cms_pages")
-      .insert({ ...data, website_id: websiteId })
+      .insert({ ...data, website_id: websiteId, tenant_id: tenantId })
       .select()
       .single();
 
@@ -80,7 +90,7 @@ export async function deletePage({ id, websiteId }: DeletePageProps): Promise<Ac
     }
 
     revalidatePath(`/dashboard/websites`);
-    return { success: true, };
+    return { success: true };
   } catch (error) {
     console.error("Unexpected error deleting page:", error);
     return { success: false, error: "An unexpected error occurred." };

@@ -171,6 +171,7 @@ export interface Schema {
   description?: string | null;
   template: boolean;
   created_by: string;
+  tenant_id?: string | null;
   created_at?: string;
   updated_at?: string;
   cms_schema_sections?: SchemaSection[];
@@ -182,6 +183,7 @@ export type SupabaseSchemaWithRelations = {
   description: string | null;
   template: boolean;
   created_by: string;
+  tenant_id: string | null;
   created_at: string | null;
   updated_at: string | null;
   cms_schema_sections: {
