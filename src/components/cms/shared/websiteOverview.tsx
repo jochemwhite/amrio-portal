@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import WebsiteFormModal from "@/components/modals/WebsiteFormModal";
 import { Database } from "@/types/supabase";
+import { useActiveWebsite } from "@/hooks/use-active-website";
 
 type Website = Database["public"]["Tables"]["cms_websites"]["Row"];
 
@@ -19,6 +20,7 @@ interface WebsiteOverviewProps {
 
 export function WebsiteOverview({ websites }: WebsiteOverviewProps) {
   const router = useRouter();
+  const { setActiveWebsite } = useActiveWebsite();
   const [data, setData] = useState<Website[]>(websites);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [website, setWebsite] = useState<Website | undefined>(undefined);
@@ -75,7 +77,20 @@ export function WebsiteOverview({ websites }: WebsiteOverviewProps) {
   };
 
   const handleRowClick = (websiteId: string) => {
-    router.push(`/dashboard/websites/${websiteId}/pages`);
+    const website = websites.find(w => w.id === websiteId);
+    if (website) {
+      // Convert Database website to CMS Website type
+      const cmsWebsite = {
+        ...website,
+        pages: [], // Add empty pages array for compatibility
+        description: website.description ?? undefined, // Convert null to undefined
+        created_at: website.created_at ?? undefined,
+        updated_at: website.updated_at ?? undefined,
+        status: (website.status as "active" | "inactive" | "maintenance") ?? "inactive"
+      };
+      setActiveWebsite(cmsWebsite);
+      router.push('/dashboard/pages');
+    }
   };
 
   const columns = createColumns(handleEdit, handleDeleteWebsite, handleRowClick);

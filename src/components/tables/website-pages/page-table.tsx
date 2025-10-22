@@ -69,11 +69,11 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
 
   const statusFilter = (table.getColumn("status")?.getFilterValue() as string[]) || [];
 
-  // Handle row click to navigate to page builder
+  // Handle row click to navigate to page content
   const handleRowClick = (row: any) => {
     const page = row.original;
-    if (page.id && page.website_id) {
-      router.push(`/dashboard/websites/${page.website_id}/pages/${page.id}/content`);
+    if (page.id) {
+      router.push(`/dashboard/pages/${page.id}`);
     }
   };
 

@@ -83,6 +83,8 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          schema_id: string | null
+          website_id: string | null
         }
         Insert: {
           created_at?: string
@@ -90,6 +92,8 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          schema_id?: string | null
+          website_id?: string | null
         }
         Update: {
           created_at?: string
@@ -97,6 +101,8 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          schema_id?: string | null
+          website_id?: string | null
         }
         Relationships: [
           {
@@ -104,6 +110,20 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cms_collections_schema_id_fkey"
+            columns: ["schema_id"]
+            isOneToOne: false
+            referencedRelation: "cms_schemas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cms_collections_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "cms_websites"
             referencedColumns: ["id"]
           },
         ]
@@ -118,6 +138,10 @@ export type Database = {
           field_type: Database["public"]["Enums"]["field_type"] | null
           id: string
           name: string | null
+          order: number
+          parent_field_id: string | null
+          schema_field_id: string
+          updated_at: string | null
         }
         Insert: {
           cms_collection_entry_id: string
@@ -128,6 +152,10 @@ export type Database = {
           field_type?: Database["public"]["Enums"]["field_type"] | null
           id?: string
           name?: string | null
+          order?: number
+          parent_field_id?: string | null
+          schema_field_id: string
+          updated_at?: string | null
         }
         Update: {
           cms_collection_entry_id?: string
@@ -138,6 +166,10 @@ export type Database = {
           field_type?: Database["public"]["Enums"]["field_type"] | null
           id?: string
           name?: string | null
+          order?: number
+          parent_field_id?: string | null
+          schema_field_id?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -159,6 +191,20 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cms_collections_items_parent_field_id_fkey"
+            columns: ["parent_field_id"]
+            isOneToOne: false
+            referencedRelation: "cms_collections_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cms_collections_items_schema_field_id_fkey"
+            columns: ["schema_field_id"]
+            isOneToOne: false
+            referencedRelation: "cms_schema_fields"
             referencedColumns: ["id"]
           },
         ]
@@ -1012,7 +1058,7 @@ export type Database = {
         Returns: string
       }
       get_page: {
-        Args: { page_id_param: string; website_id_param: string }
+        Args: { page_id_param: string }
         Returns: {
           created_at: string
           description: string
@@ -1027,14 +1073,6 @@ export type Database = {
           status: Database["public"]["Enums"]["page_status"]
           updated_at: string
           website_id: string
-        }[]
-      }
-      get_page_content: {
-        Args: { page_id_param: string; website_id_param: string }
-        Returns: {
-          id: string
-          sections: Json
-          slug: string
         }[]
       }
       get_user_session: {

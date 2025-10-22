@@ -1,7 +1,6 @@
 "use client";
 
-import { createPage } from "@/actions/cms/page-actions";
-import { initializePageContent } from "@/actions/cms/schema-content-actions";
+import { createPage, updatePage } from "@/actions/cms/page-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,11 +30,10 @@ const formSchema = z.object({
   slug: z
     .string()
     .min(1, "Slug is required")
-    .regex(/^[a-z0-9-]+$/, "Slug can only contain lowercase letters, numbers, and hyphens")
-    .refine((slug) => !slug.startsWith("-") && !slug.endsWith("-"), "Slug cannot start or end with a hyphen"),
+    .refine((slug) => slug === "/" || /^[a-z0-9-]+$/.test(slug), "Slug can only contain lowercase letters, numbers, and hyphens (or '/' for home)")
+    .refine((slug) => slug === "/" || (!slug.startsWith("-") && !slug.endsWith("-")), "Slug cannot start or end with a hyphen"),
   status: z.enum(["draft", "active", "archived"] as const),
-  schema_id: z.string().uuid().min(1, "Schema is required"),
-  website_id: z.string().uuid().min(1, "Website is required"),
+  schema_id: z.string(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -52,6 +50,9 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [schemas, setSchemas] = useState<Array<{ id: string; name: string; description: string | null; template: boolean }>>([]);
   const [isLoadingSchemas, setIsLoadingSchemas] = useState(false);
+  const [websiteDomain, setWebsiteDomain] = useState<string>("");
+  const [isLoadingWebsite, setIsLoadingWebsite] = useState(false);
+  const [slugCheckStatus, setSlugCheckStatus] = useState<"idle" | "checking" | "available" | "unavailable">("idle");
 
   const isEditing = !!page;
 
@@ -63,12 +64,18 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
       slug: "",
       status: "draft",
       schema_id: "",
-      website_id: websiteId,
     },
   });
 
   const watchedName = form.watch("name");
   const watchedSlug = form.watch("slug");
+
+  // Load website info when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      loadWebsiteInfo();
+    }
+  }, [isOpen, websiteId]);
 
   // Load schemas when dialog opens
   useEffect(() => {
@@ -97,7 +104,26 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
         schema_id: "",
       });
     }
+    // Reset slug check status when form opens
+    setSlugCheckStatus("idle");
   }, [isEditing, page, isOpen, form]);
+
+  // Load website info function
+  const loadWebsiteInfo = async () => {
+    setIsLoadingWebsite(true);
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.from("cms_websites").select("domain").eq("id", websiteId).single();
+
+      if (error) throw error;
+      setWebsiteDomain(data?.domain || "example.com");
+    } catch (error) {
+      console.error("Error loading website:", error);
+      setWebsiteDomain("example.com");
+    } finally {
+      setIsLoadingWebsite(false);
+    }
+  };
 
   // Load schemas function
   const loadSchemas = async () => {
@@ -128,7 +154,29 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
     }
   }, [watchedName, watchedSlug, form]);
 
+  // Check slug availability when slug changes (with debounce)
+  useEffect(() => {
+    if (!watchedSlug || watchedSlug.trim() === "" || form.formState.errors.slug) {
+      setSlugCheckStatus("idle");
+      return;
+    }
+
+    setSlugCheckStatus("checking");
+
+    const timeoutId = setTimeout(async () => {
+      const isAvailable = await checkSlugAvailability(watchedSlug, page?.id);
+      setSlugCheckStatus(isAvailable ? "available" : "unavailable");
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [watchedSlug, page?.id, websiteId, form.formState.errors.slug]);
+
   const generateSlug = (name: string): string => {
+    // Handle special case for home page
+    if (name.toLowerCase().trim() === "home") {
+      return "/";
+    }
+
     return name
       .toLowerCase()
       .replace(/[^a-z0-9\s-]/g, "")
@@ -137,15 +185,42 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
       .trim();
   };
 
-  const isSlugAvailable = (slug: string, excludePageId?: string): boolean => {
-    // TODO: Check if the slug is available for the website using the supabase client in server action
-    return true;
+  // Check slug availability
+  const checkSlugAvailability = async (slug: string, excludePageId?: string): Promise<boolean> => {
+    if (!slug || slug.trim() === "") {
+      return false;
+    }
+
+    try {
+      const supabase = createClient();
+      let query = supabase.from("cms_pages").select("id").eq("website_id", websiteId).eq("slug", slug.trim());
+
+      // Exclude current page if editing
+      if (excludePageId) {
+        query = query.neq("id", excludePageId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error("Error checking slug availability:", error);
+        return false;
+      }
+
+      // Slug is available if no pages were found
+      return data.length === 0;
+    } catch (error) {
+      console.error("Error checking slug availability:", error);
+      return false;
+    }
   };
 
   const handleSubmit = async (data: FormData) => {
     // Additional validation for slug availability
-    if (!isSlugAvailable(data.slug, page?.id)) {
+    const isAvailable = await checkSlugAvailability(data.slug, page?.id);
+    if (!isAvailable) {
       form.setError("slug", { message: "This slug is already in use" });
+      setSlugCheckStatus("unavailable");
       return;
     }
 
@@ -153,42 +228,31 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
 
     try {
       if (isEditing) {
-        // TODO: create a server action to update the page in the database
-        const result = { success: true };
+        const result = await updatePage(page!.id, {
+          name: data.name.trim(),
+          description: data.description?.trim() || undefined,
+          slug: data.slug.trim(),
+          status: data.status,
+        });
 
         if (result.success) {
           toast.success("Page updated successfully");
-          // TODO: create a server action to update the page in the database
+          onSuccess(result.data as Database["public"]["Tables"]["cms_pages"]["Row"]);
         } else {
-          // toast.error(result.error || "Failed to update page");
+          toast.error(result.error || "Failed to update page");
           return;
         }
       } else {
-        console.log("Creating page", data);
-        const result = await createPage(
-          {
-            name: data.name.trim(),
-            description: data.description?.trim() || undefined,
-            slug: data.slug.trim(),
-            status: data.status,
-            schema_id: data.schema_id,
-          },
-          websiteId
-        );
+        const result = await createPage({
+          name: data.name.trim(),
+          description: data.description?.trim() || undefined,
+          slug: data.slug.trim(),
+          status: data.status,
+          schema_id: data.schema_id,
+        });
 
         if (result.success) {
-          // If a schema was selected, initialize the content
-          if (data.schema_id) {
-            try {
-              await initializePageContent(result.data!.id, data.schema_id);
-              toast.success("Page created and content initialized successfully");
-            } catch (error) {
-              console.error("Error initializing content:", error);
-              toast.success("Page created successfully, but failed to initialize content");
-            }
-          } else {
-            toast.success("Page created successfully");
-          }
+          toast.success("Page created successfully");
           onSuccess(result.data as Database["public"]["Tables"]["cms_pages"]["Row"]);
         } else {
           toast.error(result.error || "Failed to create page");
@@ -210,8 +274,6 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
       form.setValue("slug", "");
     }
   };
-
-  const isSlugValid = watchedSlug && !form.formState.errors.slug && isSlugAvailable(watchedSlug, page?.id);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -348,9 +410,16 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
                   <FormItem>
                     <FormLabel>Slug *</FormLabel>
                     <div className="flex space-x-2">
-                      <FormControl>
-                        <Input placeholder="page-slug" {...field} />
-                      </FormControl>
+                      <div className="relative flex-1">
+                        <FormControl>
+                          <Input placeholder="page-slug" {...field} className="pr-10" />
+                        </FormControl>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          {slugCheckStatus === "checking" && <Loader2 className="h-4 w-4 animate-spin text-yellow-600" />}
+                          {slugCheckStatus === "available" && <Check className="h-4 w-4 text-green-600" />}
+                          {slugCheckStatus === "unavailable" && <AlertCircle className="h-4 w-4 text-red-600" />}
+                        </div>
+                      </div>
                       <Button type="button" variant="outline" size="sm" onClick={handleSlugGenerate} disabled={!watchedName}>
                         Generate
                       </Button>
@@ -362,21 +431,26 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
               <div className="space-y-2">
                 <Label className="text-sm">URL Preview</Label>
                 <div className="p-2 bg-muted rounded text-sm font-mono">
-                  <span className={isSlugValid ? "text-green-600" : "text-muted-foreground"}>
-                    {`https://${websiteId}/${watchedSlug || "page-slug"}`}
+                  <span className={slugCheckStatus === "available" ? "text-green-600" : "text-muted-foreground"}>
+                    {isLoadingWebsite ? "Loading..." : `https://${websiteDomain}${watchedSlug === "/" ? "" : `/${watchedSlug || "page-slug"}`}`}
                   </span>
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                {isSlugValid ? (
+                {slugCheckStatus === "available" ? (
                   <div className="flex items-center text-green-600 text-sm">
                     <Check className="h-4 w-4 mr-1" />
                     Slug is available
                   </div>
-                ) : watchedSlug && !form.formState.errors.slug ? (
+                ) : slugCheckStatus === "checking" ? (
                   <div className="flex items-center text-yellow-600 text-sm">
-                    <AlertCircle className="h-4 w-4 mr-1" />
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
                     Checking availability...
+                  </div>
+                ) : slugCheckStatus === "unavailable" ? (
+                  <div className="flex items-center text-red-600 text-sm">
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    Slug is already in use
                   </div>
                 ) : null}
               </div>

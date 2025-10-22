@@ -12,16 +12,7 @@ const isEmpty = (value: any): boolean => {
   return false;
 };
 
-// Helper function to check if richtext content is empty
-const isRichTextEmpty = (value: any): boolean => {
-  console.log(`isRichTextEmpty: ${value}`);
-  if (!value || typeof value !== 'object') return true;
-  if (!value.content || !Array.isArray(value.content)) return true;
-  return value.content.length === 0 || 
-         (value.content.length === 1 && 
-          value.content[0].type === 'paragraph' && 
-          (!value.content[0].content || value.content[0].content.length === 0));
-};
+
 
 // Format content based on field type
 const formatContentForFieldType = (fieldType: string, value: any): any => {
@@ -34,7 +25,8 @@ const formatContentForFieldType = (fieldType: string, value: any): any => {
 
   switch (fieldType) {
     case 'text':
-      return { value: String(value) };
+      console.log(`Value is ${value}`);
+      return value.toString();
     
     case 'richtext':
       // Rich text is stored as-is (JSON object)

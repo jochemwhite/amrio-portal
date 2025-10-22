@@ -6,112 +6,93 @@ import { revalidatePath } from "next/cache";
 // Helper function to check if a value is empty
 const isEmpty = (value: any): boolean => {
   if (value === null || value === undefined) return true;
-  if (typeof value === 'string' && value.trim() === '') return true;
+  if (typeof value === "string" && value.trim() === "") return true;
   if (Array.isArray(value) && value.length === 0) return true;
-  if (typeof value === 'object' && Object.keys(value).length === 0) return true;
+  if (typeof value === "object" && Object.keys(value).length === 0) return true;
   return false;
 };
 
 // Helper function to check if richtext content is empty
 const isRichTextEmpty = (value: any): boolean => {
-  if (!value || typeof value !== 'object') return true;
+  if (!value || typeof value !== "object") return true;
   if (!value.content || !Array.isArray(value.content)) return true;
-  return value.content.length === 0 || 
-         (value.content.length === 1 && 
-          value.content[0].type === 'paragraph' && 
-          (!value.content[0].content || value.content[0].content.length === 0));
+  return (
+    value.content.length === 0 ||
+    (value.content.length === 1 && value.content[0].type === "paragraph" && (!value.content[0].content || value.content[0].content.length === 0))
+  );
 };
 
 // Format content based on field type
 const formatContentForFieldType = (fieldType: string, value: any): any => {
-  if (fieldType === 'richtext') {
+  if (fieldType === "richtext") {
     return isRichTextEmpty(value) ? null : value;
   } else if (isEmpty(value)) {
     return null;
   }
 
   switch (fieldType) {
-    case 'text':
-      return { value: String(value) };
-    
-    case 'richtext':
+    case "text":
+      return value.toString();
+
+    case "richtext":
       // Rich text is stored as-is (JSON object)
       return value;
-    
-    case 'number':
-      return { value: Number(value) };
-    
-    case 'boolean':
-      return { value: Boolean(value) };
-    
-    case 'date':
+
+    case "number":
+      return Number(value);
+
+    case "boolean":
+      return Boolean(value);
+
+    case "date":
       // Store date as ISO string
-      return { value: new Date(value).toISOString() };
-    
-    case 'image':
+      return new Date(value).toISOString();
+
+    case "image":
       // Store image data as object
-      return { 
+      return {
         url: value.url || value,
-        alt: value.alt || '',
-        caption: value.caption || ''
+        alt: value.alt || "",
+        caption: value.caption || "",
       };
-    
-    case 'video':
+
+    case "video":
       // Store video data as object
-      return { 
+      return {
         url: value.url || value,
-        title: value.title || '',
-        description: value.description || ''
+        title: value.title || "",
+        description: value.description || "",
       };
-    
-    case 'collection':
+
+    case "collection":
       // Store collection reference
-      return { 
+      return {
         collection_id: value.collection_id || value,
-        entry_id: value.entry_id || null
+        entry_id: value.entry_id || null,
       };
-    
+
     default:
       return { value: value };
   }
 };
 
-// Extract value from content based on field type
-const extractValueFromContent = (fieldType: string, content: any): any => {
-  if (!content) return null;
-  
-  switch (fieldType) {
-    case 'text':
-    case 'number':
-    case 'boolean':
-    case 'date':
-      return content.value;
-    
-    case 'richtext':
-      return content;
-    
-    case 'image':
-    case 'video':
-    case 'collection':
-      return content;
-    
-    default:
-      return content.value || content || '';
-  }
-};
-
 // Updated savePageContent function that works with schema-based fields
-export async function savePageContent(updatedFields: Array<{ 
-  id: string; // schema field ID
-  content: any; 
-  type: string;
-  content_field_id?: string | null; // actual content field ID
-}>) {
+export async function savePageContent(
+  updatedFields: Array<{
+    id: string; // schema field ID
+    content: any;
+    type: string;
+    content_field_id?: string | null; // actual content field ID
+  }>
+) {
   try {
     const supabase = await createClient();
-    
+
     // Get the current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
       throw new Error("Unauthorized");
     }
@@ -123,22 +104,20 @@ export async function savePageContent(updatedFields: Array<{
     // Process each updated field
     const updatePromises = updatedFields.map(async (field) => {
       const { id: schemaFieldId, content: value, type: fieldType, content_field_id } = field;
-      
+
       // Format the content based on field type
       const formattedContent = formatContentForFieldType(fieldType, value);
-      
+
       // Update using content_field_id if available (for existing content)
       // Otherwise use schema_field_id to find the content field
-      let query = supabase
-        .from('cms_content_fields')
-        .update({ content: formattedContent, updated_at: new Date().toISOString() });
-      
+      let query = supabase.from("cms_content_fields").update({ content: formattedContent, updated_at: new Date().toISOString() });
+
       if (content_field_id) {
         // Update by content field ID (most direct method)
-        query = query.eq('id', content_field_id);
+        query = query.eq("id", content_field_id);
       } else {
         // Update by schema field ID (fallback for new content)
-        query = query.eq('schema_field_id', schemaFieldId);
+        query = query.eq("schema_field_id", schemaFieldId);
       }
 
       const { data, error } = await query;
@@ -155,7 +134,7 @@ export async function savePageContent(updatedFields: Array<{
 
     // Revalidate the page to ensure fresh data
     revalidatePath(`/dashboard/websites`);
-    
+
     return { success: true, message: "Content saved successfully" };
   } catch (error) {
     console.error("Error saving content:", error);
@@ -167,17 +146,20 @@ export async function savePageContent(updatedFields: Array<{
 export async function initializePageContent(pageId: string, schemaId: string) {
   try {
     const supabase = await createClient();
-    
+
     // Get the current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
       throw new Error("Unauthorized");
     }
 
     // Call the new RPC function to initialize page content structure
-    const { error } = await supabase.rpc('initialize_page_content', {
+    const { error } = await supabase.rpc("initialize_page_content", {
       page_id_param: pageId,
-      schema_id_param: schemaId
+      schema_id_param: schemaId,
     });
 
     if (error) {
@@ -187,7 +169,7 @@ export async function initializePageContent(pageId: string, schemaId: string) {
 
     // Revalidate the page
     revalidatePath(`/dashboard/websites`);
-    
+
     return { success: true, message: "Content initialized successfully" };
   } catch (error) {
     console.error("Error initializing content:", error);
@@ -199,9 +181,12 @@ export async function initializePageContent(pageId: string, schemaId: string) {
 export async function getSchemaChangeInfo(pageId: string) {
   try {
     const supabase = await createClient();
-    
+
     // Get the current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
       throw new Error("Unauthorized");
     }
@@ -209,8 +194,9 @@ export async function getSchemaChangeInfo(pageId: string) {
     // For now, return a simple check using direct queries
     // This will be replaced with the RPC function once it's deployed
     const { data: page, error } = await supabase
-      .from('cms_pages')
-      .select(`
+      .from("cms_pages")
+      .select(
+        `
         id,
         created_at,
         cms_schemas!inner(
@@ -218,8 +204,9 @@ export async function getSchemaChangeInfo(pageId: string) {
           name,
           updated_at
         )
-      `)
-      .eq('id', pageId)
+      `
+      )
+      .eq("id", pageId)
       .single();
 
     if (error) {
@@ -231,16 +218,14 @@ export async function getSchemaChangeInfo(pageId: string) {
     }
 
     const schema = page.cms_schemas;
-    const schemaUpdatedAfterPage = schema.updated_at && page.created_at 
-      ? new Date(schema.updated_at) > new Date(page.created_at)
-      : false;
+    const schemaUpdatedAfterPage = schema.updated_at && page.created_at ? new Date(schema.updated_at) > new Date(page.created_at) : false;
 
     return {
       has_schema: true,
       schema_updated_after_page: schemaUpdatedAfterPage,
       schema_name: schema.name,
       schema_updated_at: schema.updated_at,
-      page_created_at: page.created_at
+      page_created_at: page.created_at,
     };
   } catch (error) {
     console.error("Error getting schema change info:", error);
@@ -252,19 +237,18 @@ export async function getSchemaChangeInfo(pageId: string) {
 export async function syncSchemaChanges(pageId: string) {
   try {
     const supabase = await createClient();
-    
+
     // Get the current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
       throw new Error("Unauthorized");
     }
 
     // First get the page to find its schema
-    const { data: page, error: pageError } = await supabase
-      .from('cms_pages')
-      .select('schema_id')
-      .eq('id', pageId)
-      .single();
+    const { data: page, error: pageError } = await supabase.from("cms_pages").select("schema_id").eq("id", pageId).single();
 
     if (pageError || !page?.schema_id) {
       throw new Error("Page or schema not found");
@@ -272,10 +256,7 @@ export async function syncSchemaChanges(pageId: string) {
 
     // For now, just update the page's schema_id
     // This will be replaced with the RPC function once it's deployed
-    const { error } = await supabase
-      .from('cms_pages')
-      .update({ schema_id: page.schema_id })
-      .eq('id', pageId);
+    const { error } = await supabase.from("cms_pages").update({ schema_id: page.schema_id }).eq("id", pageId);
 
     if (error) {
       throw error;
@@ -283,7 +264,7 @@ export async function syncSchemaChanges(pageId: string) {
 
     // Revalidate the page
     revalidatePath(`/dashboard/websites`);
-    
+
     return { success: true, message: "Schema changes synced successfully" };
   } catch (error) {
     console.error("Error syncing schema changes:", error);

@@ -173,11 +173,13 @@ export function WebsiteManagement({ initialWebsites, availableTenants }: Website
                             <Edit className="w-4 h-4 mr-2" />
                             Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <a href={`/dashboard/admin/websites/${website.id}/pages`}>
-                              <Eye className="w-4 h-4 mr-2" />
-                              View Pages
-                            </a>
+                          <DropdownMenuItem onClick={() => {
+                            // Set active website and navigate to pages
+                            // Note: This would need the useActiveWebsite hook in admin context
+                            window.location.href = '/dashboard/pages';
+                          }}>
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Pages
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <AlertDialog>

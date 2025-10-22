@@ -26,9 +26,23 @@ export function WebsiteSwitcher() {
     return null;
   }
 
-  // Don't render if no websites available
+  // Show a placeholder when no websites are available
   if (availableWebsites.length === 0) {
-    return null;
+    return (
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton disabled size="lg" className="cursor-default">
+            <div className="flex items-center justify-center rounded-lg text-sidebar-primary-foreground">
+              <Globe className="h-5 w-5" />
+            </div>
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              <span className="truncate font-semibold">No Websites</span>
+              <span className="truncate text-xs text-muted-foreground">Create a website to get started</span>
+            </div>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    );
   }
 
   return (
@@ -41,7 +55,8 @@ export function WebsiteSwitcher() {
               size="lg"
               className={cn(
                 "data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground ",
-                !hasMultipleWebsites && "cursor-default hover:bg-transparent disabled:cursor-default disabled:hover:bg-transparent disabled:opacity-100"
+                !hasMultipleWebsites &&
+                  "cursor-default hover:bg-transparent disabled:cursor-default disabled:hover:bg-transparent disabled:opacity-100"
               )}
             >
               <div className="flex items-center justify-center rounded-lg text-sidebar-primary-foreground">
@@ -49,12 +64,10 @@ export function WebsiteSwitcher() {
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">{activeWebsite?.name}</span>
-                <span className="truncate text-xs text-muted-foreground">
-                  {activeWebsite?.domain}
-                </span>
+                <span className="truncate text-xs text-muted-foreground">{activeWebsite?.domain}</span>
               </div>
               <div className="flex items-center gap-1">
-                <Badge variant={activeWebsite?.status === 'active' ? 'default' : 'secondary'} className="text-xs">
+                <Badge variant={activeWebsite?.status === "active" ? "default" : "secondary"} className="text-xs">
                   {activeWebsite?.status}
                 </Badge>
                 {hasMultipleWebsites && <ChevronsUpDown className="ml-1 h-4 w-4" />}
@@ -78,24 +91,16 @@ export function WebsiteSwitcher() {
                   <div className="text-xs text-muted-foreground">{website.domain}</div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Badge variant={website.status === 'active' ? 'default' : 'secondary'} className="text-xs">
+                  <Badge variant={website.status === "active" ? "default" : "secondary"} className="text-xs">
                     {website.status}
                   </Badge>
                   <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
                 </div>
               </DropdownMenuItem>
             ))}
-            {/* Future: Add website creation option */}
-            {/* <DropdownMenuSeparator />
-            <DropdownMenuItem className="gap-2 p-2">
-              <div className="flex size-6 items-center justify-center rounded-md border bg-background">
-                <Plus className="size-4" />
-              </div>
-              <div className="font-medium text-muted-foreground">Add website</div>
-            </DropdownMenuItem> */}
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
   );
-} 
+}

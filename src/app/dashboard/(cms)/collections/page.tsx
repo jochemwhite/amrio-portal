@@ -1,10 +1,9 @@
-import { PageOverview } from "@/components/cms/shared/pageOverview";
 import { createClient } from "@/lib/supabase/supabaseServerClient";
 import { getActiveTenantId } from "@/server/utils";
 import { getActiveWebsiteId } from "@/lib/utils/active-website-server";
 import { notFound, redirect } from "next/navigation";
 
-export default async function PagesPage() {
+export default async function CollectionsPage() {
   const supabase = await createClient();
   const tenantId = await getActiveTenantId();
   const activeWebsiteId = await getActiveWebsiteId();
@@ -37,21 +36,21 @@ export default async function PagesPage() {
     notFound();
   }
 
-  // Fetch pages for this website
-  const { data: pages, error: pagesError } = await supabase
-    .from("cms_pages")
-    .select("*")
-    .eq("website_id", activeWebsiteId)
-    .eq("tenant_id", tenantId)
-    .order("created_at", { ascending: false });
-
-  if (pagesError) {
-    console.error("Error fetching pages:", pagesError);
-  }
+  // TODO: Fetch collections for this website
+  // const { data: collections, error: collectionsError } = await supabase
+  //   .from("cms_collections")
+  //   .select("*")
+  //   .eq("website_id", activeWebsiteId)
+  //   .eq("tenant_id", tenantId)
+  //   .order("created_at", { ascending: false });
 
   return (
     <div className="container mx-auto py-6">
-      <PageOverview pages={pages || []} websiteId={activeWebsiteId} />
+      <div className="text-center">
+        <h1 className="text-2xl font-bold mb-4">Collections</h1>
+        <p className="text-muted-foreground">Collections for {website.name}</p>
+        {/* TODO: Add collections overview component */}
+      </div>
     </div>
   );
 }

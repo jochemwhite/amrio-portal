@@ -29,6 +29,17 @@ export function NavMain({
     }[];
   }[];
 }) {
+  // Split items into website-specific and tenant-wide
+  const websiteItems = items.filter(item => 
+    item.title === "Websites" || 
+    item.title === "Pages" || 
+    item.title === "Collections" || 
+    item.title === "Forms"
+  );
+  const tenantItems = items.filter(item => 
+    item.title === "Storage"
+  );
+
   return (
     <SidebarGroup>
       <SidebarMenu>
@@ -44,7 +55,7 @@ export function NavMain({
 
       <SidebarGroupLabel>CMS</SidebarGroupLabel>
       <SidebarMenu>
-        {items.map((item) =>
+        {websiteItems.map((item) =>
           item.items && item.items.length > 0 ? (
             <Collapsible key={item.title} asChild defaultOpen={item.isActive} className="group/collapsible">
               <SidebarMenuItem>
@@ -82,6 +93,24 @@ export function NavMain({
           )
         )}
       </SidebarMenu>
+
+      {tenantItems.length > 0 && (
+        <>
+          <SidebarGroupLabel>Tenant</SidebarGroupLabel>
+          <SidebarMenu>
+            {tenantItems.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton asChild>
+                  <Link href={item.url}>
+                    {item.icon && <item.icon />}
+                    <span>{item.title}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </>
+      )}
     </SidebarGroup>
   );
 }

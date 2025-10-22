@@ -19,6 +19,7 @@ import { Edit, Trash2, MoreVertical, Calendar, Globe, FileText } from "lucide-re
 import { DataTableColumnHeader } from "./website-table-column-header";
 import { Database } from "@/types/supabase";
 import { useRouter } from "next/navigation";
+import { useActiveWebsite } from "@/hooks/use-active-website";
 
 export type Website = Database["public"]["Tables"]["cms_websites"]["Row"];
 
@@ -30,6 +31,21 @@ interface WebsiteTableActionsProps {
 
 function WebsiteTableActions({ website, onEdit, onDelete }: WebsiteTableActionsProps) {
   const router = useRouter();
+  const { setActiveWebsite } = useActiveWebsite();
+
+  const handleManagePages = () => {
+    // Convert Database website to CMS Website type
+    const cmsWebsite = {
+      ...website,
+      pages: [], // Add empty pages array for compatibility
+      description: website.description ?? undefined, // Convert null to undefined
+      created_at: website.created_at ?? undefined,
+      updated_at: website.updated_at ?? undefined,
+      status: (website.status as "active" | "inactive" | "maintenance") ?? "inactive"
+    };
+    setActiveWebsite(cmsWebsite);
+    router.push('/dashboard/pages');
+  };
 
   return (
     <DropdownMenu>
@@ -39,7 +55,7 @@ function WebsiteTableActions({ website, onEdit, onDelete }: WebsiteTableActionsP
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => router.push(`/dashboard/websites/${website.id}/pages`)}>
+        <DropdownMenuItem onClick={handleManagePages}>
           <FileText className="mr-2 h-4 w-4" />
           Manage Pages
         </DropdownMenuItem>
