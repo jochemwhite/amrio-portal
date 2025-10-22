@@ -169,3 +169,4 @@ export function CollectionTable({ collections, onCollectionDeleted }: Collection
 }
 
 
+
