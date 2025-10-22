@@ -4,7 +4,9 @@ import { createClient } from "@/lib/supabase/supabaseServerClient";
 import { checkRequiredRoles } from "@/server/auth/check-required-roles";
 import { ActionResponse } from "@/types/actions";
 import { revalidatePath } from "next/cache";
-import { Website } from "@/types/cms";
+import { Database } from "@/types/supabase";
+
+type Website = Database["public"]["Tables"]["cms_websites"]["Row"];
 
 interface CreateWebsiteData {
   tenant_id: string;
@@ -54,7 +56,7 @@ export async function createWebsite(data: CreateWebsiteData): Promise<ActionResp
       return { success: false, error: error.message };
     }
 
-    revalidatePath("/dashboard/pages");
+    revalidatePath("/dashboard/websites");
     return { success: true, data: website as Website };
   } catch (error) {
     console.error("Unexpected error creating website:", error);
@@ -90,7 +92,7 @@ export async function updateWebsite(id: string, data: UpdateWebsiteData): Promis
       return { success: false, error: error.message };
     }
 
-    revalidatePath("/dashboard/pages");
+    revalidatePath("/dashboard/websites");
     return { success: true, data: website as Website };
   } catch (error) {
     console.error("Unexpected error updating website:", error);
@@ -124,7 +126,7 @@ export async function deleteWebsite(id: string): Promise<ActionResponse<void>> {
       return { success: false, error: error.message };
     }
 
-    revalidatePath("/dashboard/pages");
+    revalidatePath("/dashboard/websites");
     return { success: true };
   } catch (error) {
     console.error("Unexpected error deleting website:", error);

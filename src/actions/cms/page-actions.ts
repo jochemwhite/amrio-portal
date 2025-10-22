@@ -50,7 +50,7 @@ export async function createPage(
       return { success: false, error: error.message };
     }
 
-    revalidatePath(`/dashboard/websites /${websiteId}/pages`);
+    revalidatePath(`/dashboard/websites/${websiteId}/pages`);
     return { success: true, data: page };
   } catch (error) {
     console.error("Unexpected error creating page:", error);

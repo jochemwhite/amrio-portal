@@ -10,6 +10,7 @@ import {
   FileText,
   FileUser,
   GalleryVerticalEnd,
+  Globe,
   Library,
   Settings,
   SquareTerminal,
@@ -28,9 +29,9 @@ import { TeamSwitcher } from "./nav/team-switcher";
 const data = {
   navMain: [
     {
-      title: "Pages",
-      url: "/dashboard/pages",
-      icon: StickyNote,
+      title: "Websites",
+      url: "/dashboard/websites",
+      icon: Globe,
     },
     {
       title: "Storage",

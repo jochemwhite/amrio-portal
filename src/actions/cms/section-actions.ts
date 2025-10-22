@@ -115,7 +115,7 @@ export async function createSection(data: CreateSectionData): Promise<ActionResp
       fields: []
     };
 
-    revalidatePath("/dashboard/pages");
+    revalidatePath("/dashboard/websites");
     return { success: true, data: sectionWithFields };
   } catch (error) {
     console.error("Unexpected error creating section:", error);
@@ -157,7 +157,7 @@ export async function updateSection(id: string, data: UpdateSectionData): Promis
       return sectionWithFields;
     }
 
-    revalidatePath("/dashboard/pages");
+    revalidatePath("/dashboard/websites");
     return { success: true, data: sectionWithFields.data! };
   } catch (error) {
     console.error("Unexpected error updating section:", error);
@@ -191,7 +191,7 @@ export async function deleteSection(id: string): Promise<ActionResponse<void>> {
       return { success: false, error: error.message };
     }
 
-    revalidatePath("/dashboard/pages");
+    revalidatePath("/dashboard/websites");
     return { success: true };
   } catch (error) {
     console.error("Unexpected error deleting section:", error);
@@ -303,7 +303,7 @@ export async function createField(data: CreateFieldData): Promise<ActionResponse
       order: field.order ?? 0
     };
 
-    revalidatePath("/dashboard/pages");
+    revalidatePath("/dashboard/websites");
     return { success: true, data: fieldData };
   } catch (error) {
     console.error("Unexpected error creating field:", error);
@@ -359,7 +359,7 @@ export async function updateField(id: string, data: UpdateFieldData): Promise<Ac
       order: field.order ?? 0
     };
 
-    revalidatePath("/dashboard/pages");
+    revalidatePath("/dashboard/websites");
     return { success: true, data: fieldData };
   } catch (error) {
     console.error("Unexpected error updating field:", error);
@@ -393,7 +393,7 @@ export async function deleteField(id: string): Promise<ActionResponse<void>> {
       return { success: false, error: error.message };
     }
 
-    revalidatePath("/dashboard/pages");
+    revalidatePath("/dashboard/websites");
     return { success: true };
   } catch (error) {
     console.error("Unexpected error deleting field:", error);
@@ -435,7 +435,7 @@ export async function reorderFields(sectionId: string, fieldIds: string[]): Prom
       return { success: false, error: "Failed to reorder some fields." };
     }
 
-    revalidatePath("/dashboard/pages");
+    revalidatePath("/dashboard/websites");
     return { success: true };
   } catch (error) {
     console.error("Unexpected error reordering fields:", error);
@@ -477,7 +477,7 @@ export async function reorderSections(pageId: string, sectionIds: string[]): Pro
       return { success: false, error: "Failed to reorder some sections." };
     }
 
-    revalidatePath("/dashboard/pages");
+    revalidatePath("/dashboard/websites");
     return { success: true };
   } catch (error) {
     console.error("Unexpected error reordering sections:", error);
