@@ -217,7 +217,7 @@ export type Database = {
           name: string
           order: number | null
           parent_field_id: string | null
-          schema_field_id: string | null
+          schema_field_id: string
           section_id: string
           type: Database["public"]["Enums"]["field_type"]
           updated_at: string | null
@@ -229,7 +229,7 @@ export type Database = {
           name: string
           order?: number | null
           parent_field_id?: string | null
-          schema_field_id?: string | null
+          schema_field_id: string
           section_id: string
           type: Database["public"]["Enums"]["field_type"]
           updated_at?: string | null
@@ -241,7 +241,7 @@ export type Database = {
           name?: string
           order?: number | null
           parent_field_id?: string | null
-          schema_field_id?: string | null
+          schema_field_id?: string
           section_id?: string
           type?: Database["public"]["Enums"]["field_type"]
           updated_at?: string | null
@@ -250,7 +250,7 @@ export type Database = {
           {
             foreignKeyName: "cms_content_fields_schema_field_id_fkey"
             columns: ["schema_field_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "cms_schema_fields"
             referencedColumns: ["id"]
           },
@@ -278,6 +278,7 @@ export type Database = {
           name: string
           order: number | null
           page_id: string | null
+          schema_section_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -287,6 +288,7 @@ export type Database = {
           name: string
           order?: number | null
           page_id?: string | null
+          schema_section_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -296,9 +298,17 @@ export type Database = {
           name?: string
           order?: number | null
           page_id?: string | null
+          schema_section_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "cms_content_sections_schema_section_id_fkey"
+            columns: ["schema_section_id"]
+            isOneToOne: false
+            referencedRelation: "cms_schema_sections"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cms_sections_page_id_fkey"
             columns: ["page_id"]
@@ -1041,22 +1051,14 @@ export type Database = {
         }
         Returns: boolean
       }
-      format_file_size: {
-        Args: { size_bytes: number }
-        Returns: string
+      format_file_size: { Args: { size_bytes: number }; Returns: string }
+      get_all_users_with_roles: { Args: never; Returns: Json[] }
+      get_collection_with_schema: {
+        Args: { p_collection_id: string; p_tenant_id: string }
+        Returns: Json
       }
-      get_all_users_with_roles: {
-        Args: Record<PropertyKey, never>
-        Returns: Json[]
-      }
-      get_file_extension: {
-        Args: { filename: string }
-        Returns: string
-      }
-      get_file_type: {
-        Args: { mime_type: string }
-        Returns: string
-      }
+      get_file_extension: { Args: { filename: string }; Returns: string }
+      get_file_type: { Args: { mime_type: string }; Returns: string }
       get_page: {
         Args: { page_id_param: string }
         Returns: {
@@ -1075,24 +1077,25 @@ export type Database = {
           website_id: string
         }[]
       }
-      get_user_session: {
-        Args: Record<PropertyKey, never> | { p_uid: string }
-        Returns: Json
-      }
-      has_global_role: {
-        Args:
-          | { role_name_input: string }
-          | { role_name_input: string; uid: string }
-        Returns: boolean
+      get_user_session:
+        | { Args: { p_uid: string }; Returns: Json }
+        | { Args: never; Returns: Json }
+      has_global_role:
+        | { Args: { role_name_input: string; uid: string }; Returns: boolean }
+        | { Args: { role_name_input: string }; Returns: boolean }
+      initialize_collection_entry_content: {
+        Args: {
+          collection_id_param: string
+          entry_id_param: string
+          schema_id_param: string
+        }
+        Returns: undefined
       }
       initialize_page_content: {
         Args: { page_id_param: string; schema_id_param: string }
         Returns: undefined
       }
-      migrate_existing_content_to_schemas: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      migrate_existing_content_to_schemas: { Args: never; Returns: undefined }
       revoke_global_role: {
         Args: { role_name_input: string; user_id_input: string }
         Returns: undefined
@@ -1101,9 +1104,15 @@ export type Database = {
         Args: { field_updates: Json; page_id_param: string }
         Returns: undefined
       }
-      set_system_admin: {
-        Args: { user_id_input: string }
-        Returns: undefined
+      set_system_admin: { Args: { user_id_input: string }; Returns: undefined }
+      sync_schema_changes: {
+        Args: { schema_id_param: string }
+        Returns: {
+          changes_applied: number
+          updated_id: string
+          updated_name: string
+          updated_type: string
+        }[]
       }
     }
     Enums: {

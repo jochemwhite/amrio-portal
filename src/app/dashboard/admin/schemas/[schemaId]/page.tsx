@@ -4,13 +4,13 @@ import { notFound } from 'next/navigation'
 import { SupabaseSchemaWithRelations } from '@/types/cms'
 
 interface SchemaBuilderPageProps {
-  params: {
+  params: Promise<{
     schemaId: string
-  }
+  }>
 }
 
 export default async function SchemaBuilderPage({ params }: SchemaBuilderPageProps) {
-  const { schemaId } = params
+  const { schemaId } = await params
   const result = await getSchemaById(schemaId)
 
   if (!result.success || !result.data) {

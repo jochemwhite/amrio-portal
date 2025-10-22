@@ -1,7 +1,9 @@
-import { createClient } from "@/lib/supabase/supabaseServerClient";
 import { getActiveTenantId } from "@/server/utils";
 import { getActiveWebsiteId } from "@/lib/utils/active-website-server";
 import { notFound, redirect } from "next/navigation";
+import { getCollectionsByWebsite } from "@/actions/cms/collection-actions";
+import { CollectionsOverview } from "@/components/cms/collections/CollectionsOverview";
+import { createClient } from "@/lib/supabase/supabaseServerClient";
 
 export default async function CollectionsPage() {
   const supabase = await createClient();
@@ -36,21 +38,15 @@ export default async function CollectionsPage() {
     notFound();
   }
 
-  // TODO: Fetch collections for this website
-  // const { data: collections, error: collectionsError } = await supabase
-  //   .from("cms_collections")
-  //   .select("*")
-  //   .eq("website_id", activeWebsiteId)
-  //   .eq("tenant_id", tenantId)
-  //   .order("created_at", { ascending: false });
+  // Fetch collections for this website
+  const collectionsResult = await getCollectionsByWebsite(activeWebsiteId);
+  const collections = collectionsResult.success ? collectionsResult.data || [] : [];
 
   return (
-    <div className="container mx-auto py-6">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold mb-4">Collections</h1>
-        <p className="text-muted-foreground">Collections for {website.name}</p>
-        {/* TODO: Add collections overview component */}
-      </div>
-    </div>
+    <CollectionsOverview 
+      website={website} 
+      initialCollections={collections}
+      websiteId={activeWebsiteId}
+    />
   );
 }

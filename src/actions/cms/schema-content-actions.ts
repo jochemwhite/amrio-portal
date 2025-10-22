@@ -108,19 +108,32 @@ export async function savePageContent(
       // Format the content based on field type
       const formattedContent = formatContentForFieldType(fieldType, value);
 
-      // Update using content_field_id if available (for existing content)
-      // Otherwise use schema_field_id to find the content field
-      let query = supabase.from("cms_content_fields").update({ content: formattedContent, updated_at: new Date().toISOString() });
-
+      // If we have content_field_id, just update that specific field
       if (content_field_id) {
-        // Update by content field ID (most direct method)
-        query = query.eq("id", content_field_id);
-      } else {
-        // Update by schema field ID (fallback for new content)
-        query = query.eq("schema_field_id", schemaFieldId);
+        const { data, error } = await supabase
+          .from("cms_content_fields")
+          .update({
+            content: formattedContent,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", content_field_id);
+
+        if (error) {
+          console.error(`Error saving field ${schemaFieldId}:`, error);
+          throw error;
+        }
+
+        return data;
       }
 
-      const { data, error } = await query;
+      // Otherwise, try to find and update by schema_field_id
+      const { data, error } = await supabase
+        .from("cms_content_fields")
+        .update({
+          content: formattedContent,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("schema_field_id", schemaFieldId);
 
       if (error) {
         console.error(`Error saving field ${schemaFieldId}:`, error);
@@ -143,7 +156,8 @@ export async function savePageContent(
 }
 
 // Function to initialize content when schema is assigned
-export async function initializePageContent(pageId: string, schemaId: string) {
+export async function initializePageContent(schemaId: string) {
+  console.log("Initializing page content for schema:", schemaId);
   try {
     const supabase = await createClient();
 
@@ -157,10 +171,11 @@ export async function initializePageContent(pageId: string, schemaId: string) {
     }
 
     // Call the new RPC function to initialize page content structure
-    const { error } = await supabase.rpc("initialize_page_content", {
-      page_id_param: pageId,
+    const { error, data } = await supabase.rpc("sync_schema_changes", {
       schema_id_param: schemaId,
     });
+
+    console.log("Data from sync_schema_to_all_instances:", data);
 
     if (error) {
       console.error("Error calling initialize_page_content:", error);

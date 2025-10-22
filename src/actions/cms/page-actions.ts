@@ -54,7 +54,7 @@ export async function createPage(data: {
     // Initialize page content if a schema was selected
     if (data.schema_id && data.schema_id.trim() !== "") {
       try {
-        await initializePageContent(page.id, data.schema_id);
+        await initializePageContent(data.schema_id);
       } catch (contentError) {
         console.error("Error initializing page content:", contentError);
         // Page was created successfully, just log the content initialization error

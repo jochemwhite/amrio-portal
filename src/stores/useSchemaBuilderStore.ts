@@ -1,9 +1,9 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { toast } from "sonner";
-import { bulkSaveSchemaChanges } from "@/actions/cms/schema-actions";
 import { arrayMove } from "@dnd-kit/sortable";
 import { SupabaseSchemaWithRelations, SchemaSection, SchemaField } from "@/types/cms";
+import { updateSchema, bulkSaveSchemaChanges } from "@/actions/cms/schema-actions";
 
 // Types for tracking changes
 interface PendingChange {
@@ -696,6 +696,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
                   type: "delete",
                   entity: "field",
                   id: fieldId,
+                  
                 },
               ],
               hasUnsavedChanges: true,
@@ -916,7 +917,6 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
         set({ isSaving: true }, false, "startSavingSchemaSettings");
 
         try {
-          const { updateSchema } = await import("@/actions/cms/schema-actions");
           const result = await updateSchema(schema.id, schemaSettingsData);
 
           if (result.success) {

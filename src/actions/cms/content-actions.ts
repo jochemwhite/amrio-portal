@@ -97,6 +97,8 @@ export async function savePageContent(pageId: string, contentValues: Record<stri
       .select(`
         id,
         type,
+        name,
+        section_id,
         cms_sections!inner(page_id)
       `)
       .eq('cms_sections.page_id', pageId);
@@ -105,10 +107,16 @@ export async function savePageContent(pageId: string, contentValues: Record<stri
       throw new Error("Failed to fetch field information");
     }
 
-    // Create a map of field IDs to field types
+    // Create maps for field information
     const fieldTypeMap: Record<string, string> = {};
+    const fieldInfoMap: Record<string, any> = {};
     fields?.forEach(field => {
       fieldTypeMap[field.id] = field.type;
+      fieldInfoMap[field.id] = {
+        name: field.name,
+        section_id: field.section_id,
+        type: field.type
+      };
     });
 
     // Transform content values to the format expected by the database
@@ -138,10 +146,21 @@ export async function savePageContent(pageId: string, contentValues: Record<stri
 
     // Update each field's content in the database
     const updatePromises = updates.map(async ({ fieldId, content }) => {
+      const fieldInfo = fieldInfoMap[fieldId];
+      if (!fieldInfo) {
+        console.error(`Field info not found for ${fieldId}`);
+        return;
+      }
+      
       const { error } = await supabase
         .from('cms_content_fields')
-        .update({ content: content })
-        .eq('id', fieldId);
+        .upsert({ 
+          id: fieldId,
+          name: fieldInfo.name,
+          section_id: fieldInfo.section_id,
+          type: fieldInfo.type as "number" | "boolean" | "text" | "date" | "richtext" | "image" | "reference",
+          content: content 
+        }, { onConflict: 'id' });
       
       if (error) {
         console.error(`Error updating field ${fieldId}:`, error);

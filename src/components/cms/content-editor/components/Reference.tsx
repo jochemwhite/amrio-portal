@@ -1,41 +1,31 @@
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+"use client";
+
 import React from "react";
+import { CollectionPicker } from "@/components/cms/collections/CollectionPicker";
+import { getActiveWebsiteIdClient } from "@/lib/utils/active-website-client";
 
 export default function Reference({ field, fieldId, value, error, handleFieldChange, handleFieldBlur }: any) {
-  // In a real app, you'd fetch the available references based on field.reference_table
-  const mockReferences = [
-    { id: "1", title: "Sample Reference 1" },
-    { id: "2", title: "Sample Reference 2" },
-    { id: "3", title: "Sample Reference 3" },
-  ];
+  const websiteId = getActiveWebsiteIdClient();
+
+  if (!websiteId) {
+    return (
+      <div className="space-y-2">
+        <p className="text-sm text-muted-foreground">
+          No active website selected. Please select a website to use collection references.
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-2">
-      <Label htmlFor={fieldId}>
-        {field.name}
-        {field.required && <span className="text-destructive ml-1">*</span>}
-      </Label>
-      
-      <Select
-        value={value || ""}
-        onValueChange={(newValue) => handleFieldChange(field.id, newValue)}
-        onOpenChange={() => handleFieldBlur(field)}
-      >
-        <SelectTrigger className={error ? "border-destructive" : ""}>
-          <SelectValue placeholder="Select a reference..." />
-        </SelectTrigger>
-        <SelectContent>
-          {mockReferences.map((ref) => (
-            <SelectItem key={ref.id} value={ref.id}>
-              {ref.title}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      
-      {error && <p className="text-sm text-destructive">{error}</p>}
-      {field.description && <p className="text-sm text-muted-foreground">{field.description}</p>}
-    </div>
+    <CollectionPicker
+      field={field}
+      fieldId={fieldId}
+      value={value}
+      error={error}
+      handleFieldChange={handleFieldChange}
+      handleFieldBlur={handleFieldBlur}
+      websiteId={websiteId}
+    />
   );
 }

@@ -6,8 +6,7 @@ import { getActiveTenantId } from "@/server/utils";
 import { ActionResponse } from "@/types/actions";
 import { Schema, SchemaField, SchemaSection } from "@/types/cms";
 import { revalidatePath } from "next/cache";
-
-
+import { initializePageContent } from "./schema-content-actions";
 
 // ============== SCHEMA MANAGEMENT ==============
 
@@ -25,9 +24,12 @@ interface UpdateSchemaData {
 
 export async function createSchema(data: CreateSchemaData): Promise<ActionResponse<Schema>> {
   const supabase = await createClient();
-  
+
   // Check authentication
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
   if (authError || !user) {
     return { success: false, error: "Unauthorized: User not authenticated." };
   }
@@ -73,9 +75,12 @@ export async function createSchema(data: CreateSchemaData): Promise<ActionRespon
 
 export async function updateSchema(schemaId: string, data: UpdateSchemaData): Promise<ActionResponse<Schema>> {
   const supabase = await createClient();
-  
+
   // Check authentication
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
   if (authError || !user) {
     return { success: false, error: "Unauthorized: User not authenticated." };
   }
@@ -93,18 +98,13 @@ export async function updateSchema(schemaId: string, data: UpdateSchemaData): Pr
   }
 
   try {
-    const { data: schema, error } = await supabase
-      .from("cms_schemas")
-      .update(data)
-      .eq("id", schemaId)
-      .eq("tenant_id", tenantId)
-      .select()
-      .single();
+    const { data: schema, error } = await supabase.from("cms_schemas").update(data).eq("id", schemaId).eq("tenant_id", tenantId).select().single();
 
     if (error) {
       console.error("Error updating schema:", error);
       return { success: false, error: error.message };
     }
+
 
     revalidatePath("/dashboard/admin/schemas");
     revalidatePath("/dashboard/schemas");
@@ -117,9 +117,12 @@ export async function updateSchema(schemaId: string, data: UpdateSchemaData): Pr
 
 export async function deleteSchema(schemaId: string): Promise<ActionResponse<void>> {
   const supabase = await createClient();
-  
+
   // Check authentication
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
   if (authError || !user) {
     return { success: false, error: "Unauthorized: User not authenticated." };
   }
@@ -137,11 +140,7 @@ export async function deleteSchema(schemaId: string): Promise<ActionResponse<voi
   }
 
   try {
-    const { error } = await supabase
-      .from("cms_schemas")
-      .delete()
-      .eq("id", schemaId)
-      .eq("tenant_id", tenantId);
+    const { error } = await supabase.from("cms_schemas").delete().eq("id", schemaId).eq("tenant_id", tenantId);
 
     if (error) {
       console.error("Error deleting schema:", error);
@@ -159,9 +158,12 @@ export async function deleteSchema(schemaId: string): Promise<ActionResponse<voi
 
 export async function getAllSchemas(): Promise<ActionResponse<Schema[]>> {
   const supabase = await createClient();
-  
+
   // Check authentication
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
   if (authError || !user) {
     return { success: false, error: "Unauthorized: User not authenticated." };
   }
@@ -181,7 +183,8 @@ export async function getAllSchemas(): Promise<ActionResponse<Schema[]>> {
   try {
     const { data: schemas, error } = await supabase
       .from("cms_schemas")
-      .select(`
+      .select(
+        `
         *,
         cms_schema_sections (
           id,
@@ -191,7 +194,8 @@ export async function getAllSchemas(): Promise<ActionResponse<Schema[]>> {
             order
           )
         )
-      `)
+      `
+      )
       .eq("tenant_id", tenantId)
       .order("created_at", { ascending: false })
       .order("order", { ascending: true, referencedTable: "cms_schema_sections" })
@@ -205,12 +209,13 @@ export async function getAllSchemas(): Promise<ActionResponse<Schema[]>> {
     // Additional client-side sorting to ensure proper order for nested data
     const sortedSchemas = schemas?.map((schema: any) => ({
       ...schema,
-      cms_schema_sections: schema.cms_schema_sections
-        ?.map((section: any) => ({
-          ...section,
-          cms_schema_fields: section.cms_schema_fields?.sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)) || [],
-        }))
-        .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)) || [],
+      cms_schema_sections:
+        schema.cms_schema_sections
+          ?.map((section: any) => ({
+            ...section,
+            cms_schema_fields: section.cms_schema_fields?.sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)) || [],
+          }))
+          .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)) || [],
     }));
 
     return { success: true, data: sortedSchemas as Schema[] };
@@ -222,9 +227,12 @@ export async function getAllSchemas(): Promise<ActionResponse<Schema[]>> {
 
 export async function getSchemaById(schemaId: string): Promise<ActionResponse<Schema>> {
   const supabase = await createClient();
-  
+
   // Check authentication
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
   if (authError || !user) {
     return { success: false, error: "Unauthorized: User not authenticated." };
   }
@@ -244,15 +252,17 @@ export async function getSchemaById(schemaId: string): Promise<ActionResponse<Sc
   try {
     const { data: schema, error } = await supabase
       .from("cms_schemas")
-      .select(`
+      .select(
+        `
         *,
-        cms_schema_sections!inner (
+        cms_schema_sections (
           *,
           cms_schema_fields (
             *
           )
         )
-      `)
+      `
+      )
       .eq("id", schemaId)
       .eq("tenant_id", tenantId)
       .order("order", { ascending: true, referencedTable: "cms_schema_sections" })
@@ -302,9 +312,12 @@ interface UpdateSchemaSectionData {
 
 export async function createSchemaSection(data: CreateSchemaSectionData): Promise<ActionResponse<SchemaSection>> {
   const supabase = await createClient();
-  
+
   // Check authentication
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
   if (authError || !user) {
     return { success: false, error: "Unauthorized: User not authenticated." };
   }
@@ -325,7 +338,7 @@ export async function createSchemaSection(data: CreateSchemaSectionData): Promis
         .eq("schema_id", data.schema_id)
         .order("order", { ascending: false })
         .limit(1);
-      
+
       if (countError) {
         console.error("Error getting section count:", countError);
         order = 0;
@@ -360,9 +373,12 @@ export async function createSchemaSection(data: CreateSchemaSectionData): Promis
 
 export async function updateSchemaSection(sectionId: string, data: UpdateSchemaSectionData): Promise<ActionResponse<SchemaSection>> {
   const supabase = await createClient();
-  
+
   // Check authentication
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
   if (authError || !user) {
     return { success: false, error: "Unauthorized: User not authenticated." };
   }
@@ -374,12 +390,7 @@ export async function updateSchemaSection(sectionId: string, data: UpdateSchemaS
   }
 
   try {
-    const { data: section, error } = await supabase
-      .from("cms_schema_sections")
-      .update(data)
-      .eq("id", sectionId)
-      .select()
-      .single();
+    const { data: section, error } = await supabase.from("cms_schema_sections").update(data).eq("id", sectionId).select().single();
 
     if (error) {
       console.error("Error updating schema section:", error);
@@ -396,9 +407,12 @@ export async function updateSchemaSection(sectionId: string, data: UpdateSchemaS
 
 export async function deleteSchemaSection(sectionId: string): Promise<ActionResponse<void>> {
   const supabase = await createClient();
-  
+
   // Check authentication
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
   if (authError || !user) {
     return { success: false, error: "Unauthorized: User not authenticated." };
   }
@@ -410,10 +424,7 @@ export async function deleteSchemaSection(sectionId: string): Promise<ActionResp
   }
 
   try {
-    const { error } = await supabase
-      .from("cms_schema_sections")
-      .delete()
-      .eq("id", sectionId);
+    const { error } = await supabase.from("cms_schema_sections").delete().eq("id", sectionId);
 
     if (error) {
       console.error("Error deleting schema section:", error);
@@ -452,9 +463,12 @@ interface UpdateSchemaFieldData {
 
 export async function createSchemaField(data: CreateSchemaFieldData): Promise<ActionResponse<SchemaField>> {
   const supabase = await createClient();
-  
+
   // Check authentication
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
   if (authError || !user) {
     return { success: false, error: "Unauthorized: User not authenticated." };
   }
@@ -475,7 +489,7 @@ export async function createSchemaField(data: CreateSchemaFieldData): Promise<Ac
         .eq("schema_section_id", data.schema_section_id)
         .order("order", { ascending: false })
         .limit(1);
-      
+
       if (countError) {
         console.error("Error getting field count:", countError);
         order = 0;
@@ -514,9 +528,12 @@ export async function createSchemaField(data: CreateSchemaFieldData): Promise<Ac
 
 export async function updateSchemaField(fieldId: string, data: UpdateSchemaFieldData): Promise<ActionResponse<SchemaField>> {
   const supabase = await createClient();
-  
+
   // Check authentication
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
   if (authError || !user) {
     return { success: false, error: "Unauthorized: User not authenticated." };
   }
@@ -528,15 +545,15 @@ export async function updateSchemaField(fieldId: string, data: UpdateSchemaField
   }
 
   try {
-        const { data: field, error } = await supabase
-          .from("cms_schema_fields")
-          .update({
-            ...data,
-            type: data.type as any, // Cast to any to handle enum type
-          })
-          .eq("id", fieldId)
-          .select()
-          .single();
+    const { data: field, error } = await supabase
+      .from("cms_schema_fields")
+      .update({
+        ...data,
+        type: data.type as any, // Cast to any to handle enum type
+      })
+      .eq("id", fieldId)
+      .select()
+      .single();
 
     if (error) {
       console.error("Error updating schema field:", error);
@@ -553,9 +570,12 @@ export async function updateSchemaField(fieldId: string, data: UpdateSchemaField
 
 export async function deleteSchemaField(fieldId: string): Promise<ActionResponse<void>> {
   const supabase = await createClient();
-  
+
   // Check authentication
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
   if (authError || !user) {
     return { success: false, error: "Unauthorized: User not authenticated." };
   }
@@ -567,10 +587,7 @@ export async function deleteSchemaField(fieldId: string): Promise<ActionResponse
   }
 
   try {
-    const { error } = await supabase
-      .from("cms_schema_fields")
-      .delete()
-      .eq("id", fieldId);
+    const { error } = await supabase.from("cms_schema_fields").delete().eq("id", fieldId);
 
     if (error) {
       console.error("Error deleting schema field:", error);
@@ -590,8 +607,8 @@ export async function deleteSchemaField(fieldId: string): Promise<ActionResponse
 interface BulkSaveSchemaPayload {
   schemaId: string;
   changes: Array<{
-    type: 'create' | 'update' | 'delete' | 'reorder';
-    entity: 'section' | 'field' | 'sections' | 'fields';
+    type: "create" | "update" | "delete" | "reorder";
+    entity: "section" | "field" | "sections" | "fields";
     id?: string;
     data?: any;
     tempId?: string;
@@ -608,9 +625,12 @@ interface BulkSaveSchemaResult {
 
 export async function bulkSaveSchemaChanges(payload: BulkSaveSchemaPayload): Promise<BulkSaveSchemaResult> {
   const supabase = await createClient();
-  
+
   // Check authentication
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
   if (authError || !user) {
     return { success: false, error: "Unauthorized", tempIdMap: {} };
   }
@@ -625,14 +645,14 @@ export async function bulkSaveSchemaChanges(payload: BulkSaveSchemaPayload): Pro
     const tempIdMap: Record<string, string> = {};
 
     // Process changes in order: creates first, then updates, then deletes, then reorders
-    const creates = payload.changes.filter(c => c.type === 'create');
-    const updates = payload.changes.filter(c => c.type === 'update');
-    const deletes = payload.changes.filter(c => c.type === 'delete');
-    const reorders = payload.changes.filter(c => c.type === 'reorder');
+    const creates = payload.changes.filter((c) => c.type === "create");
+    const updates = payload.changes.filter((c) => c.type === "update");
+    const deletes = payload.changes.filter((c) => c.type === "delete");
+    const reorders = payload.changes.filter((c) => c.type === "reorder");
 
     // 1. Process creates
     for (const change of creates) {
-      if (change.entity === 'section') {
+      if (change.entity === "section") {
         const { data: section, error } = await supabase
           .from("cms_schema_sections")
           .insert({
@@ -648,15 +668,13 @@ export async function bulkSaveSchemaChanges(payload: BulkSaveSchemaPayload): Pro
         if (change.tempId && section) {
           tempIdMap[change.tempId] = section.id;
         }
-      } else if (change.entity === 'field') {
+      } else if (change.entity === "field") {
         // Map temp section IDs to real IDs
-        const sectionId = change.data.schema_section_id.startsWith('temp_') 
+        const sectionId = change.data.schema_section_id.startsWith("temp_")
           ? tempIdMap[change.data.schema_section_id]
           : change.data.schema_section_id;
 
-        const parentFieldId = change.data.parent_field_id?.startsWith('temp_')
-          ? tempIdMap[change.data.parent_field_id]
-          : change.data.parent_field_id;
+        const parentFieldId = change.data.parent_field_id?.startsWith("temp_") ? tempIdMap[change.data.parent_field_id] : change.data.parent_field_id;
 
         const { data: field, error } = await supabase
           .from("cms_schema_fields")
@@ -682,7 +700,7 @@ export async function bulkSaveSchemaChanges(payload: BulkSaveSchemaPayload): Pro
 
     // 2. Process updates
     for (const change of updates) {
-      if (change.entity === 'section' && change.id) {
+      if (change.entity === "section" && change.id) {
         const { error } = await supabase
           .from("cms_schema_sections")
           .update({
@@ -692,10 +710,8 @@ export async function bulkSaveSchemaChanges(payload: BulkSaveSchemaPayload): Pro
           .eq("id", change.id);
 
         if (error) throw error;
-      } else if (change.entity === 'field' && change.id) {
-        const parentFieldId = change.data.parent_field_id?.startsWith('temp_')
-          ? tempIdMap[change.data.parent_field_id]
-          : change.data.parent_field_id;
+      } else if (change.entity === "field" && change.id) {
+        const parentFieldId = change.data.parent_field_id?.startsWith("temp_") ? tempIdMap[change.data.parent_field_id] : change.data.parent_field_id;
 
         const { error } = await supabase
           .from("cms_schema_fields")
@@ -715,18 +731,12 @@ export async function bulkSaveSchemaChanges(payload: BulkSaveSchemaPayload): Pro
 
     // 3. Process deletes (in reverse order to avoid FK issues)
     for (const change of deletes.reverse()) {
-      if (change.entity === 'field' && change.id) {
-        const { error } = await supabase
-          .from("cms_schema_fields")
-          .delete()
-          .eq("id", change.id);
+      if (change.entity === "field" && change.id) {
+        const { error } = await supabase.from("cms_schema_fields").delete().eq("id", change.id);
 
         if (error) throw error;
-      } else if (change.entity === 'section' && change.id) {
-        const { error } = await supabase
-          .from("cms_schema_sections")
-          .delete()
-          .eq("id", change.id);
+      } else if (change.entity === "section" && change.id) {
+        const { error } = await supabase.from("cms_schema_sections").delete().eq("id", change.id);
 
         if (error) throw error;
       }
@@ -734,66 +744,55 @@ export async function bulkSaveSchemaChanges(payload: BulkSaveSchemaPayload): Pro
 
     // 4. Process reorders from pendingChanges (if any)
     for (const reorder of reorders) {
-      if (reorder.entity === 'sections' && reorder.data?.sectionOrder) {
+      if (reorder.entity === "sections" && reorder.data?.sectionOrder) {
         // Update section order from reorder change
         const sectionOrderUpdates = reorder.data.sectionOrder.map((sectionId: string, index: number) => {
-          const realId = sectionId.startsWith('temp_') ? tempIdMap[sectionId] : sectionId;
-          return supabase
-            .from("cms_schema_sections")
-            .update({ order: index })
-            .eq("id", realId);
+          const realId = sectionId.startsWith("temp_") ? tempIdMap[sectionId] : sectionId;
+          return supabase.from("cms_schema_sections").update({ order: index }).eq("id", realId);
         });
         await Promise.all(sectionOrderUpdates);
-      } else if (reorder.entity === 'fields' && reorder.data?.sectionId && reorder.data?.fieldOrder) {
+      } else if (reorder.entity === "fields" && reorder.data?.sectionId && reorder.data?.fieldOrder) {
         // Update field order from reorder change
-        const realSectionId = reorder.data.sectionId.startsWith('temp_') ? tempIdMap[reorder.data.sectionId] : reorder.data.sectionId;
+        const realSectionId = reorder.data.sectionId.startsWith("temp_") ? tempIdMap[reorder.data.sectionId] : reorder.data.sectionId;
         const fieldOrderUpdates = reorder.data.fieldOrder.map((fieldId: string, index: number) => {
-          const realFieldId = fieldId.startsWith('temp_') ? tempIdMap[fieldId] : fieldId;
-          return supabase
-            .from("cms_schema_fields")
-            .update({ order: index })
-            .eq("id", realFieldId);
+          const realFieldId = fieldId.startsWith("temp_") ? tempIdMap[fieldId] : fieldId;
+          return supabase.from("cms_schema_fields").update({ order: index }).eq("id", realFieldId);
         });
         await Promise.all(fieldOrderUpdates);
       }
     }
 
     // 5. Update section order (fallback to current state if no reorder changes)
-    if (reorders.filter(r => r.entity === 'sections').length === 0) {
+    if (reorders.filter((r) => r.entity === "sections").length === 0) {
       const sectionOrderUpdates = payload.sectionOrder.map((sectionId, index) => {
-        const realId = sectionId.startsWith('temp_') ? tempIdMap[sectionId] : sectionId;
-        return supabase
-          .from("cms_schema_sections")
-          .update({ order: index })
-          .eq("id", realId);
+        const realId = sectionId.startsWith("temp_") ? tempIdMap[sectionId] : sectionId;
+        return supabase.from("cms_schema_sections").update({ order: index }).eq("id", realId);
       });
       await Promise.all(sectionOrderUpdates);
     }
 
     // 6. Update field orders within each section (fallback to current state if no reorder changes)
-    if (reorders.filter(r => r.entity === 'fields').length === 0) {
+    if (reorders.filter((r) => r.entity === "fields").length === 0) {
       const fieldOrderUpdates = Object.entries(payload.fieldOrders).flatMap(([sectionId, fieldIds]) => {
-        const realSectionId = sectionId.startsWith('temp_') ? tempIdMap[sectionId] : sectionId;
+        const realSectionId = sectionId.startsWith("temp_") ? tempIdMap[sectionId] : sectionId;
         return fieldIds.map((fieldId, index) => {
-          const realFieldId = fieldId.startsWith('temp_') ? tempIdMap[fieldId] : fieldId;
-          return supabase
-            .from("cms_schema_fields")
-            .update({ order: index })
-            .eq("id", realFieldId);
+          const realFieldId = fieldId.startsWith("temp_") ? tempIdMap[fieldId] : fieldId;
+          return supabase.from("cms_schema_fields").update({ order: index }).eq("id", realFieldId);
         });
       });
       await Promise.all(fieldOrderUpdates);
     }
 
+
+    await initializePageContent(payload.schemaId);
     revalidatePath("/dashboard/schemas");
     return { success: true, tempIdMap };
   } catch (error) {
     console.error("Error in bulk save:", error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : "An unexpected error occurred.", 
-      tempIdMap: {} 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "An unexpected error occurred.",
+      tempIdMap: {},
     };
   }
 }
-
