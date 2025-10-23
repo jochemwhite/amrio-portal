@@ -250,15 +250,8 @@ export type Database = {
           {
             foreignKeyName: "cms_content_fields_schema_field_id_fkey"
             columns: ["schema_field_id"]
-            isOneToOne: true
-            referencedRelation: "cms_schema_fields"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cms_fields_parent_field_id_fkey"
-            columns: ["parent_field_id"]
             isOneToOne: false
-            referencedRelation: "cms_content_fields"
+            referencedRelation: "cms_schema_fields"
             referencedColumns: ["id"]
           },
           {
@@ -481,6 +474,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          schema_type: Database["public"]["Enums"]["schema_type"]
           template: boolean
           tenant_id: string | null
           updated_at: string | null
@@ -491,6 +485,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          schema_type?: Database["public"]["Enums"]["schema_type"]
           template?: boolean
           tenant_id?: string | null
           updated_at?: string | null
@@ -501,6 +496,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          schema_type?: Database["public"]["Enums"]["schema_type"]
           template?: boolean
           tenant_id?: string | null
           updated_at?: string | null
@@ -1059,6 +1055,10 @@ export type Database = {
       }
       get_file_extension: { Args: { filename: string }; Returns: string }
       get_file_type: { Args: { mime_type: string }; Returns: string }
+      get_or_create_content_section: {
+        Args: { page_id_param: string; schema_section_id_param: string }
+        Returns: string
+      }
       get_page: {
         Args: { page_id_param: string }
         Returns: {
@@ -1125,8 +1125,10 @@ export type Database = {
         | "image"
         | "reference"
         | "section"
+        | "video"
       global_roles: "default_user" | "system_admin"
       page_status: "draft" | "active" | "archived"
+      schema_type: "page" | "collection"
       subscription_status:
         | "trialing"
         | "active"
@@ -1280,9 +1282,11 @@ export const Constants = {
         "image",
         "reference",
         "section",
+        "video",
       ],
       global_roles: ["default_user", "system_admin"],
       page_status: ["draft", "active", "archived"],
+      schema_type: ["page", "collection"],
       subscription_status: [
         "trialing",
         "active",

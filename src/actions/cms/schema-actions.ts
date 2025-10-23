@@ -207,7 +207,7 @@ export async function getAllSchemas(): Promise<ActionResponse<Schema[]>> {
     }
 
     // Additional client-side sorting to ensure proper order for nested data
-    const sortedSchemas = schemas?.map((schema: any) => ({
+    const sortedSchemas = schemas?.map((schema) => ({
       ...schema,
       cms_schema_sections:
         schema.cms_schema_sections

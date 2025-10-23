@@ -1,6 +1,7 @@
 import { SchemaTable } from '@/components/admin/schemas/SchemaTable'
 import { getAllSchemas } from '@/actions/cms/schema-actions'
 import { CreateSchemaButton } from '@/components/admin/schemas/CreateSchemaButton'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default async function SchemasPage() {
   const result = await getAllSchemas()
@@ -18,7 +19,26 @@ export default async function SchemasPage() {
       </div>
 
       {result.success ? (
-        <SchemaTable schemas={result.data || []} />
+        <Tabs defaultValue="all">
+          <TabsList>
+            <TabsTrigger value="all">All</TabsTrigger>
+            {/* <TabsTrigger value="templates">Templates</TabsTrigger> */}
+            <TabsTrigger value="pages">Pages</TabsTrigger>
+            <TabsTrigger value="collections">Collections</TabsTrigger>
+          </TabsList>
+          <TabsContent value="all">
+            <SchemaTable schemas={result.data || []} />
+          </TabsContent>
+          {/* <TabsContent value="templates">
+            <SchemaTable schemas={result.data?.filter((schema) => schema.template) || []} />
+          </TabsContent> */}
+          <TabsContent value="pages">
+            <SchemaTable schemas={result.data?.filter((schema) => schema.schema_type === "page") || []} />
+          </TabsContent>
+          <TabsContent value="collections">
+            <SchemaTable schemas={result.data?.filter((schema) => schema.schema_type === "collection") || []} />
+          </TabsContent>
+        </Tabs>
       ) : (
         <div className="rounded-md border border-destructive bg-destructive/10 p-4">
           <p className="text-sm text-destructive">

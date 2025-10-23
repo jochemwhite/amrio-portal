@@ -1,3 +1,4 @@
+import { Database } from "./supabase";
 
 
 export interface Field {
@@ -174,6 +175,7 @@ export interface Schema {
   tenant_id?: string | null;
   created_at?: string;
   updated_at?: string;
+  schema_type: Database['public']['Enums']['schema_type']
   cms_schema_sections?: SchemaSection[];
 }
 
