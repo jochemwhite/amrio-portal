@@ -14,7 +14,7 @@ import NoSectionsFound from "./NoSectionsFound";
 interface ContentEditorProps {
   pageId: string;
   existingContent: RPCPageResponse;
-  originalFields: { id: string; type: string; content: any }[];
+  originalFields: { id: string; type: string; content: any; collection_id?: string | null }[];
 }
 
 export function ContentEditor({ pageId, existingContent, originalFields }: ContentEditorProps) {
@@ -38,7 +38,10 @@ export function ContentEditor({ pageId, existingContent, originalFields }: Conte
         content[field.id] = nestedValues;
       } else {
         // Initialize regular fields with saved content or default values
-        content[field.id] = field;
+        content[field.id] = {
+          ...field,
+          collection_id: field.collection_id || null,
+        };
       }
     });
   };

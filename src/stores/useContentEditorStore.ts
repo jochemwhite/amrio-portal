@@ -10,6 +10,7 @@ interface FieldWithValue {
   type: string;
   content: any;
   content_field_id?: string | null; // actual content field ID for updates
+  collection_id?: string | null; // collection id
 }
 
 interface ContentEditorState {
@@ -32,6 +33,7 @@ interface ContentEditorState {
   setFieldValue: (fieldId: string, value: any) => void;
   getFieldValue: (fieldId: string) => any;
   getFieldComponent: (field: SupabaseField) => React.ComponentType<any> | null;
+  getFieldCollectionId: (fieldId: string) => string | null;
   resetField: (fieldId: string) => void;
   resetAllFields: () => void;
   saveContent: () => Promise<void>;
@@ -80,19 +82,19 @@ export const useContentEditorStore = create<ContentEditorState>()(
 
             if (existingIndex >= 0) {
               // Update existing entry
-              newUpdatedFields[existingIndex] = { 
-                id: fieldId, 
-                content: value, 
+              newUpdatedFields[existingIndex] = {
+                id: fieldId,
+                content: value,
                 type: originalField.type,
-                content_field_id: originalField.content_field_id 
+                content_field_id: originalField.content_field_id,
               };
             } else {
               // Add new entry
-              newUpdatedFields.push({ 
-                id: fieldId, 
-                content: value, 
+              newUpdatedFields.push({
+                id: fieldId,
+                content: value,
                 type: originalField.type,
-                content_field_id: originalField.content_field_id 
+                content_field_id: originalField.content_field_id,
               });
             }
 
@@ -125,6 +127,18 @@ export const useContentEditorStore = create<ContentEditorState>()(
       getFieldComponent: (field: SupabaseField) => {
         const fieldType = FIELD_TYPES.find((type) => type.value === field.type);
         return fieldType?.cmsComponent || null;
+      },
+
+      // Get a field collection id
+      getFieldCollectionId: (fieldId: string): string | null => {
+        const state = get();
+        const originalField = state.originalFields.find((f) => f.id === fieldId);
+
+        if (!originalField || !originalField.collection_id || originalField.collection_id === "" || originalField.type !== "reference") {
+          return null;
+        }
+
+        return originalField.collection_id;
       },
 
       // Reset a single field to its original value

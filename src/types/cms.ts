@@ -268,6 +268,7 @@ export type RPCPageField = {
   validation: string;
   default_value: string;
   parent_field_id: string | null;
+  collection_id: string | null;
   content?: { value?: any } | null; // JSONB content column
   content_field_id?: string | null; // ID of the cms_content_fields row for updates
   fields?: RPCPageField[]; // For nested section fields
