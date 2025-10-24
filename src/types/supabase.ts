@@ -14,6 +14,85 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_keys: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          metadata: Json | null
+          name: string
+          rate_limit: number
+          revoked_at: string | null
+          revoked_by: string | null
+          scopes: Json | null
+          tenant_id: string
+          website_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          metadata?: Json | null
+          name: string
+          rate_limit?: number
+          revoked_at?: string | null
+          revoked_by?: string | null
+          scopes?: Json | null
+          tenant_id: string
+          website_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          metadata?: Json | null
+          name?: string
+          rate_limit?: number
+          revoked_at?: string | null
+          revoked_by?: string | null
+          scopes?: Json | null
+          tenant_id?: string
+          website_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_keys_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_keys_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_keys_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "cms_websites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           created_at: string | null
@@ -211,6 +290,7 @@ export type Database = {
       }
       cms_content_fields: {
         Row: {
+          collection_id: string | null
           content: Json | null
           created_at: string | null
           id: string
@@ -223,6 +303,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          collection_id?: string | null
           content?: Json | null
           created_at?: string | null
           id?: string
@@ -235,6 +316,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          collection_id?: string | null
           content?: Json | null
           created_at?: string | null
           id?: string
@@ -247,6 +329,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "cms_content_fields_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "cms_collections"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cms_content_fields_schema_field_id_fkey"
             columns: ["schema_field_id"]
@@ -1058,6 +1147,20 @@ export type Database = {
         Returns: boolean
       }
       format_file_size: { Args: { size_bytes: number }; Returns: string }
+      generate_api_key: {
+        Args: {
+          p_created_by: string
+          p_environment: string
+          p_expires_at?: string
+          p_metadata?: Json
+          p_name: string
+          p_rate_limit?: number
+          p_scopes?: Json
+          p_tenant_id: string
+          p_website_id: string
+        }
+        Returns: Json
+      }
       get_all_users_with_roles: { Args: never; Returns: Json[] }
       get_collection_with_schema: {
         Args: { p_collection_id: string; p_tenant_id: string }

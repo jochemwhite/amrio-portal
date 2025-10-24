@@ -44,7 +44,7 @@ interface SchemaBuilderState {
     required: boolean;
     default_value: string;
     validation: string;
-    collection_id: string;
+    collection_id: string | null;
   };
 
   // Schema settings state
@@ -76,7 +76,7 @@ interface SchemaBuilderState {
   deleteSectionById: (sectionId: string) => void;
 
   // Field actions
-  openAddFieldDialog: () => void;
+  openAddFieldDialog: (sectionId?: string) => void;
   openEditFieldDialog: (field: any) => void;
   closeFieldDialog: () => void;
   setFieldFormData: (data: Partial<SchemaBuilderState["fieldFormData"]>) => void;
@@ -358,9 +358,11 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
       },
 
       // Field dialog actions
-      openAddFieldDialog: () => {
+      openAddFieldDialog: (sectionId?: string) => {
         const { selectedSectionId } = get();
-        if (!selectedSectionId) {
+        const targetSectionId = sectionId || selectedSectionId;
+        
+        if (!targetSectionId) {
           toast.error("Please select a section first");
           return;
         }
@@ -377,6 +379,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
             },
             isAddFieldOpen: true,
             parentFieldId: null,
+            selectedSectionId: targetSectionId, // Update the selected section
           },
           false,
           "openAddFieldDialog"
@@ -384,6 +387,8 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
       },
 
       openEditFieldDialog: (field: any) => {
+
+        console.log("field", field);
         set(
           {
             fieldFormData: {
@@ -392,7 +397,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
               required: field.required || false,
               default_value: field.default_value || "",
               validation: field.validation || "",
-              collection_id: field.reference_collection_id || "",
+              collection_id: field.collection_id || "",
             },
             editingFieldId: field.id,
             isEditFieldOpen: true,

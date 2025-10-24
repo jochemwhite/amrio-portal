@@ -5,12 +5,13 @@ import { getCollectionEntries } from "@/actions/cms/collection-entry-actions";
 import { CollectionEntriesOverview } from "@/components/cms/collections/CollectionEntriesOverview";
 
 interface CollectionEntriesPageProps {
-  params: {
+  params: Promise<{
     collectionId: string;
-  };
+  }>;
 }
 
 export default async function CollectionEntriesPage({ params }: CollectionEntriesPageProps) {
+  const { collectionId } = await params;
   const tenantId = await getActiveTenantId();
 
   if (!tenantId) {
@@ -18,7 +19,7 @@ export default async function CollectionEntriesPage({ params }: CollectionEntrie
   }
 
   // Fetch the collection
-  const collectionResult = await getCollectionById(params.collectionId);
+  const collectionResult = await getCollectionById(collectionId);
 
   if (!collectionResult.success || !collectionResult.data) {
     notFound();
@@ -27,17 +28,8 @@ export default async function CollectionEntriesPage({ params }: CollectionEntrie
   const collection = collectionResult.data;
 
   // Fetch entries for this collection
-  const entriesResult = await getCollectionEntries(params.collectionId);
+  const entriesResult = await getCollectionEntries(collectionId);
   const entries = entriesResult.success ? entriesResult.data || [] : [];
 
-  return (
-    <CollectionEntriesOverview
-      collection={collection}
-      initialEntries={entries}
-      collectionId={params.collectionId}
-    />
-  );
+  return <CollectionEntriesOverview collection={collection} initialEntries={entries} collectionId={collectionId} />;
 }
-
-
-

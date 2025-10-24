@@ -102,8 +102,8 @@ export function SchemaBuilder({ initialSchema, pageId, websiteId }: SchemaBuilde
         onSubmit={handleSchemaSettingsSubmit}
       />
 
-      <AddFieldMenu />
       <AddSectionMenu />
+      <AddFieldMenu />
       <SchemaUnsavedChangesDialog />
     </div>
   );

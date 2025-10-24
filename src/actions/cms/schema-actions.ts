@@ -105,7 +105,6 @@ export async function updateSchema(schemaId: string, data: UpdateSchemaData): Pr
       return { success: false, error: error.message };
     }
 
-
     revalidatePath("/dashboard/admin/schemas");
     revalidatePath("/dashboard/schemas");
     return { success: true, data: schema as Schema };
@@ -675,9 +674,11 @@ export async function bulkSaveSchemaChanges(payload: BulkSaveSchemaPayload): Pro
           : change.data.schema_section_id;
 
         const parentFieldId = change.data.parent_field_id?.startsWith("temp_") ? tempIdMap[change.data.parent_field_id] : change.data.parent_field_id;
-        const collectionId = change.data.collection_id?.startsWith("temp_") ? tempIdMap[change.data.collection_id] : change.data.collection_id;
+        let collectionId = change.data.collection_id?.startsWith("temp_") ? tempIdMap[change.data.collection_id] : change.data.collection_id;
+        if (!collectionId || collectionId === "") {
+          collectionId = null;
+        }
 
-        console.log("collectionId", collectionId);
         const { data: field, error } = await supabase
           .from("cms_schema_fields")
           .insert({
@@ -689,7 +690,7 @@ export async function bulkSaveSchemaChanges(payload: BulkSaveSchemaPayload): Pro
             validation: change.data.validation,
             order: 0, // Will update order later
             parent_field_id: parentFieldId,
-            collection_id: collectionId,
+            collection_id: collectionId || null,
           })
           .select()
           .single();
@@ -715,8 +716,9 @@ export async function bulkSaveSchemaChanges(payload: BulkSaveSchemaPayload): Pro
         if (error) throw error;
       } else if (change.entity === "field" && change.id) {
         const parentFieldId = change.data.parent_field_id?.startsWith("temp_") ? tempIdMap[change.data.parent_field_id] : change.data.parent_field_id;
-        const collectionId = change.data.reference_collection_id?.startsWith("temp_") ? tempIdMap[change.data.reference_collection_id] : change.data.reference_collection_id;
+        const collectionId = change.data.collection_id?.startsWith("temp_") ? tempIdMap[change.data.collection_id] : change.data.collection_id;
 
+        console.log("collectionId", collectionId);
         const { error } = await supabase
           .from("cms_schema_fields")
           .update({
@@ -787,7 +789,6 @@ export async function bulkSaveSchemaChanges(payload: BulkSaveSchemaPayload): Pro
       });
       await Promise.all(fieldOrderUpdates);
     }
-
 
     await initializePageContent(payload.schemaId);
     revalidatePath("/dashboard/schemas");

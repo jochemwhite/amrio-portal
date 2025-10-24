@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { getActiveWebsiteIdClient } from "@/lib/utils/active-website-client";
 
 interface CollectionPickerProps {
-  collectionId?: string;
+  collectionId?: string | null;
   setCollectionId: (collectionId: string) => void;
 }
 
@@ -37,6 +37,10 @@ export default function CollectionPicker({ collectionId, setCollectionId }: Coll
       loadCollections();
     }
   }, [websiteId]);
+
+  useEffect(() => {
+    console.log("collectionId", collectionId);
+  }, [collectionId]);
 
   return (
     <div>

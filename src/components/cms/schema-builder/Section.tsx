@@ -162,7 +162,7 @@ export function Section({
                 </div>
                 <h4 className="text-sm font-medium  mb-1">No fields yet</h4>
                 <p className="text-xs text-gray-500 mb-4">Add fields to collect content for this section</p>
-                <Button onClick={() => openAddFieldDialog()} size="sm" variant="outline" className="">
+                <Button onClick={() => openAddFieldDialog(section.id)} size="sm" variant="outline" className="">
                   <Plus className="mr-2 h-3 w-3" />
                   Add Field
                 </Button>
@@ -250,7 +250,7 @@ export function Section({
                 </DndContext>
 
                 <div className="mt-4 pt-4 border-t ">
-                  <Button onClick={() => openAddFieldDialog()} size="sm" variant="outline" className="w-full">
+                  <Button onClick={() => openAddFieldDialog(section.id)} size="sm" variant="outline" className="w-full">
                     <Plus className="mr-2 h-3 w-3" />
                     Add Field
                   </Button>

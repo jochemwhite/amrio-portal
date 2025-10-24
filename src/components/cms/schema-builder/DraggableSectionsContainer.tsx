@@ -3,7 +3,6 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import React, { useState } from "react";
 import { useSchemaBuilderStore } from "@/stores/useSchemaBuilderStore";
 import { Section } from "./Section";
-import { AddSectionMenu } from "./AddSectionMenu";
 
 export const DraggableSectionsContainer = () => {
   const {
@@ -41,31 +40,27 @@ export const DraggableSectionsContainer = () => {
   };
 
   return (
-    <div>
-      <DndContext collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
-        <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-4">
-            {sections.map((section, index: number) => (
-              <Section
-                key={section.id}
-                section={section}
-                index={index}
-                isSelected={selectedSectionId === section.id}
-                isSaving={isSaving}
-                onSelect={(id: string) => setSelectedSection(id)}
-                onEdit={() => openEditSectionDialog(section)}
-                onDelete={() => deleteSectionById(section.id)}
-                onAddField={(fieldData: any) => handleAddField(section.id, fieldData)}
-                onEditField={openEditFieldDialog}
-                onDeleteField={deleteFieldById}
-                onReorderFields={handleFieldReorder}
-              />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
-
-      <AddSectionMenu />
-    </div>
+    <DndContext collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
+      <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+        <div className="space-y-4">
+          {sections.map((section, index: number) => (
+            <Section
+              key={section.id}
+              section={section}
+              index={index}
+              isSelected={selectedSectionId === section.id}
+              isSaving={isSaving}
+              onSelect={(id: string) => setSelectedSection(id)}
+              onEdit={() => openEditSectionDialog(section)}
+              onDelete={() => deleteSectionById(section.id)}
+              onAddField={(fieldData: any) => handleAddField(section.id, fieldData)}
+              onEditField={openEditFieldDialog}
+              onDeleteField={deleteFieldById}
+              onReorderFields={handleFieldReorder}
+            />
+          ))}
+        </div>
+      </SortableContext>
+    </DndContext>
   );
 };

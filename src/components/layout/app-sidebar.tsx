@@ -11,6 +11,7 @@ import {
   FileUser,
   GalleryVerticalEnd,
   Globe,
+  Key,
   Library,
   Settings,
   SquareTerminal,
@@ -56,10 +57,16 @@ export function AppSidebar() {
         : []),
       // Tenant-wide items
       {
+        title: "API Keys",
+        url: "/dashboard/api-keys",
+        icon: Key,
+      },
+      {
         title: "Storage",
         url: "/dashboard/storage",
         icon: ArchiveRestore,
       },
+
     ],
 
     admin: [

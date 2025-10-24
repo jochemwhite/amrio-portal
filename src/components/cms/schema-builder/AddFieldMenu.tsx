@@ -21,16 +21,20 @@ const fieldSchema = z.object({
     .string()
     .min(1, "Field name is required")
     .min(2, "Field name must be at least 2 characters")
-    .max(50, "Field name must be less than 50 characters")
-    .regex(/^[a-zA-Z][a-zA-Z0-9_]*$/, "Field name must start with a letter and contain only letters, numbers, and underscores"),
+    .max(50, "Field name must be less than 50 characters"),
+
   type: z.string().min(1, "Field type is required"),
   required: z.boolean().default(false),
   default_value: z.string().optional(),
   validation: z.string().optional(),
-  collection_id: z.string().optional(),
+  collection_id: z.string().nullable(),
 });
 
 type FieldFormData = z.infer<typeof fieldSchema>;
+
+interface AddFieldMenuProps {
+
+}
 
 export function AddFieldMenu() {
   const { isAddFieldOpen, isEditFieldOpen, setFieldFormData, submitField, closeFieldDialog, fieldFormData, editingFieldId } = useSchemaBuilderStore();

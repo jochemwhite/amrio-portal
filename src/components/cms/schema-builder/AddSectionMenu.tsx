@@ -1,44 +1,38 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { X, Layout, Plus } from "lucide-react";
+import { Layout, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useSchemaBuilderStore } from "@/stores/useSchemaBuilderStore";
 
-interface FieldType {
-  value: string;
-  label: string;
-  icon: string;
-  description: string;
-}
-
 export function AddSectionMenu() {
-  const { isAddSectionOpen, setSectionFormData, submitSection, closeSectionDialog } = useSchemaBuilderStore();
-  const [sectionData, setSectionData] = useState({
-    name: "",
-    description: "",
-  });
+  const { 
+    isAddSectionOpen, 
+    isEditSectionOpen,
+    sectionFormData,
+    setSectionFormData, 
+    submitSection, 
+    closeSectionDialog 
+  } = useSchemaBuilderStore();
+
+  const isOpen = isAddSectionOpen || isEditSectionOpen;
+  const isEdit = isEditSectionOpen;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!sectionData.name.trim()) return;
-
-    setSectionFormData(sectionData);
+    if (!sectionFormData.name.trim()) return;
     submitSection();
-    setSectionData({ name: "", description: "" });
   };
 
   const handleCancel = () => {
-    setSectionData({ name: "", description: "" });
     closeSectionDialog();
   };
 
   return (
-    <Dialog open={isAddSectionOpen} onOpenChange={closeSectionDialog}>
+    <Dialog open={isOpen} onOpenChange={handleCancel}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <div className="flex items-center space-x-2">
@@ -46,8 +40,10 @@ export function AddSectionMenu() {
               <Layout className="h-5 w-5" />
             </div>
             <div>
-              <DialogTitle>Add Section</DialogTitle>
-              <DialogDescription>Create a new section to organize your content</DialogDescription>
+              <DialogTitle>{isEdit ? "Edit Section" : "Add Section"}</DialogTitle>
+              <DialogDescription>
+                {isEdit ? "Update your section details" : "Create a new section to organize your content"}
+              </DialogDescription>
             </div>
           </div>
         </DialogHeader>
@@ -59,8 +55,8 @@ export function AddSectionMenu() {
             </Label>
             <Input
               id="section-name"
-              value={sectionData.name}
-              onChange={(e) => setSectionData((prev) => ({ ...prev, name: e.target.value }))}
+              value={sectionFormData.name}
+              onChange={(e) => setSectionFormData({ name: e.target.value })}
               placeholder="e.g., Hero Section, About Us, Contact Info"
               className="mt-1"
               required
@@ -73,8 +69,8 @@ export function AddSectionMenu() {
             </Label>
             <Textarea
               id="section-description"
-              value={sectionData.description}
-              onChange={(e) => setSectionData((prev) => ({ ...prev, description: e.target.value }))}
+              value={sectionFormData.description}
+              onChange={(e) => setSectionFormData({ description: e.target.value })}
               placeholder="Describe what this section is for (optional)"
               className="mt-1"
               rows={3}
@@ -87,7 +83,7 @@ export function AddSectionMenu() {
             </Button>
             <Button type="submit">
               <Plus className="mr-2 h-4 w-4" />
-              Create Section
+              {isEdit ? "Update Section" : "Create Section"}
             </Button>
           </div>
         </form>
