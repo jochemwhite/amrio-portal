@@ -2,7 +2,12 @@
 
 import { useState, useMemo } from "react";
 import { ApiKeyWithStatus } from "@/types/api-keys";
-import { Website } from "@/types/cms";
+
+type SimpleWebsite = {
+  id: string;
+  name: string;
+  domain: string;
+};
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
@@ -19,7 +24,7 @@ import {
 
 interface ApiKeysManagementProps {
   initialApiKeys: ApiKeyWithStatus[];
-  availableWebsites: Website[];
+  availableWebsites: SimpleWebsite[];
 }
 
 export function ApiKeysManagement({

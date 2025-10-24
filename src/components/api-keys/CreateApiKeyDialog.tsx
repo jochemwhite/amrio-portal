@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Website } from "@/types/cms";
+type SimpleWebsite = {
+  id: string;
+  name: string;
+  domain: string;
+};
 import { CreateApiKeyFormData } from "@/types/api-keys";
 import { createApiKey } from "@/actions/api-keys/api-key-actions";
 import {
@@ -33,7 +37,7 @@ interface CreateApiKeyDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (key: { key: string; name: string }) => void;
-  availableWebsites: Website[];
+  availableWebsites: SimpleWebsite[];
 }
 
 export function CreateApiKeyDialog({

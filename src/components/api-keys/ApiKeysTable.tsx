@@ -19,7 +19,12 @@ import {
 } from "@/components/ui/table";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { ApiKeyWithStatus } from "@/types/api-keys";
-import { Website } from "@/types/cms";
+
+type SimpleWebsite = {
+  id: string;
+  name: string;
+  domain: string;
+};
 import { format } from "date-fns";
 import { Ban, Copy, MoreHorizontal, RefreshCw, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -29,7 +34,7 @@ import { RotateApiKeyDialog } from "./RotateApiKeyDialog";
 
 interface ApiKeysTableProps {
   apiKeys: ApiKeyWithStatus[];
-  availableWebsites: Website[];
+  availableWebsites: SimpleWebsite[];
 }
 
 export function ApiKeysTable({
