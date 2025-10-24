@@ -374,6 +374,7 @@ export type Database = {
       }
       cms_schema_fields: {
         Row: {
+          collection_id: string | null
           created_at: string
           default_value: string | null
           id: string
@@ -387,6 +388,7 @@ export type Database = {
           validation: string | null
         }
         Insert: {
+          collection_id?: string | null
           created_at?: string
           default_value?: string | null
           id?: string
@@ -400,6 +402,7 @@ export type Database = {
           validation?: string | null
         }
         Update: {
+          collection_id?: string | null
           created_at?: string
           default_value?: string | null
           id?: string
@@ -413,6 +416,13 @@ export type Database = {
           validation?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "cms_schema_fields_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "cms_collections"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cms_schema_fields_parent_field_id_fkey"
             columns: ["parent_field_id"]
@@ -1075,6 +1085,14 @@ export type Database = {
           status: Database["public"]["Enums"]["page_status"]
           updated_at: string
           website_id: string
+        }[]
+      }
+      get_page_content: {
+        Args: { page_id_param: string; website_id_param: string }
+        Returns: {
+          id: string
+          sections: Json
+          slug: string
         }[]
       }
       get_user_session:

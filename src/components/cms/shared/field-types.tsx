@@ -61,7 +61,7 @@ export const FIELD_TYPES: FieldType[] = [
   },
   {
     value: "reference",
-    label: "Reference",
+    label: "Collection Reference",
     icon: <Link className="h-4 w-4" />,
     description: "Reference to collection content",
     color: "bg-yellow-100 text-yellow-800",

@@ -24,7 +24,7 @@ interface SectionProps {
   onDelete: () => void;
   onAddField: (fieldData: any) => void;
   onEditField: (field: any) => void;
-  onDeleteField: (fieldId: string) => void;
+  onDeleteField: (fieldId: string, sectionId: string, parentSectionId?: string) => void;
   onReorderFields: (sectionId: string, activeId: string, overId: string) => void;
   
 }
@@ -183,7 +183,7 @@ export function Section({
                               parentSectionId={section.id} // Pass the real parent section ID
                               allFields={section.cms_schema_fields || []} // Pass all fields to find nested ones
                               onEdit={() => onEditField(field)}
-                              onDelete={() => onDeleteField(field.id)}
+                              onDelete={() => onDeleteField(field.id, section.id)}
                               onAddNestedField={openAddNestedFieldDialog}
                               onEditNestedField={openEditNestedFieldDialog}
                               onDeleteNestedField={deleteNestedFieldById}
@@ -195,7 +195,7 @@ export function Section({
                               field={field}
                               isSaving={isSaving}
                               onEdit={() => onEditField(field)}
-                              onDelete={() => onDeleteField(field.id)}
+                              onDelete={() => onDeleteField(field.id, section.id)}
                               activeDragId={activeDragId}
                               allFields={section.cms_schema_fields || []}
                             />

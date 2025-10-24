@@ -6,11 +6,8 @@ import { useSchemaBuilderStore } from "@/stores/useSchemaBuilderStore";
 import { SupabaseSchemaWithRelations } from "@/types/cms";
 import { Plus, Save, RotateCcw } from "lucide-react";
 import { useEffect } from "react";
-import { CmsHeader } from "../shared/cmsHeader";
-import { DraggableSectionsContainer } from "./DraggableSectionsContainer";
-import { NoSectionCard } from "./NoSectionCard";
+  import { DraggableSectionsContainer } from "./DraggableSectionsContainer";
 import { AddSectionMenu } from "./AddSectionMenu";
-import { EditSectionMenu } from "./EditSectionMenu";
 import { AddFieldMenu } from "./AddFieldMenu";
 import { SchemaInfo } from "./SchemaInfo";
 import { SchemaSettingsDialog } from "./SchemaSettingsDialog";
@@ -60,8 +57,6 @@ export function SchemaBuilder({ initialSchema, pageId, websiteId }: SchemaBuilde
 
   return (
     <div className="min-h-screen">
-      <CmsHeader />
-
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <SchemaInfo />
 
@@ -77,7 +72,7 @@ export function SchemaBuilder({ initialSchema, pageId, websiteId }: SchemaBuilde
             </Button>
             {pendingChanges.length > 0 && (
               <Badge variant="secondary" className="ml-2">
-                {pendingChanges.length} pending {pendingChanges.length === 1 ? 'change' : 'changes'}
+                {pendingChanges.length} pending {pendingChanges.length === 1 ? "change" : "changes"}
               </Badge>
             )}
           </div>
@@ -89,7 +84,13 @@ export function SchemaBuilder({ initialSchema, pageId, websiteId }: SchemaBuilde
         </div>
 
         {/* Content sections */}
-        {sections.length === 0 ? <NoSectionCard /> : <DraggableSectionsContainer />}
+        {sections.length === 0 ? (
+          <div className="text-center text-muted-foreground">
+            <p>No sections found</p>
+          </div>
+        ) : (
+          <DraggableSectionsContainer />
+        )}
       </div>
 
       <SchemaSettingsDialog
@@ -103,7 +104,6 @@ export function SchemaBuilder({ initialSchema, pageId, websiteId }: SchemaBuilde
 
       <AddFieldMenu />
       <AddSectionMenu />
-      <EditSectionMenu />
       <SchemaUnsavedChangesDialog />
     </div>
   );

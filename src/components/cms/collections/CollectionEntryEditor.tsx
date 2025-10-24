@@ -13,7 +13,6 @@ import {
   saveCollectionEntryContent,
   updateCollectionEntry,
 } from "@/actions/cms/collection-entry-actions";
-import { CmsHeader } from "../shared/cmsHeader";
 import { toast } from "sonner";
 import { FIELD_TYPES } from "../shared/field-types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -157,8 +156,6 @@ export function CollectionEntryEditor({
 
   return (
     <div className="min-h-screen">
-      <CmsHeader />
-
       <div className="max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
           <Link href={`/dashboard/collections/${collectionId}/entries`}>

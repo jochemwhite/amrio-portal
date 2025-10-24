@@ -157,7 +157,6 @@ export async function savePageContent(
 
 // Function to initialize content when schema is assigned
 export async function initializePageContent(schemaId: string) {
-  console.log("Initializing page content for schema:", schemaId);
   try {
     const supabase = await createClient();
 
@@ -174,8 +173,6 @@ export async function initializePageContent(schemaId: string) {
     const { error, data } = await supabase.rpc("sync_schema_changes", {
       schema_id_param: schemaId,
     });
-
-    console.log("Data from sync_schema_to_all_instances:", data);
 
     if (error) {
       console.error("Error calling initialize_page_content:", error);

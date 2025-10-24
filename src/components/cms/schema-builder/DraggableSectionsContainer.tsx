@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { useSchemaBuilderStore } from "@/stores/useSchemaBuilderStore";
 import { Section } from "./Section";
 import { AddSectionMenu } from "./AddSectionMenu";
-import { EditSectionMenu } from "./EditSectionMenu";
 
 export const DraggableSectionsContainer = () => {
   const {
@@ -36,7 +35,6 @@ export const DraggableSectionsContainer = () => {
   };
 
   const handleAddField = (sectionId: string, fieldData: any) => {
-
     setSelectedSection(sectionId);
     setFieldFormData(fieldData);
     submitField();
@@ -61,7 +59,6 @@ export const DraggableSectionsContainer = () => {
                 onEditField={openEditFieldDialog}
                 onDeleteField={deleteFieldById}
                 onReorderFields={handleFieldReorder}
-           
               />
             ))}
           </div>
@@ -69,7 +66,6 @@ export const DraggableSectionsContainer = () => {
       </DndContext>
 
       <AddSectionMenu />
-      <EditSectionMenu />
     </div>
   );
 };

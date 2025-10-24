@@ -7,7 +7,6 @@ import { Plus, ArrowLeft, Settings } from "lucide-react";
 import { CollectionEntryTable } from "./CollectionEntryTable";
 import { CollectionWithSchema } from "@/actions/cms/collection-actions";
 import { CollectionEntry, createCollectionEntry } from "@/actions/cms/collection-entry-actions";
-import { CmsHeader } from "../shared/cmsHeader";
 import { toast } from "sonner";
 import Link from "next/link";
 
@@ -55,8 +54,6 @@ export function CollectionEntriesOverview({
 
   return (
     <div className="min-h-screen">
-      <CmsHeader />
-
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
           <Link href="/dashboard/collections">

@@ -44,6 +44,7 @@ interface SchemaBuilderState {
     required: boolean;
     default_value: string;
     validation: string;
+    collection_id: string;
   };
 
   // Schema settings state
@@ -80,7 +81,7 @@ interface SchemaBuilderState {
   closeFieldDialog: () => void;
   setFieldFormData: (data: Partial<SchemaBuilderState["fieldFormData"]>) => void;
   submitField: () => void;
-  deleteFieldById: (fieldId: string) => void;
+  deleteFieldById: (fieldId: string, sectionId: string, parentSectionId?: string) => void;
 
   // Nested field actions
   openAddNestedFieldDialog: (parentSectionId: string, parentFieldId?: string) => void;
@@ -372,6 +373,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
               required: false,
               default_value: "",
               validation: "",
+              collection_id: "",
             },
             isAddFieldOpen: true,
             parentFieldId: null,
@@ -390,6 +392,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
               required: field.required || false,
               default_value: field.default_value || "",
               validation: field.validation || "",
+              collection_id: field.reference_collection_id || "",
             },
             editingFieldId: field.id,
             isEditFieldOpen: true,
@@ -464,6 +467,8 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
                               required: fieldFormData.required,
                               default_value: fieldFormData.default_value,
                               validation: fieldFormData.validation,
+                              collection_id: fieldFormData.collection_id,
+
                             }
                           : f
                       ),
@@ -482,6 +487,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
                     required: fieldFormData.required,
                     default_value: fieldFormData.default_value,
                     validation: fieldFormData.validation,
+                    collection_id: fieldFormData.collection_id,
                   },
                 },
               ],
@@ -505,6 +511,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
             order: nextOrder,
             schema_section_id: selectedSectionId,
             parent_field_id: parentFieldId,
+            collection_id: fieldFormData.collection_id,
           };
 
           set(
@@ -531,6 +538,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
                     default_value: fieldFormData.default_value,
                     validation: fieldFormData.validation,
                     parent_field_id: parentFieldId,
+                    collection_id: fieldFormData.collection_id,
                   },
                 },
               ],
@@ -545,17 +553,19 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
       },
 
       // Delete field (mark for deletion) - LOCAL ONLY
-      deleteFieldById: (fieldId: string) => {
-        const { selectedSectionId, sections } = get();
-        const section = sections.find((s) => s.id === selectedSectionId);
-
+      deleteFieldById: (fieldId, sectionId, parentSectionId) => {
+        const { sections } = get();
+        const section = sections.find((s) => s.id === sectionId);
+        
         if (!section) {
           toast.error("Section not found");
           return;
         }
+ 
 
-        const field = section.cms_schema_fields?.find((f: any) => f.id === fieldId);
+        const field = section.cms_schema_fields?.find((f) => f.id === fieldId);
         if (!field) {
+          console.error("Field not found", fieldId, section.cms_schema_fields);
           toast.error("Field not found");
           return;
         }
@@ -565,7 +575,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
           set(
             (state) => ({
               sections: state.sections.map((s) =>
-                s.id === selectedSectionId
+                s.id === sectionId
                   ? {
                       ...s,
                       cms_schema_fields: s.cms_schema_fields?.filter((f: any) => f.id !== fieldId),
@@ -583,7 +593,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
           set(
             (state) => ({
               sections: state.sections.map((s) =>
-                s.id === selectedSectionId
+                s.id === sectionId
                   ? {
                       ...s,
                       cms_schema_fields: s.cms_schema_fields?.filter((f: any) => f.id !== fieldId),
@@ -618,6 +628,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
               required: false,
               default_value: "",
               validation: "",
+              collection_id: "",
             },
             isAddFieldOpen: true,
             parentFieldId: parentFieldId || null,
@@ -637,6 +648,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
               required: field.required || false,
               default_value: field.default_value || "",
               validation: field.validation || "",
+              collection_id: field.collection_id || "",
             },
             editingFieldId: field.id,
             isEditFieldOpen: true,

@@ -13,6 +13,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { FIELD_TYPES } from "../shared/field-types";
+import CollectionPicker from "./CollectionPicker";
 
 // Form validation schema
 const fieldSchema = z.object({
@@ -26,6 +27,7 @@ const fieldSchema = z.object({
   required: z.boolean().default(false),
   default_value: z.string().optional(),
   validation: z.string().optional(),
+  collection_id: z.string().optional(),
 });
 
 type FieldFormData = z.infer<typeof fieldSchema>;
@@ -44,23 +46,25 @@ export function AddFieldMenu() {
       required: fieldFormData.required,
       default_value: fieldFormData.default_value,
       validation: fieldFormData.validation,
+      collection_id: fieldFormData.collection_id,
     },
   });
 
   // Update form when fieldFormData changes (important for edit mode)
   useEffect(() => {
-    if (isDialogOpen) { // Use isDialogOpen instead of just isAddFieldOpen
+    if (isDialogOpen) {
+      // Use isDialogOpen instead of just isAddFieldOpen
       form.reset({
         name: fieldFormData.name,
         type: fieldFormData.type,
         required: fieldFormData.required,
         default_value: fieldFormData.default_value,
         validation: fieldFormData.validation,
+        collection_id: fieldFormData.collection_id,
       });
       setSelectedType(fieldFormData.type || null);
     }
   }, [isDialogOpen, fieldFormData, form]); // Use isDialogOpen
-
 
   const handleTypeSelect = (type: FieldType) => {
     setSelectedType(type.value);
@@ -79,6 +83,7 @@ export function AddFieldMenu() {
       required: data.required,
       default_value: data.default_value || "",
       validation: data.validation || "",
+      collection_id: data.collection_id || "",
     });
     submitField();
     handleCancel();
@@ -91,24 +96,24 @@ export function AddFieldMenu() {
   };
 
   return (
-    <Dialog open={isDialogOpen} onOpenChange={handleCancel}> {/* Use isDialogOpen */}
+    <Dialog open={isDialogOpen} onOpenChange={handleCancel}>
+      {" "}
+      {/* Use isDialogOpen */}
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>
-            {isEditMode 
+            {isEditMode
               ? `Edit ${FIELD_TYPES.find((t) => t.value === selectedType)?.label} Field`
-              : !selectedType 
-                ? "Add New Field" 
-                : `Add ${FIELD_TYPES.find((t) => t.value === selectedType)?.label} Field`
-            }
+              : !selectedType
+                ? "Add New Field"
+                : `Add ${FIELD_TYPES.find((t) => t.value === selectedType)?.label} Field`}
           </DialogTitle>
           <DialogDescription>
-            {isEditMode 
+            {isEditMode
               ? "Update your field properties and validation rules"
-              : !selectedType 
-                ? "Choose a field type to get started" 
-                : "Configure your field properties and validation rules"
-            }
+              : !selectedType
+                ? "Choose a field type to get started"
+                : "Configure your field properties and validation rules"}
           </DialogDescription>
         </DialogHeader>
 
@@ -165,7 +170,7 @@ export function AddFieldMenu() {
                 )}
               />
 
-              {selectedType !== "boolean" && (
+              {selectedType !== "boolean" && selectedType !== "reference" && (
                 <FormField
                   control={form.control}
                   name="default_value"
@@ -176,6 +181,23 @@ export function AddFieldMenu() {
                         <Input placeholder="Enter default value (optional)" {...field} />
                       </FormControl>
                       <FormDescription>The default value that will be pre-filled for this field</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {selectedType === "reference" && (
+                <FormField
+                  control={form.control}
+                  name="collection_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Reference Collection</FormLabel>
+                      <FormControl>
+                        <CollectionPicker collectionId={field.value} setCollectionId={field.onChange} />
+                      </FormControl>
+                      <FormDescription>The ID of the collection to reference</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -203,11 +225,11 @@ export function AddFieldMenu() {
                     ← Back to Field Types
                   </Button>
                 )}
-                <div className={`flex space-x-3 ${isEditMode ? 'ml-auto' : ''}`}>
+                <div className={`flex space-x-3 ${isEditMode ? "ml-auto" : ""}`}>
                   <Button type="button" variant="outline" onClick={handleCancel}>
                     Cancel
                   </Button>
-                  <Button type="submit">{isEditMode ? 'Update Field' : 'Add Field'}</Button>
+                  <Button type="submit">{isEditMode ? "Update Field" : "Add Field"}</Button>
                 </div>
               </div>
             </form>
