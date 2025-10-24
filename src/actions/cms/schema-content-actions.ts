@@ -71,6 +71,15 @@ const formatContentForFieldType = (fieldType: string, value: any): any => {
         entry_id: value.entry_id || null,
       };
 
+    case "reference":
+      // Store reference as either { all: true } or { entry_ids: [...] }
+      if (value?.all) {
+        return { all: true };
+      } else if (value?.entry_ids) {
+        return { entry_ids: value.entry_ids };
+      }
+      return null;
+
     default:
       return { value: value };
   }
