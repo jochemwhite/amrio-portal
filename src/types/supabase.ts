@@ -22,6 +22,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           key_hash: string
+          key_length: number
           key_prefix: string
           last_used_at: string | null
           metadata: Json | null
@@ -40,6 +41,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           key_hash: string
+          key_length?: number
           key_prefix: string
           last_used_at?: string | null
           metadata?: Json | null
@@ -58,6 +60,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           key_hash?: string
+          key_length?: number
           key_prefix?: string
           last_used_at?: string | null
           metadata?: Json | null

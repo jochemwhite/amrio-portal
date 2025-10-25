@@ -1,72 +1,50 @@
 "use client";
-import {
-  ArchiveRestore,
-  AudioWaveform,
-  BookOpen,
-  Bot,
-  Building2,
-  Cctv,
-  Command,
-  FileText,
-  FileUser,
-  GalleryVerticalEnd,
-  Globe,
-  Key,
-  Library,
-  Settings,
-  SquareTerminal,
-  StickyNote,
-  User,
-} from "lucide-react";
+import { ArchiveRestore, Building2, FileText, FileUser, GalleryVerticalEnd, Key, Library, User } from "lucide-react";
 
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar";
-import { useUserSession } from "@/providers/session-provider";
 import { useActiveWebsite } from "@/hooks/use-active-website";
+import { useUserSession } from "@/providers/session-provider";
 import { NavAdmin } from "./nav/nav-admin";
-import { NavMain } from "./nav/nav-main";
-import { NavProjects } from "./nav/nav-projects";
+import { NavCms } from "./nav/nav-main";
 import { NavUser } from "./nav/nav-user";
-import { WebsiteSwitcher } from "./nav/website-switcher";
 import { TenantSwitcherModal } from "./nav/tenant-switcher-modal";
+import { WebsiteSwitcher } from "./nav/website-switcher";
+import { NavTenant } from "./nav/nav-tenant";
 
 export function AppSidebar() {
   const { userSession } = useUserSession();
   const { activeWebsite } = useActiveWebsite();
 
   const data = {
-    navMain: [
-      // Website-specific items (only show if website is selected)
-      ...(activeWebsite
-        ? [
-            {
-              title: "Pages",
-              url: "/dashboard/pages",
-              icon: FileText,
-            },
-            {
-              title: "Collections",
-              url: "/dashboard/collections",
-              icon: Library,
-            },
-            {
-              title: "Forms",
-              url: "/dashboard/forms",
-              icon: FileUser,
-            },
-          ]
-        : []),
-      // Tenant-wide items
+    cms: [
       {
-        title: "API Keys",
-        url: "/dashboard/api-keys",
-        icon: Key,
+        title: "Pages",
+        url: "/dashboard/pages",
+        icon: FileText,
       },
+      {
+        title: "Collections",
+        url: "/dashboard/collections",
+        icon: Library,
+      },
+      {
+        title: "Forms",
+        url: "/dashboard/forms",
+        icon: FileUser,
+      },
+    ],
+
+    tenant: [
       {
         title: "Storage",
         url: "/dashboard/storage",
         icon: ArchiveRestore,
       },
-
+      {
+        title: "API Keys",
+        url: "/dashboard/api-keys",
+        icon: Key,
+      },
     ],
 
     admin: [
@@ -102,8 +80,9 @@ export function AppSidebar() {
           <WebsiteSwitcher />
         </SidebarHeader>
         <SidebarContent>
-          <NavMain items={data.navMain} />
-          {isAdmin && <NavAdmin projects={data.admin} />}
+          <NavCms cmsItems={data.cms} />
+          <NavTenant tenantItems={data.tenant} />
+          {isAdmin && <NavAdmin adminItems={data.admin} />}
         </SidebarContent>
         <SidebarFooter>
           <NavUser user={userSession!.user_info} />

@@ -1,22 +1,24 @@
 "use client";
 
-import { type LucideIcon } from "lucide-react";
+import { Folder, Forward, MoreHorizontal, Trash2, type LucideIcon } from "lucide-react";
 
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar
+  useSidebar,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 
-export function NavAdmin({
-  adminItems,
+export function NavTenant({
+  tenantItems,
 }: {
-  adminItems: {
-    name: string;
+  tenantItems: {
+    title: string;
     url: string;
     icon: LucideIcon;
   }[];
@@ -25,14 +27,14 @@ export function NavAdmin({
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>Admin</SidebarGroupLabel>
+      <SidebarGroupLabel>Tenant</SidebarGroupLabel>
       <SidebarMenu>
-        {adminItems.map((item) => (
-          <SidebarMenuItem key={item.name}>
+        {tenantItems.map((item) => (
+          <SidebarMenuItem key={item.title}>
             <SidebarMenuButton asChild>
               <Link href={item.url}>
                 <item.icon />
-                <span>{item.name}</span>
+                <span>{item.title}</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
