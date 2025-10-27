@@ -260,6 +260,7 @@ export type SupabasePageWithRelations = {
 export type RPCPageField = {
   id: string; // schema field ID
   name: string;
+  description: string
   type: string;
   order: number;
   required: boolean;

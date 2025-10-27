@@ -1,25 +1,43 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import React from "react";
+import { FieldComponentProps } from "@/stores/useContentEditorStore";
+import React, { useState } from "react";
+import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ChevronDownIcon } from "lucide-react";
+
+export default function DateComponent({ field, fieldId, value, handleFieldChange }: FieldComponentProps) {
+  const [date, setDate] = useState<Date | undefined>(value ? new Date(value.toString()) : undefined);
+  const [open, setOpen] = useState(false);
 
 
-export default function Date({ field, fieldId, value, error, handleFieldChange, handleFieldBlur }: any) {
+
   return (
-    <div className="space-y-2">
-      <Label htmlFor={fieldId}>
-        {field.name}
-        {field.required && <span className="text-destructive ml-1">*</span>}
+    <div className="flex flex-col gap-3">
+      <Label htmlFor="date" className="px-1">
+        Date of birth
       </Label>
-      <Input
-        id={fieldId}
-        type="date"
-        value={value || ""}
-        onChange={(e) => handleFieldChange(field.id, e.target.value)}
-        onBlur={() => handleFieldBlur(field)}
-        className={error ? "border-destructive" : ""}
-      />
-      {error && <p className="text-sm text-destructive">{error}</p>}
-      {field.description && <p className="text-sm text-muted-foreground">{field.description}</p>}
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button variant="outline" id="date" className="w-48 justify-between font-normal">
+            {date ? date.toLocaleDateString() : "Select date"}
+            <ChevronDownIcon />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={date}
+            captionLayout="dropdown"
+            onSelect={(date) => {
+              setDate(date);
+              setOpen(false);
+              handleFieldChange(fieldId, date)
+            }}
+          />
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }

@@ -30,7 +30,6 @@ export default async function PageContentPage({ params }: PageContentProps) {
   // Extract the first (and only) page from the response array
   const page = pageData[0];
 
-  console.log(page);
 
 
   // Recursively flatten all fields including nested fields

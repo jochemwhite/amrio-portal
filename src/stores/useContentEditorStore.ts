@@ -1,9 +1,10 @@
 import { FIELD_TYPES } from "@/components/cms/shared/field-types";
 import { savePageContent } from "@/actions/cms/schema-content-actions";
-import { RPCPageField, RPCPageResponse, SupabaseField } from "@/types/cms";
+import { RPCPageField, RPCPageResponse, RPCPageSection, SupabaseField } from "@/types/cms";
 import { toast } from "sonner";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
+import { Json } from "@/types/supabase";
 
 interface FieldWithValue {
   id: string; // schema field ID
@@ -11,6 +12,15 @@ interface FieldWithValue {
   content: any;
   content_field_id?: string | null; // actual content field ID for updates
   collection_id?: string | null; // collection id
+}
+
+export interface FieldComponentProps {
+  field: RPCPageField;
+  fieldId: string;
+  value: Json;
+  handleFieldChange: (fieldId: string, value: any) => void;
+  currentSection?: RPCPageSection;
+  allSections?: RPCPageSection[];
 }
 
 interface ContentEditorState {
@@ -32,7 +42,7 @@ interface ContentEditorState {
   initializeContent: (originalFields: FieldWithValue[]) => void;
   setFieldValue: (fieldId: string, value: any) => void;
   getFieldValue: (fieldId: string) => any;
-  getFieldComponent: (field: RPCPageField) => React.ComponentType<any> | null;
+  getFieldComponent: (field: RPCPageField) => React.ComponentType<FieldComponentProps> | null;
   getFieldCollectionId: (fieldId: string) => string | null;
   resetField: (fieldId: string) => void;
   resetAllFields: () => void;

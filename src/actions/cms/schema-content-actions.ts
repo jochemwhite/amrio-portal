@@ -3,15 +3,6 @@
 import { createClient } from "@/lib/supabase/supabaseServerClient";
 import { revalidatePath } from "next/cache";
 
-// Helper function to check if a value is empty
-const isEmpty = (value: any): boolean => {
-  if (value === null || value === undefined) return true;
-  if (typeof value === "string" && value.trim() === "") return true;
-  if (Array.isArray(value) && value.length === 0) return true;
-  if (typeof value === "object" && Object.keys(value).length === 0) return true;
-  return false;
-};
-
 // Helper function to check if richtext content is empty
 const isRichTextEmpty = (value: any): boolean => {
   if (!value || typeof value !== "object") return true;
@@ -26,8 +17,6 @@ const isRichTextEmpty = (value: any): boolean => {
 const formatContentForFieldType = (fieldType: string, value: any): any => {
   if (fieldType === "richtext") {
     return isRichTextEmpty(value) ? null : value;
-  } else if (isEmpty(value)) {
-    return null;
   }
 
   switch (fieldType) {
@@ -45,7 +34,7 @@ const formatContentForFieldType = (fieldType: string, value: any): any => {
       return Boolean(value);
 
     case "date":
-      // Store date as ISO string
+      console.log("Date value" + value);
       return new Date(value).toISOString();
 
     case "image":
@@ -113,6 +102,7 @@ export async function savePageContent(
     // Process each updated field
     const updatePromises = updatedFields.map(async (field) => {
       const { id: schemaFieldId, content: value, type: fieldType, content_field_id } = field;
+
 
       // Format the content based on field type
       const formattedContent = formatContentForFieldType(fieldType, value);
