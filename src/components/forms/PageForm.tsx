@@ -34,6 +34,7 @@ const formSchema = z.object({
     .refine((slug) => slug === "/" || (!slug.startsWith("-") && !slug.endsWith("-")), "Slug cannot start or end with a hyphen"),
   status: z.enum(["draft", "active", "archived"] as const),
   schema_id: z.string(),
+  website_id: z.string(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -64,6 +65,7 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
       slug: "",
       status: "draft",
       schema_id: "",
+      website_id: websiteId,
     },
   });
 
@@ -93,6 +95,7 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
         slug: page.slug,
         status: page.status || "draft",
         schema_id: page.schema_id || "",
+        website_id: websiteId,
       });
     } else {
       // Reset form for create
@@ -102,6 +105,7 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
         slug: "",
         status: "draft",
         schema_id: "",
+        website_id: websiteId,
       });
     }
     // Reset slug check status when form opens
@@ -249,6 +253,7 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
           slug: data.slug.trim(),
           status: data.status,
           schema_id: data.schema_id,
+          website_id: data.website_id,
         });
 
         if (result.success) {

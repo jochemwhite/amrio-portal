@@ -8,7 +8,7 @@ export default async function PagesPage() {
   const supabase = await createClient();
   const tenantId = await getActiveTenantId();
   const activeWebsiteId = await getActiveWebsiteId();
-  
+
   if (!tenantId) {
     return (
       <div className="container mx-auto py-6">
@@ -22,19 +22,6 @@ export default async function PagesPage() {
   // If no active website, redirect to websites page
   if (!activeWebsiteId) {
     redirect("/dashboard/websites");
-  }
-
-  // Verify the website exists and belongs to the tenant
-  const { data: website, error: websiteError } = await supabase
-    .from("cms_websites")
-    .select("*")
-    .eq("id", activeWebsiteId)
-    .eq("tenant_id", tenantId)
-    .single();
-
-  if (websiteError || !website) {
-    console.error("Error fetching website:", websiteError);
-    notFound();
   }
 
   // Fetch pages for this website

@@ -12,23 +12,25 @@ interface PageContentProps {
 
 export default async function PageContentPage({ params }: PageContentProps) {
   const { pageId } = await params;
-  const supabase: any = await createClient();
+  const supabase = await createClient();
   const { data: pageData, error: pageError } = await supabase.rpc("get_page", {
     page_id_param: pageId,
-  });
+  }).overrideTypes<RPCPageResponse[]>();
 
   if (pageError) {
     console.error("Error fetching page:", pageError);
     return notFound();
   }
 
-  if (!pageData) {
+  if (!pageData || !Array.isArray(pageData) || pageData.length === 0) {
     console.error("Page not found:", pageError);
     return notFound();
   }
 
   // Extract the first (and only) page from the response array
-  const page: RPCPageResponse = pageData[0];
+  const page = pageData[0];
+
+  console.log(page);
 
 
   // Recursively flatten all fields including nested fields

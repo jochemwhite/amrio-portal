@@ -3,7 +3,6 @@ import { Calendar, FileText, FolderOpen, Hash, Image, Link, ToggleLeft, Type, Vi
 import Boolean from "../content-editor/components/Boolean";
 import Date from "../content-editor/components/Date";
 import ImageComponent from "../content-editor/components/Image";
-import Number from "../content-editor/components/Number";
 import Reference from "../content-editor/components/Reference";
 import RichText from "../content-editor/components/RichText";
 import SectionField from "../content-editor/components/SectionField";
@@ -26,14 +25,6 @@ export const FIELD_TYPES: FieldType[] = [
     description: "WYSIWYG editor",
     color: "bg-indigo-100 text-indigo-800",
     cmsComponent: RichText,
-  },
-  {
-    value: "number",
-    label: "Number",
-    icon: <Hash className="h-4 w-4" />,
-    description: "Numeric input",
-    color: "bg-green-100 text-green-800",
-    cmsComponent: Number,
   },
   {
     value: "boolean",

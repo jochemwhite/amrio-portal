@@ -1,49 +1,28 @@
 import { useContentEditorStore } from "@/stores/useContentEditorStore";
-import { SupabaseField, RPCPageField } from "@/types/cms";
-import { useEffect } from "react";
+import { RPCPageField, RPCPageSection, SupabaseField } from "@/types/cms";
+import { Json } from "@/types/supabase";
 
 interface RenderComponentProps {
-  field: SupabaseField | RPCPageField;
-  value?: any;
-  error?: string;
-  onFieldChange?: (fieldId: string, value: any) => void;
-  onFieldBlur?: (field: SupabaseField | RPCPageField) => void;
-  // Additional props for nested sections
-  currentSection?: any;
-  allSections?: any[];
+  field: RPCPageField;
+  value?: Json;  
+  currentSection?: RPCPageSection;
+  allSections?: RPCPageSection[];
 }
 
-export default function RenderComponent({ 
-  field, 
-  value, 
-  error, 
-  onFieldChange, 
-  onFieldBlur,
-  currentSection,
-  allSections 
-}: RenderComponentProps) {
+export default function RenderComponent({ field, value, currentSection, allSections }: RenderComponentProps) {
   const { getFieldComponent, getFieldValue, setFieldValue } = useContentEditorStore();
 
-  const Component = getFieldComponent(field as SupabaseField);
+  const Component = getFieldComponent(field);
   const fieldValue = value ?? getFieldValue(field.id);
 
-  const handleFieldChange = onFieldChange || ((fieldId: string, newValue: any) => {
+  const handleFieldChange = (fieldId: string, newValue: Json) => {
     setFieldValue(fieldId, newValue);
-  });
-
-  const handleFieldBlur = onFieldBlur || ((field: SupabaseField | RPCPageField) => {
-    // Optional: trigger validation on blur
-   
-  });
-
-
+  };
 
   if (!Component) {
     return (
       <div className="p-4 border border-dashed border-gray-300 rounded-md">
-        <p className="text-sm text-gray-500">
-          No component found for field type: {field.type}
-        </p>
+        <p className="text-sm text-gray-500">No component found for field type: {field.type}</p>
       </div>
     );
   }
@@ -53,9 +32,7 @@ export default function RenderComponent({
       field={field}
       fieldId={field.id}
       value={fieldValue}
-      error={error}
       handleFieldChange={handleFieldChange}
-      handleFieldBlur={handleFieldBlur}
       currentSection={currentSection}
       allSections={allSections}
     />

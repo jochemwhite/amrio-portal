@@ -1,6 +1,6 @@
 import { FIELD_TYPES } from "@/components/cms/shared/field-types";
 import { savePageContent } from "@/actions/cms/schema-content-actions";
-import { RPCPageResponse, SupabaseField } from "@/types/cms";
+import { RPCPageField, RPCPageResponse, SupabaseField } from "@/types/cms";
 import { toast } from "sonner";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
@@ -32,7 +32,7 @@ interface ContentEditorState {
   initializeContent: (originalFields: FieldWithValue[]) => void;
   setFieldValue: (fieldId: string, value: any) => void;
   getFieldValue: (fieldId: string) => any;
-  getFieldComponent: (field: SupabaseField) => React.ComponentType<any> | null;
+  getFieldComponent: (field: RPCPageField) => React.ComponentType<any> | null;
   getFieldCollectionId: (fieldId: string) => string | null;
   resetField: (fieldId: string) => void;
   resetAllFields: () => void;

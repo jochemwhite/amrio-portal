@@ -14,6 +14,7 @@ export async function createPage(data: {
   slug: string;
   status: "draft" | "active" | "archived";
   schema_id: string;
+  website_id: string;
 }): Promise<ActionResponse<Database["public"]["Tables"]["cms_pages"]["Row"]>> {
   const supabase = await createClient();
   const tenantId = await getActiveTenantId();
@@ -35,6 +36,7 @@ export async function createPage(data: {
     return { success: false, error: "Unauthorized: Only admins can create pages." };
   }
 
+
   try {
     const { data: page, error } = await supabase
       .from("cms_pages")
@@ -42,6 +44,7 @@ export async function createPage(data: {
         ...data,
         schema_id: data.schema_id || "", // Default to empty string if not provided
         tenant_id: tenantId,
+        website_id: data.website_id,
       })
       .select()
       .single();

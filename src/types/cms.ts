@@ -291,9 +291,13 @@ export type RPCPageResponse = {
   slug: string;
   description: string | null;
   status: string;
-  website_id: string;
+  website_id: string | null;
   created_at: string;
   updated_at: string;
+  schema_id: string
+  schema_name: string
+  schema_description: string | null
+  schema_template: boolean
   sections: RPCPageSection[];
 }
 

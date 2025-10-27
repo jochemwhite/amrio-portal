@@ -119,8 +119,6 @@ export function ContentEditor({ pageId, existingContent, originalFields }: Conte
                           <RenderComponent
                             field={field}
                             value={getFieldValue(field.id)}
-                            error={validationErrors[field.id]}
-                            // Pass section context for nested sections
                             currentSection={section}
                             allSections={existingContent.sections || []}
                           />
