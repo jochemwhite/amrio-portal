@@ -16,7 +16,7 @@ export default function DateComponent({ field, fieldId, value, handleFieldChange
   return (
     <div className="flex flex-col gap-3">
       <Label htmlFor="date" className="px-1">
-        Date of birth
+        Date
       </Label>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
@@ -33,7 +33,7 @@ export default function DateComponent({ field, fieldId, value, handleFieldChange
             onSelect={(date) => {
               setDate(date);
               setOpen(false);
-              handleFieldChange(fieldId, date)
+              handleFieldChange(field.id, date)
             }}
           />
         </PopoverContent>

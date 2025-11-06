@@ -17,7 +17,7 @@ interface ReferenceSelectorDialogProps {
   onClose: () => void;
   collectionId: string;
   currentValue: { all?: boolean; entry_ids?: string[] } | null;
-  onConfirm: (value: { all?: boolean; entry_ids?: string[] }) => void;
+  onConfirm: (value: { entry_ids: string[] | "ALL" }) => void;
 }
 
 export function ReferenceSelectorDialog({
@@ -157,7 +157,7 @@ export function ReferenceSelectorDialog({
 
   const handleConfirm = () => {
     if (selectAll) {
-      onConfirm({ all: true });
+      onConfirm({entry_ids: "ALL" });
     } else {
       onConfirm({ entry_ids: Array.from(selectedEntryIds) });
     }

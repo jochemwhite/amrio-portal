@@ -4,7 +4,7 @@ import { Json } from "@/types/supabase";
 
 interface RenderComponentProps {
   field: RPCPageField;
-  value?: Json;  
+  value?: any;  
   currentSection?: RPCPageSection;
   allSections?: RPCPageSection[];
 }

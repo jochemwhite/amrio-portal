@@ -9,14 +9,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useSchemaBuilderStore } from "@/stores/useSchemaBuilderStore";
 
 export function AddSectionMenu() {
-  const { 
-    isAddSectionOpen, 
-    isEditSectionOpen,
-    sectionFormData,
-    setSectionFormData, 
-    submitSection, 
-    closeSectionDialog 
-  } = useSchemaBuilderStore();
+  // Use explicit selectors to ensure proper re-renders on state changes
+  const isAddSectionOpen = useSchemaBuilderStore((state) => state.isAddSectionOpen);
+  const isEditSectionOpen = useSchemaBuilderStore((state) => state.isEditSectionOpen);
+  const sectionFormData = useSchemaBuilderStore((state) => state.sectionFormData);
+  const setSectionFormData = useSchemaBuilderStore((state) => state.setSectionFormData);
+  const submitSection = useSchemaBuilderStore((state) => state.submitSection);
+  const closeSectionDialog = useSchemaBuilderStore((state) => state.closeSectionDialog);
 
   const isOpen = isAddSectionOpen || isEditSectionOpen;
   const isEdit = isEditSectionOpen;

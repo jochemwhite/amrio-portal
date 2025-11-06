@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GripVertical, Edit, Trash2 } from "lucide-react";
 import { getFieldIcon, getFieldTypeLabel, getFieldTypeColor } from "../shared/field-types";
+import { useSchemaBuilderStore } from "@/stores/useSchemaBuilderStore";
 
 interface FieldProps {
   field: any;
@@ -18,6 +19,12 @@ interface FieldProps {
 
 export function Field({ field, isSaving, onEdit, onDelete, activeDragId, allFields = [] }: FieldProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: field.id });
+  const { getFieldById } = useSchemaBuilderStore();
+
+  const fieldData = getFieldById(field.id);
+  if (!fieldData) {
+    return null;
+  }
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -52,7 +59,7 @@ export function Field({ field, isSaving, onEdit, onDelete, activeDragId, allFiel
 
           <div>
             <div className="flex items-center space-x-2">
-              <h4 className="font-medium ">{field.name}</h4>
+              <h4 className="font-medium ">{fieldData.name}</h4>
               {field.required && (
                 <Badge variant="destructive" className="text-xs">
                   Required

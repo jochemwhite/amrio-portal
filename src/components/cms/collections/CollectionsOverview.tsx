@@ -38,10 +38,7 @@ export function CollectionsOverview({ website, initialCollections, websiteId }: 
             <h1 className="text-3xl font-bold">Collections</h1>
             <p className="text-muted-foreground mt-1">Manage content collections for {website.name}</p>
           </div>
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Collection
-          </Button>
+
         </div>
 
         {collections.length === 0 ? (

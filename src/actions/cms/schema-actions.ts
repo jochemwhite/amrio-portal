@@ -443,6 +443,7 @@ export async function deleteSchemaSection(sectionId: string): Promise<ActionResp
 interface CreateSchemaFieldData {
   schema_section_id: string;
   name: string;
+  field_key: string;
   type: string;
   required?: boolean;
   default_value?: string;
@@ -453,6 +454,7 @@ interface CreateSchemaFieldData {
 
 interface UpdateSchemaFieldData {
   name?: string;
+  field_key?: string;
   type?: string;
   required?: boolean;
   default_value?: string;
@@ -502,6 +504,7 @@ export async function createSchemaField(data: CreateSchemaFieldData): Promise<Ac
       .insert({
         schema_section_id: data.schema_section_id,
         name: data.name,
+        field_key: data.field_key,
         type: data.type as any, // Cast to any to handle enum type
         required: data.required ?? false,
         default_value: data.default_value,
@@ -684,6 +687,7 @@ export async function bulkSaveSchemaChanges(payload: BulkSaveSchemaPayload): Pro
           .insert({
             schema_section_id: sectionId,
             name: change.data.name,
+            field_key: change.data.field_key,
             type: change.data.type,
             required: change.data.required ?? false,
             default_value: change.data.default_value,
@@ -718,11 +722,11 @@ export async function bulkSaveSchemaChanges(payload: BulkSaveSchemaPayload): Pro
         const parentFieldId = change.data.parent_field_id?.startsWith("temp_") ? tempIdMap[change.data.parent_field_id] : change.data.parent_field_id;
         const collectionId = change.data.collection_id?.startsWith("temp_") ? tempIdMap[change.data.collection_id] : change.data.collection_id;
 
-        console.log("collectionId", collectionId);
         const { error } = await supabase
           .from("cms_schema_fields")
           .update({
             name: change.data.name,
+            field_key: change.data.field_key,
             type: change.data.type,
             required: change.data.required,
             default_value: change.data.default_value,

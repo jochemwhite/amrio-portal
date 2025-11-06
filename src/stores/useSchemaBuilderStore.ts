@@ -40,6 +40,7 @@ interface SchemaBuilderState {
   parentFieldId: string | null; // Track which "section" field we're adding to
   fieldFormData: {
     name: string;
+    field_key: string;
     type: string;
     required: boolean;
     default_value: string;
@@ -69,7 +70,7 @@ interface SchemaBuilderState {
 
   // Section actions
   openAddSectionDialog: () => void;
-  openEditSectionDialog: (section: any) => void;
+  openEditSectionDialog: (section: SchemaField) => void;
   closeSectionDialog: () => void;
   setSectionFormData: (data: Partial<SchemaBuilderState["sectionFormData"]>) => void;
   submitSection: () => void;
@@ -77,10 +78,11 @@ interface SchemaBuilderState {
 
   // Field actions
   openAddFieldDialog: (sectionId?: string) => void;
-  openEditFieldDialog: (field: any) => void;
+  openEditFieldDialog: (field: SchemaField) => void;
   closeFieldDialog: () => void;
   setFieldFormData: (data: Partial<SchemaBuilderState["fieldFormData"]>) => void;
   submitField: () => void;
+  getFieldById: (fieldId: string) => SchemaField | null;
   deleteFieldById: (fieldId: string, sectionId: string, parentSectionId?: string) => void;
 
   // Nested field actions
@@ -136,10 +138,12 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
       parentFieldId: null,
       fieldFormData: {
         name: "",
+        field_key: "",
         type: "",
         required: false,
         default_value: "",
         validation: "",
+        collection_id: null,
       },
 
       // Schema settings state
@@ -361,7 +365,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
       openAddFieldDialog: (sectionId?: string) => {
         const { selectedSectionId } = get();
         const targetSectionId = sectionId || selectedSectionId;
-        
+
         if (!targetSectionId) {
           toast.error("Please select a section first");
           return;
@@ -371,11 +375,12 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
           {
             fieldFormData: {
               name: "",
+              field_key: "",
               type: "",
               required: false,
               default_value: "",
               validation: "",
-              collection_id: "",
+              collection_id: null,
             },
             isAddFieldOpen: true,
             parentFieldId: null,
@@ -387,17 +392,16 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
       },
 
       openEditFieldDialog: (field: any) => {
-
-        console.log("field", field);
         set(
           {
             fieldFormData: {
               name: field.name,
+              field_key: field.field_key || "",
               type: field.type,
               required: field.required || false,
               default_value: field.default_value || "",
               validation: field.validation || "",
-              collection_id: field.collection_id || "",
+              collection_id: field.collection_id || null,
             },
             editingFieldId: field.id,
             isEditFieldOpen: true,
@@ -430,6 +434,21 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
         );
       },
 
+      getFieldById: (fieldId: string) => {
+        const { sections } = get();
+        
+        // Search through all sections to find the field
+        for (const section of sections) {
+          const field = section.cms_schema_fields?.find((f) => f.id === fieldId);
+          if (field) {
+            return field;
+          }
+        }
+
+        // Field not found
+        return null;
+      },
+
       // Submit field (create or update) - LOCAL ONLY
       submitField: () => {
         const { fieldFormData, editingFieldId, selectedSectionId, sections, pendingChanges, tempIdCounter, parentFieldId } = get();
@@ -444,71 +463,113 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
           return;
         }
 
-        if (!selectedSectionId) {
-          toast.error("No section selected");
-          return;
-        }
-
-        const section = sections.find((s) => s.id === selectedSectionId);
-        if (!section) {
-          toast.error("Section not found");
-          return;
-        }
-
         if (editingFieldId) {
-          // Update existing field locally
-          set(
-            (state) => ({
-              sections: state.sections.map((s) =>
-                s.id === selectedSectionId
-                  ? {
-                      ...s,
-                      cms_schema_fields: s.cms_schema_fields?.map((f: any) =>
-                        f.id === editingFieldId
-                          ? {
-                              ...f,
-                              name: fieldFormData.name,
-                              type: fieldFormData.type,
-                              required: fieldFormData.required,
-                              default_value: fieldFormData.default_value,
-                              validation: fieldFormData.validation,
-                              collection_id: fieldFormData.collection_id,
+          // Update existing field - find which section it belongs to
+          let targetSectionId: string | null = null;
+          let existingField: any = null;
 
-                            }
-                          : f
-                      ),
-                    }
-                  : s
-              ),
-              pendingChanges: [
-                ...state.pendingChanges.filter((c) => !(c.entity === "field" && c.id === editingFieldId)),
-                {
-                  type: "update",
-                  entity: "field",
-                  id: editingFieldId,
-                  data: {
-                    name: fieldFormData.name,
-                    type: fieldFormData.type,
-                    required: fieldFormData.required,
-                    default_value: fieldFormData.default_value,
-                    validation: fieldFormData.validation,
-                    collection_id: fieldFormData.collection_id,
+          // Search all sections to find the field
+          for (const section of sections) {
+            const field = section.cms_schema_fields?.find((f) => f.id === editingFieldId);
+            if (field) {
+              targetSectionId = section.id;
+              existingField = field;
+              break;
+            }
+          }
+
+          if (!targetSectionId || !existingField) {
+            toast.error("Field not found");
+            return;
+          }
+
+          const updatedFieldData = {
+            name: fieldFormData.name,
+            field_key: fieldFormData.field_key,
+            type: fieldFormData.type,
+            required: fieldFormData.required,
+            default_value: fieldFormData.default_value,
+            validation: fieldFormData.validation,
+            collection_id: fieldFormData.collection_id || null,
+          };
+
+          set(
+            (state) => {
+              // Create new sections array with updated field
+              const newSections = state.sections.map((section) => {
+                if (section.id !== targetSectionId) {
+                  return section;
+                }
+
+                // Create new fields array with updated field
+                const newFields = (section.cms_schema_fields || []).map((field: any) => {
+                  if (field.id !== editingFieldId) {
+                    return field;
+                  }
+
+                  // Create completely new field object
+                  return {
+                    id: field.id,
+                    order: field.order,
+                    schema_section_id: field.schema_section_id,
+                    parent_field_id: field.parent_field_id,
+                    created_at: field.created_at,
+                    updated_at: field.updated_at,
+                    // Updated properties
+                    name: updatedFieldData.name,
+                    field_key: updatedFieldData.field_key,
+                    type: updatedFieldData.type,
+                    required: updatedFieldData.required,
+                    default_value: updatedFieldData.default_value,
+                    validation: updatedFieldData.validation,
+                    collection_id: updatedFieldData.collection_id,
+                  };
+                });
+
+                // Return new section object with new fields array
+                return {
+                  ...section,
+                  cms_schema_fields: newFields,
+                };
+              });
+
+              return {
+                sections: newSections,
+                pendingChanges: [
+                  ...state.pendingChanges.filter((c) => !(c.entity === "field" && c.id === editingFieldId)),
+                  {
+                    type: "update",
+                    entity: "field",
+                    id: editingFieldId,
+                    data: updatedFieldData,
                   },
-                },
-              ],
-              isEditFieldOpen: false,
-              hasUnsavedChanges: true,
-            }),
+                ],
+                isEditFieldOpen: false,
+                hasUnsavedChanges: true,
+              };
+            },
             false,
             "updateFieldLocal"
           );
         } else {
           // Create new field locally
+          if (!selectedSectionId) {
+            toast.error("No section selected");
+            return;
+          }
+
+          const section = sections.find((s) => s.id === selectedSectionId);
+          if (!section) {
+            toast.error("Section not found");
+            return;
+          }
+
           const tempId = `temp_field_${tempIdCounter}`;
           const nextOrder = section.cms_schema_fields?.length || 0;
           const newField = {
             id: tempId,
             name: fieldFormData.name,
+            field_key: fieldFormData.field_key,
             type: fieldFormData.type,
             required: fieldFormData.required,
             default_value: fieldFormData.default_value,
@@ -516,7 +577,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
             order: nextOrder,
             schema_section_id: selectedSectionId,
             parent_field_id: parentFieldId,
-            collection_id: fieldFormData.collection_id,
+            collection_id: fieldFormData.collection_id || null,
           };
 
           set(
@@ -538,12 +599,13 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
                   data: {
                     schema_section_id: selectedSectionId,
                     name: fieldFormData.name,
+                    field_key: fieldFormData.field_key,
                     type: fieldFormData.type,
                     required: fieldFormData.required,
                     default_value: fieldFormData.default_value,
                     validation: fieldFormData.validation,
                     parent_field_id: parentFieldId,
-                    collection_id: fieldFormData.collection_id,
+                    collection_id: fieldFormData.collection_id || null,
                   },
                 },
               ],
@@ -561,12 +623,11 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
       deleteFieldById: (fieldId, sectionId, parentSectionId) => {
         const { sections } = get();
         const section = sections.find((s) => s.id === sectionId);
-        
+
         if (!section) {
           toast.error("Section not found");
           return;
         }
- 
 
         const field = section.cms_schema_fields?.find((f) => f.id === fieldId);
         if (!field) {
@@ -629,11 +690,12 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
           {
             fieldFormData: {
               name: "",
+              field_key: "",
               type: "",
               required: false,
               default_value: "",
               validation: "",
-              collection_id: "",
+              collection_id: null,
             },
             isAddFieldOpen: true,
             parentFieldId: parentFieldId || null,
@@ -649,11 +711,12 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
           {
             fieldFormData: {
               name: field.name,
+              field_key: field.field_key || "",
               type: field.type,
               required: field.required || false,
               default_value: field.default_value || "",
               validation: field.validation || "",
-              collection_id: field.collection_id || "",
+              collection_id: field.collection_id || null,
             },
             editingFieldId: field.id,
             isEditFieldOpen: true,
@@ -713,7 +776,6 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
                   type: "delete",
                   entity: "field",
                   id: fieldId,
-                  
                 },
               ],
               hasUnsavedChanges: true,
@@ -1014,4 +1076,3 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
     { name: "SchemaBuilder" }
   )
 );
-

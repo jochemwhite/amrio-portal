@@ -144,6 +144,7 @@ export interface WebsiteStore {
 export interface SchemaField {
   id: string;
   name: string;
+  field_key: string;
   type: string;
   required: boolean;
   default_value?: string | null;
@@ -151,6 +152,7 @@ export interface SchemaField {
   order: number;
   parent_field_id?: string | null;
   schema_section_id: string;
+  collection_id?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -206,6 +208,7 @@ export type SupabaseSchemaWithRelations = {
       order: number | null;
       parent_field_id: string | null;
       schema_section_id: string | null;
+      collection_id: string | null;
       created_at: string | null;
       updated_at: string | null;
     }[];

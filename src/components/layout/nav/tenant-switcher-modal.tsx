@@ -10,10 +10,10 @@ export function TenantSwitcherModal() {
   const [open, setOpen] = React.useState(false);
   const { activeTenant, setActiveTenant, availableTenants, isInitialized } = useActiveTenant();
 
-  // Keyboard shortcut: Cmd+Shift+O (or Ctrl+Shift+O on Windows)
+  // Keyboard shortcut: Cmd+O/Cmd+K (or Ctrl+O/Ctrl+K on Windows)
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.key === "o" && (e.metaKey || e.ctrlKey) && e.shiftKey) {
+      if ((e.key === "o" || e.key === "k") && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setOpen((open) => !open);
       }

@@ -469,6 +469,7 @@ export type Database = {
           collection_id: string | null
           created_at: string
           default_value: string | null
+          field_key: string
           id: string
           name: string
           order: number
@@ -483,6 +484,7 @@ export type Database = {
           collection_id?: string | null
           created_at?: string
           default_value?: string | null
+          field_key: string
           id?: string
           name: string
           order?: number
@@ -497,6 +499,7 @@ export type Database = {
           collection_id?: string | null
           created_at?: string
           default_value?: string | null
+          field_key?: string
           id?: string
           name?: string
           order?: number

@@ -1,8 +1,9 @@
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import React from 'react'
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { FieldComponentProps } from "@/stores/useContentEditorStore";
+import React from "react";
 
-export default function YoutubeVideo({ field, fieldId, value, error, handleFieldChange, handleFieldBlur }: any) {
+export default function YoutubeVideo({ field, fieldId, value, handleFieldChange }: FieldComponentProps) {
   return (
     <div>
       <Label htmlFor={fieldId}>
@@ -14,11 +15,8 @@ export default function YoutubeVideo({ field, fieldId, value, error, handleField
         type="text"
         value={value || ""}
         onChange={(e) => handleFieldChange(field.id, e.target.value)}
-        onBlur={() => handleFieldBlur(field)}
-        className={error ? "border-destructive" : ""}
       />
-      {error && <p className="text-sm text-destructive">{error}</p>}
       {field.description && <p className="text-sm text-muted-foreground">{field.description}</p>}
     </div>
-  )
+  );
 }

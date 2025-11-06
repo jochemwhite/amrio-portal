@@ -34,7 +34,6 @@ const formatContentForFieldType = (fieldType: string, value: any): any => {
       return Boolean(value);
 
     case "date":
-      console.log("Date value" + value);
       return new Date(value).toISOString();
 
     case "image":
@@ -70,7 +69,7 @@ const formatContentForFieldType = (fieldType: string, value: any): any => {
       return null;
 
     default:
-      return { value: value };
+      return value;
   }
 };
 
@@ -106,6 +105,8 @@ export async function savePageContent(
 
       // Format the content based on field type
       const formattedContent = formatContentForFieldType(fieldType, value);
+
+      console.log(formattedContent)
 
       // If we have content_field_id, just update that specific field
       if (content_field_id) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useContentEditorStore } from "@/stores/useContentEditorStore";
+import { FieldComponentProps, useContentEditorStore } from "@/stores/useContentEditorStore";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -9,10 +9,10 @@ import { ReferenceSelectorDialog } from "./ReferenceSelectorDialog";
 import { getCollectionEntries, CollectionEntry } from "@/actions/cms/collection-entry-actions";
 import { List, X } from "lucide-react";
 
-export default function Reference({ field, fieldId, value, error, handleFieldChange, handleFieldBlur }: any) {
+export default function Reference({ field, fieldId, value, handleFieldChange }: FieldComponentProps) {
   const { getFieldCollectionId } = useContentEditorStore();
-  const collectionId = getFieldCollectionId(fieldId);
-  
+  const collectionId = getFieldCollectionId(field.id);
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [entries, setEntries] = useState<CollectionEntry[]>([]);
   const [isLoadingEntries, setIsLoadingEntries] = useState(false);
@@ -26,7 +26,7 @@ export default function Reference({ field, fieldId, value, error, handleFieldCha
 
   const loadEntryNames = async () => {
     if (!collectionId) return;
-    
+
     setIsLoadingEntries(true);
     try {
       const result = await getCollectionEntries(collectionId);
@@ -42,17 +42,17 @@ export default function Reference({ field, fieldId, value, error, handleFieldCha
 
   const handleRemoveEntry = (entryId: string) => {
     if (!value || value.all) return;
-    
+
     const updatedEntryIds = value.entry_ids?.filter((id: string) => id !== entryId) || [];
-    handleFieldChange(fieldId, { entry_ids: updatedEntryIds });
+    handleFieldChange(field.id, { entry_ids: updatedEntryIds });
   };
 
   const handleOpenDialog = () => {
     setIsDialogOpen(true);
   };
 
-  const handleConfirm = (newValue: { all?: boolean; entry_ids?: string[] }) => {
-    handleFieldChange(fieldId, newValue);
+  const handleConfirm = (newValue: { entry_ids: string[] | "ALL" }) => {
+    handleFieldChange(field.id, newValue);
   };
 
   if (!collectionId) {
@@ -68,9 +68,7 @@ export default function Reference({ field, fieldId, value, error, handleFieldCha
   }
 
   // Get selected entry names
-  const selectedEntries = value?.entry_ids
-    ? entries.filter((entry) => value.entry_ids.includes(entry.id))
-    : [];
+  const selectedEntries = value?.entry_ids ? entries.filter((entry) => value.entry_ids.includes(entry.id)) : [];
 
   return (
     <div className="space-y-2">
@@ -113,20 +111,12 @@ export default function Reference({ field, fieldId, value, error, handleFieldCha
         )}
 
         {/* Select button */}
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleOpenDialog}
-          className="w-full sm:w-auto"
-        >
+        <Button type="button" variant="outline" onClick={handleOpenDialog} className="w-full sm:w-auto">
           <List className="h-4 w-4 mr-2" />
-          {value?.all || (value?.entry_ids && value.entry_ids.length > 0)
-            ? "Change Selection"
-            : "Select Entries"}
+          {value?.all || (value?.entry_ids && value.entry_ids.length > 0) ? "Change Selection" : "Select Entries"}
         </Button>
       </div>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
       {field.description && <p className="text-sm text-muted-foreground">{field.description}</p>}
 
       {/* Reference Selector Dialog */}

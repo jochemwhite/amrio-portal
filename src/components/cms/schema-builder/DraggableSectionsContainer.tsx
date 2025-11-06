@@ -5,20 +5,19 @@ import { useSchemaBuilderStore } from "@/stores/useSchemaBuilderStore";
 import { Section } from "./Section";
 
 export const DraggableSectionsContainer = () => {
-  const {
-    sections,
-    selectedSectionId,
-    isSaving,
-    setSelectedSection,
-    openEditSectionDialog,
-    deleteSectionById,
-    openEditFieldDialog,
-    deleteFieldById,
-    reorderSections,
-    reorderSectionFields,
-    setFieldFormData,
-    submitField,
-  } = useSchemaBuilderStore();
+  // Use explicit selectors to ensure proper re-renders on nested state changes
+  const sections = useSchemaBuilderStore((state) => state.sections);
+  const selectedSectionId = useSchemaBuilderStore((state) => state.selectedSectionId);
+  const isSaving = useSchemaBuilderStore((state) => state.isSaving);
+  const setSelectedSection = useSchemaBuilderStore((state) => state.setSelectedSection);
+  const openEditSectionDialog = useSchemaBuilderStore((state) => state.openEditSectionDialog);
+  const deleteSectionById = useSchemaBuilderStore((state) => state.deleteSectionById);
+  const openEditFieldDialog = useSchemaBuilderStore((state) => state.openEditFieldDialog);
+  const deleteFieldById = useSchemaBuilderStore((state) => state.deleteFieldById);
+  const reorderSections = useSchemaBuilderStore((state) => state.reorderSections);
+  const reorderSectionFields = useSchemaBuilderStore((state) => state.reorderSectionFields);
+  const setFieldFormData = useSchemaBuilderStore((state) => state.setFieldFormData);
+  const submitField = useSchemaBuilderStore((state) => state.submitField);
 
   // Drag and drop handlers
   const handleSectionDragEnd = (event: DragEndEvent) => {

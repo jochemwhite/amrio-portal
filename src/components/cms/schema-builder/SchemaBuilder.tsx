@@ -21,26 +21,20 @@ interface SchemaBuilderProps {
 }
 
 export function SchemaBuilder({ initialSchema, pageId, websiteId }: SchemaBuilderProps) {
-  const {
-    sections,
-    isSaving,
-    hasUnsavedChanges,
-    pendingChanges,
-    // Schema settings
-    isSchemaSettingsOpen,
-    schemaSettingsData,
-    // Actions
-    initializeStore,
-    // Schema settings actions
-    closeSchemaSettings,
-    setSchemaSettingsData,
-    submitSchemaSettings,
-    // Section actions
-    openAddSectionDialog,
-    // Save/Reset actions
-    saveChanges,
-    resetChanges,
-  } = useSchemaBuilderStore();
+  // Use explicit selectors to ensure proper re-renders on state changes
+  const sections = useSchemaBuilderStore((state) => state.sections);
+  const isSaving = useSchemaBuilderStore((state) => state.isSaving);
+  const hasUnsavedChanges = useSchemaBuilderStore((state) => state.hasUnsavedChanges);
+  const pendingChanges = useSchemaBuilderStore((state) => state.pendingChanges);
+  const isSchemaSettingsOpen = useSchemaBuilderStore((state) => state.isSchemaSettingsOpen);
+  const schemaSettingsData = useSchemaBuilderStore((state) => state.schemaSettingsData);
+  const initializeStore = useSchemaBuilderStore((state) => state.initializeStore);
+  const closeSchemaSettings = useSchemaBuilderStore((state) => state.closeSchemaSettings);
+  const setSchemaSettingsData = useSchemaBuilderStore((state) => state.setSchemaSettingsData);
+  const submitSchemaSettings = useSchemaBuilderStore((state) => state.submitSchemaSettings);
+  const openAddSectionDialog = useSchemaBuilderStore((state) => state.openAddSectionDialog);
+  const saveChanges = useSchemaBuilderStore((state) => state.saveChanges);
+  const resetChanges = useSchemaBuilderStore((state) => state.resetChanges);
 
   // Enable unsaved changes protection (navigation blocking)
   useSchemaUnsavedChangesProtection();

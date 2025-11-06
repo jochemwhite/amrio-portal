@@ -1,5 +1,5 @@
 import { FieldType } from "@/types/cms";
-import { Calendar, FileText, FolderOpen, Hash, Image, Link, ToggleLeft, Type, Video } from "lucide-react";
+import { Calendar, CircleDot, FileText, FolderOpen, Hash, Image, Link, ToggleLeft, Type, Video } from "lucide-react";
 import Boolean from "../content-editor/components/Boolean";
 import Date from "../content-editor/components/Date";
 import ImageComponent from "../content-editor/components/Image";
@@ -8,6 +8,7 @@ import RichText from "../content-editor/components/RichText";
 import SectionField from "../content-editor/components/SectionField";
 import Text from "../content-editor/components/Text";
 import YoutubeVideo from "../content-editor/components/Video";
+import ButtonComponent from "../content-editor/components/Button";
 
 export const FIELD_TYPES: FieldType[] = [
   {
@@ -29,10 +30,18 @@ export const FIELD_TYPES: FieldType[] = [
   {
     value: "boolean",
     label: "Checkbox",
-    icon: <ToggleLeft className="h-4 w-4" />,
+    icon: <CircleDot className="h-4 w-4" />,
     description: "True/false toggle",
     color: "bg-purple-100 text-purple-800",
     cmsComponent: Boolean,
+  },
+  {
+    value: "button",
+    label: "Button",
+    icon: <ToggleLeft className="h-4 w-4" />,
+    description: "A button",
+    color: "bg-purple-100 text-purple-800",
+    cmsComponent: ButtonComponent,
   },
   {
     value: "date",

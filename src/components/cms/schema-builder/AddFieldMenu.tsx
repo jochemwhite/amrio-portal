@@ -23,6 +23,12 @@ const fieldSchema = z.object({
     .min(2, "Field name must be at least 2 characters")
     .max(50, "Field name must be less than 50 characters"),
 
+  field_key: z
+    .string()
+    .min(1, "Field key is required")
+    .regex(/^[a-z][a-z0-9_]*$/, "Field key must start with a lowercase letter and contain only lowercase letters, numbers, and underscores")
+    .max(50, "Field key must be less than 50 characters"),
+
   type: z.string().min(1, "Field type is required"),
   required: z.boolean().default(false),
   default_value: z.string().optional(),
@@ -37,7 +43,15 @@ interface AddFieldMenuProps {
 }
 
 export function AddFieldMenu() {
-  const { isAddFieldOpen, isEditFieldOpen, setFieldFormData, submitField, closeFieldDialog, fieldFormData, editingFieldId } = useSchemaBuilderStore();
+  // Use explicit selectors to ensure proper re-renders on state changes
+  const isAddFieldOpen = useSchemaBuilderStore((state) => state.isAddFieldOpen);
+  const isEditFieldOpen = useSchemaBuilderStore((state) => state.isEditFieldOpen);
+  const setFieldFormData = useSchemaBuilderStore((state) => state.setFieldFormData);
+  const submitField = useSchemaBuilderStore((state) => state.submitField);
+  const closeFieldDialog = useSchemaBuilderStore((state) => state.closeFieldDialog);
+  const fieldFormData = useSchemaBuilderStore((state) => state.fieldFormData);
+  const editingFieldId = useSchemaBuilderStore((state) => state.editingFieldId);
+  
   const isEditMode = !!editingFieldId;
   const isDialogOpen = isAddFieldOpen || isEditFieldOpen; // Check both states
   const [selectedType, setSelectedType] = useState<string | null>(fieldFormData.type || null);
@@ -46,6 +60,7 @@ export function AddFieldMenu() {
     resolver: zodResolver(fieldSchema),
     defaultValues: {
       name: fieldFormData.name,
+      field_key: fieldFormData.field_key,
       type: fieldFormData.type,
       required: fieldFormData.required,
       default_value: fieldFormData.default_value,
@@ -60,6 +75,7 @@ export function AddFieldMenu() {
       // Use isDialogOpen instead of just isAddFieldOpen
       form.reset({
         name: fieldFormData.name,
+        field_key: fieldFormData.field_key,
         type: fieldFormData.type,
         required: fieldFormData.required,
         default_value: fieldFormData.default_value,
@@ -83,11 +99,12 @@ export function AddFieldMenu() {
   const onSubmit = (data: FieldFormData) => {
     setFieldFormData({
       name: data.name,
+      field_key: data.field_key,
       type: data.type,
       required: data.required,
       default_value: data.default_value || "",
       validation: data.validation || "",
-      collection_id: data.collection_id || "",
+      collection_id: data.collection_id || null,
     });
     submitField();
     handleCancel();
@@ -151,7 +168,32 @@ export function AddFieldMenu() {
                       <Input placeholder="Enter field name" {...field} />
                     </FormControl>
                     <FormDescription>
-                      The unique identifier for this field. Must start with a letter and contain only letters, numbers, and underscores.
+                      The display name for this field (e.g., "Hero Title", "CTA Button")
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="field_key"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Field Key *</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="e.g., hero_title, cta_button" 
+                        {...field}
+                        onChange={(e) => {
+                          // Auto-convert to lowercase and replace spaces with underscores
+                          const value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/^_+|_+$/g, '');
+                          field.onChange(value);
+                        }}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Unique programmatic identifier (snake_case). Used in code to access this field.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

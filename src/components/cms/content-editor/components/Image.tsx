@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/supabaseClient";
 import { useActiveTenant } from "@/hooks/use-active-tenant";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { FieldComponentProps } from "@/stores/useContentEditorStore";
 
 interface ImageValue {
   id?: string;
@@ -36,7 +37,7 @@ interface StorageImage {
   alt_text?: string | null;
 }
 
-export default function Image({ field, fieldId, value, error, handleFieldChange, handleFieldBlur }: any) {
+export default function Image({ field, fieldId, value, handleFieldChange }: FieldComponentProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -73,9 +74,9 @@ export default function Image({ field, fieldId, value, error, handleFieldChange,
           data.map(async (img) => {
             const { data: urlData } = await supabase.storage
               .from('cms_storage')
-              .createSignedUrl(img.storage_path, 3600);
-            if (urlData?.signedUrl) {
-              urls[img.id] = urlData.signedUrl;
+              .getPublicUrl(img.storage_path);
+            if (urlData?.publicUrl) {
+              urls[img.id] = urlData.publicUrl;
             }
           })
         );
@@ -372,8 +373,6 @@ export default function Image({ field, fieldId, value, error, handleFieldChange,
           </div>
         )}
       </div>
-      
-      {error && <p className="text-sm text-destructive">{error}</p>}
       {field.description && <p className="text-sm text-muted-foreground">{field.description}</p>}
 
       {/* Image Size Help Dialog */}

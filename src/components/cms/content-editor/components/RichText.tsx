@@ -2,9 +2,9 @@
 import { Label } from "@/components/ui/label";
 import RichTextEditorComponent from "@/components/rich-editor/tiptap";
 import React, { useEffect } from "react";
-import { useContentEditorStore } from "@/stores/useContentEditorStore";
+import { FieldComponentProps, useContentEditorStore } from "@/stores/useContentEditorStore";
 
-export default function RichText({ field, fieldId, value, error, handleFieldChange }: any) {
+export default function RichText({ field, fieldId, value, handleFieldChange }: FieldComponentProps) {
   const { getFieldValue } = useContentEditorStore();
   const handleChange = (json: unknown) => {
     handleFieldChange(field.id, json);
@@ -19,7 +19,6 @@ export default function RichText({ field, fieldId, value, error, handleFieldChan
         {field.required && <span className="text-destructive ml-1">*</span>}
       </Label>
       <RichTextEditorComponent initialValue={value} onChange={handleChange} />
-      {error && <p className="text-sm text-destructive">{error}</p>}
       {field.description && <p className="text-sm text-muted-foreground">{field.description}</p>}
     </div>
   );

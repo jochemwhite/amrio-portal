@@ -1,10 +1,9 @@
-import { FIELD_TYPES } from "@/components/cms/shared/field-types";
 import { savePageContent } from "@/actions/cms/schema-content-actions";
-import { RPCPageField, RPCPageResponse, RPCPageSection, SupabaseField } from "@/types/cms";
+import { FIELD_TYPES } from "@/components/cms/shared/field-types";
+import { RPCPageField, RPCPageSection, SupabaseField } from "@/types/cms";
 import { toast } from "sonner";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
-import { Json } from "@/types/supabase";
 
 interface FieldWithValue {
   id: string; // schema field ID
@@ -17,7 +16,7 @@ interface FieldWithValue {
 export interface FieldComponentProps {
   field: RPCPageField;
   fieldId: string;
-  value: Json;
+  value: any;
   handleFieldChange: (fieldId: string, value: any) => void;
   currentSection?: RPCPageSection;
   allSections?: RPCPageSection[];

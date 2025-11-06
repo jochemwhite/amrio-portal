@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, ChevronDown, ChevronRight } from "lucide-react";
 import { CollectionWithSchema } from "@/actions/cms/collection-actions";
 import {
   CollectionEntryWithItems,
@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { FIELD_TYPES } from "../shared/field-types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 
 interface CollectionEntryEditorProps {
   collection: CollectionWithSchema;
@@ -37,6 +38,7 @@ export function CollectionEntryEditor({
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
   // Initialize field values from entry items
   useEffect(() => {
@@ -64,6 +66,13 @@ export function CollectionEntryEditor({
     if (field.required && !fieldValues[field.id]) {
       setErrors((prev) => ({ ...prev, [field.id]: "This field is required" }));
     }
+  };
+
+  const toggleNestedSection = (fieldId: string) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [fieldId]: !prev[fieldId],
+    }));
   };
 
   const validateFields = (): boolean => {
@@ -131,7 +140,12 @@ export function CollectionEntryEditor({
     }
   };
 
-  const renderField = (field: any, sectionId: string) => {
+  const renderField = (field: any, sectionId: string, allFields: any[] = []) => {
+    // Skip rendering section-type fields as they're containers
+    if (field.type === "section") {
+      return renderNestedSection(field, sectionId, allFields);
+    }
+
     const fieldType = FIELD_TYPES.find((ft) => ft.value === field.type);
     if (!fieldType?.cmsComponent) return null;
 
@@ -150,6 +164,71 @@ export function CollectionEntryEditor({
           handleFieldChange={handleFieldChange}
           handleFieldBlur={handleFieldBlur}
         />
+      </div>
+    );
+  };
+
+  const renderNestedSection = (parentField: any, sectionId: string, allFields: any[] = []) => {
+    // Find all fields that belong to this nested section
+    const nestedFields = allFields.filter((f: any) => f.parent_field_id === parentField.id);
+    const isExpanded = expandedSections[parentField.id] ?? false;
+
+    return (
+      <div key={parentField.id} className="mb-6">
+        <div className="border rounded-lg bg-muted/30">
+          {/* Nested Section Header */}
+          <div 
+            className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors"
+            onClick={() => toggleNestedSection(parentField.id)}
+          >
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-0 h-auto hover:bg-transparent"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleNestedSection(parentField.id);
+                }}
+              >
+                {isExpanded ? (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                )}
+              </Button>
+              <h4 className="font-medium text-sm">{parentField.name}</h4>
+              {parentField.required && (
+                <Badge variant="destructive" className="text-xs">
+                  Required
+                </Badge>
+              )}
+              <Badge variant="secondary" className="text-xs">
+                {nestedFields.length} field{nestedFields.length !== 1 ? "s" : ""}
+              </Badge>
+            </div>
+          </div>
+
+          {/* Nested Section Content */}
+          {isExpanded && nestedFields.length > 0 && (
+            <div className="px-4 pb-4 space-y-4 border-t">
+              <div className="pt-4 pl-4 border-l-2 border-muted-foreground/20 space-y-4">
+                {nestedFields.map((nestedField: any) =>
+                  renderField(nestedField, sectionId, allFields)
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Empty state when expanded but no fields */}
+          {isExpanded && nestedFields.length === 0 && (
+            <div className="px-4 pb-4 border-t">
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No fields in this nested section
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     );
   };
@@ -202,9 +281,11 @@ export function CollectionEntryEditor({
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {section.cms_schema_fields && section.cms_schema_fields.length > 0 ? (
-                    section.cms_schema_fields.map((field: any) =>
-                      renderField(field, section.id)
-                    )
+                    section.cms_schema_fields
+                      .filter((field: any) => !field.parent_field_id) // Only render top-level fields
+                      .map((field: any) =>
+                        renderField(field, section.id, section.cms_schema_fields)
+                      )
                   ) : (
                     <p className="text-muted-foreground text-sm">
                       No fields in this section

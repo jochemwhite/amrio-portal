@@ -26,7 +26,6 @@ interface SectionProps {
   onEditField: (field: any) => void;
   onDeleteField: (fieldId: string, sectionId: string, parentSectionId?: string) => void;
   onReorderFields: (sectionId: string, activeId: string, overId: string) => void;
-  
 }
 
 export function Section({
@@ -204,48 +203,44 @@ export function Section({
                     </div>
                   </SortableContext>
                   <DragOverlay>
-                    {activeDragId ? (
-                      (() => {
-                        const draggedField = section.cms_schema_fields?.find((f: any) => f.id === activeDragId);
-                        if (!draggedField) return null;
-                        
-                        return draggedField.type === "section" ? (
-                          <div className="group rounded-lg border hover:shadow-sm">
-                            <div className="flex items-center justify-between p-3">
-                              <div className="flex items-center space-x-3 flex-1">
-                                <div className="cursor-grab rounded p-1 opacity-100">
-                                  <GripVertical className="h-4 w-4" />
-                                </div>
-                                <div className={`p-2 rounded-lg ${getFieldTypeColor(draggedField.type)}`}>
-                                  {getFieldIcon(draggedField.type)}
-                                </div>
-                                <div className="flex-1">
-                                  <h4 className="font-medium">{draggedField.name}</h4>
-                                  <span className="text-xs text-gray-500">Nested Section</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="group rounded-lg border hover:shadow-sm">
-                            <div className="flex items-center justify-between py-2">
-                              <div className="flex items-center space-x-3 flex-1">
-                                <div className="cursor-grab rounded p-1 opacity-100">
-                                  <GripVertical className="h-4 w-4" />
-                                </div>
-                                <div className={`p-2 rounded-lg ${getFieldTypeColor(draggedField.type)}`}>
-                                  {getFieldIcon(draggedField.type)}
-                                </div>
-                                <div>
-                                  <h4 className="font-medium">{draggedField.name}</h4>
-                                  <span className="text-xs text-gray-500">{getFieldTypeLabel(draggedField.type)}</span>
+                    {activeDragId
+                      ? (() => {
+                          const draggedField = section.cms_schema_fields?.find((f: any) => f.id === activeDragId);
+                          if (!draggedField) return null;
+
+                          return draggedField.type === "section" ? (
+                            <div className="group rounded-lg border hover:shadow-sm">
+                              <div className="flex items-center justify-between p-3">
+                                <div className="flex items-center space-x-3 flex-1">
+                                  <div className="cursor-grab rounded p-1 opacity-100">
+                                    <GripVertical className="h-4 w-4" />
+                                  </div>
+                                  <div className={`p-2 rounded-lg ${getFieldTypeColor(draggedField.type)}`}>{getFieldIcon(draggedField.type)}</div>
+                                  <div className="flex-1">
+                                    <h4 className="font-medium">{draggedField.name}</h4>
+                                    <span className="text-xs text-gray-500">Nested Section</span>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })()
-                    ) : null}
+                          ) : (
+                            <div className="group rounded-lg border hover:shadow-sm">
+                              <div className="flex items-center justify-between py-2">
+                                <div className="flex items-center space-x-3 flex-1">
+                                  <div className="cursor-grab rounded p-1 opacity-100">
+                                    <GripVertical className="h-4 w-4" />
+                                  </div>
+                                  <div className={`p-2 rounded-lg ${getFieldTypeColor(draggedField.type)}`}>{getFieldIcon(draggedField.type)}</div>
+                                  <div>
+                                    <h4 className="font-medium">{draggedField.name}</h4>
+                                    <span className="text-xs text-gray-500">{getFieldTypeLabel(draggedField.type)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()
+                      : null}
                   </DragOverlay>
                 </DndContext>
 

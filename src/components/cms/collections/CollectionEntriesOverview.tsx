@@ -16,11 +16,7 @@ interface CollectionEntriesOverviewProps {
   collectionId: string;
 }
 
-export function CollectionEntriesOverview({
-  collection,
-  initialEntries,
-  collectionId,
-}: CollectionEntriesOverviewProps) {
+export function CollectionEntriesOverview({ collection, initialEntries, collectionId }: CollectionEntriesOverviewProps) {
   const router = useRouter();
   const [entries, setEntries] = useState<CollectionEntry[]>(initialEntries);
   const [isCreating, setIsCreating] = useState(false);
@@ -66,17 +62,9 @@ export function CollectionEntriesOverview({
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">{collection.name}</h1>
-              {collection.description && (
-                <p className="text-muted-foreground mt-1">{collection.description}</p>
-              )}
+              {collection.description && <p className="text-muted-foreground mt-1">{collection.description}</p>}
             </div>
             <div className="flex gap-2">
-              <Link href={`/dashboard/collections/${collectionId}`}>
-                <Button variant="outline">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Edit Schema
-                </Button>
-              </Link>
               <Button onClick={handleCreateEntry} disabled={isCreating}>
                 <Plus className="mr-2 h-4 w-4" />
                 {isCreating ? "Creating..." : "Add Entry"}
@@ -88,25 +76,16 @@ export function CollectionEntriesOverview({
         {entries.length === 0 ? (
           <div className="text-center py-12 bg-muted/30 rounded-lg border-2 border-dashed">
             <h3 className="text-lg font-semibold mb-2">No entries yet</h3>
-            <p className="text-muted-foreground mb-4">
-              Add your first entry to start building your collection content.
-            </p>
+            <p className="text-muted-foreground mb-4">Add your first entry to start building your collection content.</p>
             <Button onClick={handleCreateEntry} disabled={isCreating}>
               <Plus className="mr-2 h-4 w-4" />
               {isCreating ? "Creating..." : "Add Entry"}
             </Button>
           </div>
         ) : (
-          <CollectionEntryTable
-            entries={entries}
-            collectionId={collectionId}
-            onEntryDeleted={handleEntryDeleted}
-          />
+          <CollectionEntryTable entries={entries} collectionId={collectionId} onEntryDeleted={handleEntryDeleted} />
         )}
       </div>
     </div>
   );
 }
-
-
-

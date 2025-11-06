@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useSchemaBuilderStore } from "@/stores/useSchemaBuilderStore";
 import { Settings } from "lucide-react";
+import { TypeGeneratorDialog } from "../type-generator/TypeGeneratorDialog";
 
 export function SchemaInfo() {
   const { schema, openSchemaSettings } = useSchemaBuilderStore();
@@ -25,10 +26,13 @@ export function SchemaInfo() {
             <p className="text-muted-foreground">{schema.description}</p>
           )}
         </div>
-        <Button variant="outline" size="sm" onClick={openSchemaSettings}>
-          <Settings className="h-4 w-4 mr-2" />
-          Settings
-        </Button>
+        <div className="flex gap-2">
+          <TypeGeneratorDialog schemaId={schema.id} schemaName={schema.name} />
+          <Button variant="outline" size="sm" onClick={openSchemaSettings}>
+            <Settings className="h-4 w-4 mr-2" />
+            Settings
+          </Button>
+        </div>
       </div>
     </Card>
   );

@@ -36,7 +36,6 @@ export async function createPage(data: {
     return { success: false, error: "Unauthorized: Only admins can create pages." };
   }
 
-
   try {
     const { data: page, error } = await supabase
       .from("cms_pages")
@@ -152,4 +151,38 @@ export async function deletePage({ id, websiteId }: DeletePageProps): Promise<Ac
     console.error("Unexpected error deleting page:", error);
     return { success: false, error: "An unexpected error occurred." };
   }
+}
+
+export async function getPagesByWebsiteId(website_id: string): Promise<ActionResponse<Database["public"]["Tables"]["cms_pages"]["Row"][]>> {
+  const supabase = await createClient();
+
+  // Check authentication
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { success: false, error: "Unauthorized: User not authenticated." };
+  }
+
+  const { data: pages, error: page_error } = await supabase.from("cms_pages").select("*").eq("website_id", website_id);
+
+  if (page_error) {
+    return {
+      success: false,
+      error: page_error.message,
+    };
+  }
+
+  if (pages.length === 0 || !pages) {
+    return {
+      success: false,
+      error: "No pages found. ",
+    };
+  }
+
+  return {
+    success: true,
+    data: pages,
+  };
 }
