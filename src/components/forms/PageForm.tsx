@@ -18,9 +18,10 @@ import { toast } from "sonner";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/supabaseClient";
 import { useActiveTenant } from "@/hooks/use-active-tenant";
+import SchemaSelect from "../form-components/schema-select";
 
 // Form validation schema
-const formSchema = z.object({
+export const formSchema = z.object({
   name: z
     .string()
     .min(1, "Page name is required")
@@ -80,11 +81,6 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
   }, [isOpen, websiteId]);
 
   // Load schemas when dialog opens
-  useEffect(() => {
-    if (isOpen && !isEditing) {
-      loadSchemas();
-    }
-  }, [isOpen, isEditing]);
 
   // Initialize form data when editing
   useEffect(() => {
@@ -126,23 +122,6 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
       setWebsiteDomain("example.com");
     } finally {
       setIsLoadingWebsite(false);
-    }
-  };
-
-  // Load schemas function
-  const loadSchemas = async () => {
-    setIsLoadingSchemas(true);
-    try {
-      const supabase = createClient();
-      const { data, error } = await supabase.from("cms_schemas").select("id, name, description, template").order("name");
-
-      if (error) throw error;
-      setSchemas(data || []);
-    } catch (error) {
-      console.error("Error loading schemas:", error);
-      toast.error("Failed to load schemas");
-    } finally {
-      setIsLoadingSchemas(false);
     }
   };
 
@@ -358,48 +337,8 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
                     name="schema_id"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Schema (Optional)</FormLabel>
-                        <Select
-                          onValueChange={(value) => {
-                            // Convert "none" back to empty string
-                            field.onChange(value === "none" ? "" : value);
-                          }}
-                          value={field.value || "none"}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Choose a schema..." />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="none">
-                              <div className="flex items-center">
-                                <span className="text-muted-foreground">No schema</span>
-                              </div>
-                            </SelectItem>
-                            {isLoadingSchemas ? (
-                              <SelectItem value="loading" disabled>
-                                <div className="flex items-center">
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  Loading schemas...
-                                </div>
-                              </SelectItem>
-                            ) : (
-                              schemas.map((schema) => (
-                                <SelectItem key={schema.id} value={schema.id}>
-                                  <div className="flex items-center gap-2">
-                                    <span>{schema.name}</span>
-                                    {schema.template && (
-                                      <Badge variant="secondary" className="text-xs">
-                                        Template
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </SelectItem>
-                              ))
-                            )}
-                          </SelectContent>
-                        </Select>
+                        <FormLabel>Schema</FormLabel>
+                        <SchemaSelect value={field.value} onChange={field.onChange} type="page" />
                         <FormMessage />
                         <p className="text-sm text-muted-foreground">Select a schema to automatically create content fields for this page.</p>
                       </FormItem>

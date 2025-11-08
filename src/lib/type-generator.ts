@@ -309,7 +309,7 @@ export async function generateTypesForSchema(
   schemaId: string
 ): Promise<{ success: boolean; types?: string; error?: string }> {
   try {
-    const { createClient } = await import("@/lib/supabase/server");
+    const { createClient } = await import("@/lib/supabase/supabaseServerClient");
     const supabase = await createClient();
     
     // Fetch the schema with all sections and fields

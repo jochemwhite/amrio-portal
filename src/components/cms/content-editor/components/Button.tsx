@@ -105,6 +105,7 @@ export default function ButtonComponent({ field, fieldId, value, handleFieldChan
     };
 
     fetchPages();
+    console.log(value)
   }, [activeWebsite]);
 
   useEffect(() => {

@@ -5,15 +5,21 @@ import { Spinner } from "@/components/ui/spinner";
 import { createClient } from "@/lib/supabase/supabaseClient";
 import { UserSession } from "@/types/custom-supabase-types";
 import { Database } from "@/types/supabase";
+import { SupabaseWebsite } from "@/types/cms";
 import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState, useRef } from "react";
+import { getWebsitesByTenant } from "@/actions/cms/website-actions";
+
+type Tenant = UserSession["tenants"][0];
 
 interface UserSessionContextValue {
   userSession: UserSession | null;
   loadingSession: boolean;
   sessionError: any;
   refreshSession: () => Promise<void>;
+  setActiveTenant: (tenant: Tenant) => void;
+  setActiveWebsite: (website: SupabaseWebsite) => void;
 }
 
 const UserSessionContext = createContext<UserSessionContextValue | null>(null);
@@ -21,9 +27,40 @@ const UserSessionContext = createContext<UserSessionContextValue | null>(null);
 interface UserSessionProviderProps {
   children: ReactNode;
   userData: UserSession | null;
+  initialActiveTenant?: Tenant | null;
+  initialActiveWebsite?: SupabaseWebsite | null;
 }
 
-export const UserSessionProvider: React.FC<UserSessionProviderProps> = ({ children, userData }) => {
+// Cookie constants
+const ACTIVE_TENANT_COOKIE_NAME = "active-tenant";
+const ACTIVE_WEBSITE_COOKIE_NAME = "active-website";
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
+
+// Cookie helper functions
+const getCookie = (name: string): string | null => {
+  if (typeof document === "undefined") return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
+  return null;
+};
+
+const setCookie = (name: string, value: string, maxAge: number) => {
+  if (typeof document === "undefined") return;
+  document.cookie = `${name}=${value}; path=/; max-age=${maxAge}; SameSite=Lax`;
+};
+
+const removeCookie = (name: string) => {
+  if (typeof document === "undefined") return;
+  document.cookie = `${name}=; path=/; max-age=0`;
+};
+
+export const UserSessionProvider: React.FC<UserSessionProviderProps> = ({ 
+  children, 
+  userData, 
+  initialActiveTenant, 
+  initialActiveWebsite 
+}) => {
   const [userSession, setUserSession] = useState<UserSession | null>(userData);
   const [loadingSession, setLoadingSession] = useState<boolean>(true);
   const [sessionError, setSessionError] = useState<any>(null);
@@ -179,6 +216,50 @@ export const UserSessionProvider: React.FC<UserSessionProviderProps> = ({ childr
     isUserAlreadySignedInRef.current = false;
   }, []);
 
+  // Function to set active tenant
+  const setActiveTenant = useCallback((tenant: Tenant) => {
+    setCookie(ACTIVE_TENANT_COOKIE_NAME, tenant.id, COOKIE_MAX_AGE);
+    
+    setUserSession((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        active_tenant: tenant
+      };
+    });
+
+    // Reset active website when tenant changes
+    removeCookie(ACTIVE_WEBSITE_COOKIE_NAME);
+    setUserSession((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        active_website: {
+          id: "",
+          name: "",
+          url: ""
+        }
+      };
+    });
+  }, []);
+
+  // Function to set active website
+  const setActiveWebsite = useCallback((website: SupabaseWebsite) => {
+    setCookie(ACTIVE_WEBSITE_COOKIE_NAME, website.id, COOKIE_MAX_AGE);
+    
+    setUserSession((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        active_website: {
+          id: website.id,
+          name: website.name,
+          url: website.domain
+        }
+      };
+    });
+  }, []);
+
   // Initialize session once on mount
   useEffect(() => {
     if (initializationRef.current) return;
@@ -304,11 +385,98 @@ export const UserSessionProvider: React.FC<UserSessionProviderProps> = ({ childr
     return cleanup;
   }, [cleanup]);
 
+  // Initialize active tenant from props or cookie
+  useEffect(() => {
+    if (!userSession?.tenants || userSession.tenants.length === 0) return;
+
+    let selectedTenant: Tenant | null = null;
+
+    // Use initial prop if provided
+    if (initialActiveTenant && userSession.tenants.find(t => t.id === initialActiveTenant.id)) {
+      selectedTenant = initialActiveTenant;
+    } else {
+      // Try to get from cookie
+      const savedTenantId = getCookie(ACTIVE_TENANT_COOKIE_NAME);
+      if (savedTenantId) {
+        selectedTenant = userSession.tenants.find((tenant) => tenant.id === savedTenantId) || null;
+      }
+    }
+
+    // Fallback to first tenant
+    if (!selectedTenant) {
+      selectedTenant = userSession.tenants[0];
+    }
+
+    // Set the tenant
+    setCookie(ACTIVE_TENANT_COOKIE_NAME, selectedTenant.id, COOKIE_MAX_AGE);
+    setUserSession((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        active_tenant: selectedTenant!
+      };
+    });
+  }, [userSession?.tenants, initialActiveTenant]);
+
+  // Initialize active website from props or cookie
+  useEffect(() => {
+    const initializeActiveWebsite = async () => {
+      const activeTenant = userSession?.active_tenant;
+      if (!activeTenant) return;
+
+      try {
+        const result = await getWebsitesByTenant(activeTenant.id);
+        if (result.success && result.data && result.data.length > 0) {
+          const websites = result.data as SupabaseWebsite[];
+          let selectedWebsite: SupabaseWebsite | null = null;
+
+          // Use initial prop if provided
+          if (initialActiveWebsite && websites.find(w => w.id === initialActiveWebsite.id)) {
+            selectedWebsite = initialActiveWebsite;
+          } else {
+            // Try to get from cookie
+            const savedWebsiteId = getCookie(ACTIVE_WEBSITE_COOKIE_NAME);
+            if (savedWebsiteId) {
+              selectedWebsite = (websites.find(website => website.id === savedWebsiteId) || null) as SupabaseWebsite | null;
+            }
+          }
+
+          // Fallback to first website
+          if (!selectedWebsite) {
+            selectedWebsite = websites[0];
+          }
+
+          // Set the website if we have one
+          if (selectedWebsite) {
+            setCookie(ACTIVE_WEBSITE_COOKIE_NAME, selectedWebsite.id, COOKIE_MAX_AGE);
+            setUserSession((prev) => {
+              if (!prev) return null;
+              return {
+                ...prev,
+                active_website: {
+                  id: selectedWebsite!.id,
+                  name: selectedWebsite!.name,
+                  url: selectedWebsite!.domain
+                }
+              };
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching websites:", error);
+      }
+    };
+
+    initializeActiveWebsite();
+  }, [userSession?.active_tenant, initialActiveWebsite]);
+
   const contextValue: UserSessionContextValue = {
     userSession,
     loadingSession,
     sessionError,
     refreshSession,
+    setActiveTenant,
+    setActiveWebsite,
   };
 
   if (loadingSession) {

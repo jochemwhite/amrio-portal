@@ -40,6 +40,7 @@ interface CreateCollectionData {
   name: string;
   description?: string;
   website_id: string;
+  schema_id: string;
 }
 
 interface UpdateCollectionData {
@@ -51,9 +52,12 @@ interface UpdateCollectionData {
 
 export async function createCollection(data: CreateCollectionData): Promise<ActionResponse<Collection>> {
   const supabase = await createClient();
-  
+
   // Check authentication
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
   if (authError || !user) {
     return { success: false, error: "Unauthorized: User not authenticated." };
   }
@@ -77,23 +81,7 @@ export async function createCollection(data: CreateCollectionData): Promise<Acti
       return { success: false, error: "Website not found or access denied." };
     }
 
-    // Create a default schema for this collection
-    const { data: schema, error: schemaError } = await supabase
-      .from("cms_schemas")
-      .insert({
-        name: `${data.name} Schema`,
-        description: `Schema for ${data.name} collection`,
-        template: false,
-        created_by: user.id,
-        tenant_id: tenantId,
-      })
-      .select()
-      .single();
 
-    if (schemaError || !schema) {
-      console.error("Error creating schema:", schemaError);
-      return { success: false, error: "Failed to create collection schema." };
-    }
 
     // Create the collection
     const { data: collection, error } = await supabase
@@ -102,7 +90,7 @@ export async function createCollection(data: CreateCollectionData): Promise<Acti
         name: data.name,
         description: data.description,
         website_id: data.website_id,
-        schema_id: schema.id,
+        schema_id: data.schema_id,
         created_by: user.id,
       })
       .select()
@@ -111,7 +99,6 @@ export async function createCollection(data: CreateCollectionData): Promise<Acti
     if (error) {
       console.error("Error creating collection:", error);
       // Clean up the schema if collection creation failed
-      await supabase.from("cms_schemas").delete().eq("id", schema.id);
       return { success: false, error: error.message };
     }
 
@@ -125,9 +112,12 @@ export async function createCollection(data: CreateCollectionData): Promise<Acti
 
 export async function updateCollection(collectionId: string, data: UpdateCollectionData): Promise<ActionResponse<Collection>> {
   const supabase = await createClient();
-  
+
   // Check authentication
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
   if (authError || !user) {
     return { success: false, error: "Unauthorized: User not authenticated." };
   }
@@ -142,10 +132,12 @@ export async function updateCollection(collectionId: string, data: UpdateCollect
     // Verify ownership through website
     const { data: existingCollection, error: fetchError } = await supabase
       .from("cms_collections")
-      .select(`
+      .select(
+        `
         *,
         cms_websites!inner(tenant_id)
-      `)
+      `
+      )
       .eq("id", collectionId)
       .single();
 
@@ -153,12 +145,7 @@ export async function updateCollection(collectionId: string, data: UpdateCollect
       return { success: false, error: "Collection not found or access denied." };
     }
 
-    const { data: collection, error } = await supabase
-      .from("cms_collections")
-      .update(data)
-      .eq("id", collectionId)
-      .select()
-      .single();
+    const { data: collection, error } = await supabase.from("cms_collections").update(data).eq("id", collectionId).select().single();
 
     if (error) {
       console.error("Error updating collection:", error);
@@ -176,9 +163,12 @@ export async function updateCollection(collectionId: string, data: UpdateCollect
 
 export async function deleteCollection(collectionId: string): Promise<ActionResponse<void>> {
   const supabase = await createClient();
-  
+
   // Check authentication
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
   if (authError || !user) {
     return { success: false, error: "Unauthorized: User not authenticated." };
   }
@@ -193,10 +183,12 @@ export async function deleteCollection(collectionId: string): Promise<ActionResp
     // Verify ownership and get schema_id
     const { data: existingCollection, error: fetchError } = await supabase
       .from("cms_collections")
-      .select(`
+      .select(
+        `
         schema_id,
         cms_websites!inner(tenant_id)
-      `)
+      `
+      )
       .eq("id", collectionId)
       .single();
 
@@ -205,22 +197,11 @@ export async function deleteCollection(collectionId: string): Promise<ActionResp
     }
 
     // Delete the collection (cascade will handle entries and items)
-    const { error } = await supabase
-      .from("cms_collections")
-      .delete()
-      .eq("id", collectionId);
+    const { error } = await supabase.from("cms_collections").delete().eq("id", collectionId);
 
     if (error) {
       console.error("Error deleting collection:", error);
       return { success: false, error: error.message };
-    }
-
-    // Clean up the associated schema
-    if (existingCollection.schema_id) {
-      await supabase
-        .from("cms_schemas")
-        .delete()
-        .eq("id", existingCollection.schema_id);
     }
 
     revalidatePath("/dashboard/collections");
@@ -233,9 +214,12 @@ export async function deleteCollection(collectionId: string): Promise<ActionResp
 
 export async function getCollectionsByWebsite(websiteId: string): Promise<ActionResponse<CollectionWithSchema[]>> {
   const supabase = await createClient();
-  
+
   // Check authentication
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
   if (authError || !user) {
     return { success: false, error: "Unauthorized: User not authenticated." };
   }
@@ -261,14 +245,16 @@ export async function getCollectionsByWebsite(websiteId: string): Promise<Action
 
     const { data: collections, error } = await supabase
       .from("cms_collections")
-      .select(`
+      .select(
+        `
         *,
         cms_schemas(
           id,
           name,
           description
         )
-      `)
+      `
+      )
       .eq("website_id", websiteId)
       .order("created_at", { ascending: false });
 
@@ -286,9 +272,12 @@ export async function getCollectionsByWebsite(websiteId: string): Promise<Action
 
 export async function getCollectionById(collectionId: string): Promise<ActionResponse<CollectionWithSchema>> {
   const supabase = await createClient();
-  
+
   // Check authentication
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
   if (authError || !user) {
     return { success: false, error: "Unauthorized: User not authenticated." };
   }
@@ -302,7 +291,8 @@ export async function getCollectionById(collectionId: string): Promise<ActionRes
   try {
     const { data: collection, error } = await supabase
       .from("cms_collections")
-      .select(`
+      .select(
+        `
         *,
         cms_websites!inner(tenant_id),
         cms_schemas(
@@ -326,7 +316,8 @@ export async function getCollectionById(collectionId: string): Promise<ActionRes
             )
           )
         )
-      `)
+      `
+      )
       .eq("id", collectionId)
       .order("order", { ascending: true, referencedTable: "cms_schemas.cms_schema_sections" })
       .order("order", { ascending: true, referencedTable: "cms_schemas.cms_schema_sections.cms_schema_fields" })
@@ -360,4 +351,3 @@ export async function getCollectionById(collectionId: string): Promise<ActionRes
     return { success: false, error: "An unexpected error occurred." };
   }
 }
-

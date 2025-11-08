@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/supabaseServerClient";
 import { getActiveTenantId } from "@/server/utils";
 import { ActionResponse } from "@/types/actions";
 import { revalidatePath } from "next/cache";
+import { initializePageContent } from "./schema-content-actions";
 
 // ============== TYPES ==============
 
@@ -92,7 +93,7 @@ export async function createCollectionEntry(data: CreateCollectionEntryData): Pr
 
     // Initialize content structure if schema exists
     if (collection.schema_id) {
-      await initializeCollectionEntryContent(entry.id, collection.schema_id);
+      await initializePageContent(collection.schema_id);
     }
 
     revalidatePath(`/dashboard/collections/${data.collection_id}/entries`);
@@ -542,6 +543,6 @@ const formatContentForFieldType = (fieldType: string, value: any): any => {
       };
 
     default:
-      return { value: value };
+      return value;
   }
 };

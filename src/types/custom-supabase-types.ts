@@ -9,6 +9,17 @@ export type UserSession = {
     logo_url: string;
     website: string
   }[];
+  active_tenant: {
+    id: string;
+    name: string;
+    logo_url: string;
+    website: string;
+  };
+  active_website: {
+    id: string;
+    name: string;
+    url: string;
+  };
 };
 
 export interface UserForProvider {

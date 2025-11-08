@@ -16,18 +16,15 @@ import {
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { useActiveWebsite } from "@/hooks/use-active-website";
+import { useUserSession } from "@/providers/session-provider";
 
 export function WebsiteSwitcher() {
   const { isMobile } = useSidebar();
-  const { activeWebsite, setActiveWebsite, availableWebsites, hasMultipleWebsites, isInitialized } = useActiveWebsite();
-
-  // Don't render until initialized to prevent hydration mismatch
-  if (!isInitialized) {
-    return null;
-  }
+  const { availableWebsites, hasMultipleWebsites, isInitialized } = useActiveWebsite();
+  const { userSession, setActiveWebsite } = useUserSession();
 
   // Show a placeholder when no websites are available
-  if (availableWebsites.length === 0) {
+  if (!userSession?.active_website) {
     return (
       <SidebarMenu>
         <SidebarMenuItem>
@@ -63,15 +60,10 @@ export function WebsiteSwitcher() {
                 <Globe className="h-5 w-5" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">{activeWebsite?.name}</span>
-                <span className="truncate text-xs text-muted-foreground">{activeWebsite?.domain}</span>
+                <span className="truncate font-semibold">{userSession?.active_website?.name}</span>
+                <span className="truncate text-xs text-muted-foreground">{userSession?.active_website?.url}</span>
               </div>
-              <div className="flex items-center gap-1">
-                <Badge variant={activeWebsite?.status === "active" ? "default" : "secondary"} className="text-xs">
-                  {activeWebsite?.status}
-                </Badge>
-                {hasMultipleWebsites && <ChevronsUpDown className="ml-1 h-4 w-4" />}
-              </div>
+              <div className="flex items-center gap-1">{hasMultipleWebsites && <ChevronsUpDown className="ml-1 h-4 w-4" />}</div>
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent

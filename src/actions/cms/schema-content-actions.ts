@@ -106,7 +106,6 @@ export async function savePageContent(
       // Format the content based on field type
       const formattedContent = formatContentForFieldType(fieldType, value);
 
-      console.log(formattedContent)
 
       // If we have content_field_id, just update that specific field
       if (content_field_id) {

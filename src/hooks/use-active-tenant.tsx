@@ -19,7 +19,7 @@ export function useActiveTenant() {
     if (typeof document === "undefined") return null;
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+    if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
     return null;
   };
 
@@ -45,10 +45,10 @@ export function useActiveTenant() {
 
     // Try to get from cookie first
     const savedTenantId = getCookie(ACTIVE_TENANT_COOKIE_NAME);
-    
+
     if (savedTenantId) {
       // Find the saved tenant in the current user's tenants
-      const savedTenant = userSession.tenants.find(tenant => tenant.id === savedTenantId);
+      const savedTenant = userSession.tenants.find((tenant) => tenant.id === savedTenantId);
       if (savedTenant) {
         setActiveTenantState(savedTenant);
         setIsInitialized(true);
@@ -86,4 +86,4 @@ export function useActiveTenant() {
     hasMultipleTenants,
     isInitialized,
   };
-} 
+}

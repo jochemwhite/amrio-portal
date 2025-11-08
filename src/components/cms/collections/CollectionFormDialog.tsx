@@ -1,13 +1,31 @@
 "use client";
 
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { useEffect, useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { createCollection, CollectionWithSchema } from "@/actions/cms/collection-actions";
 import { toast } from "sonner";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import SchemaSelect from "@/components/form-components/schema-select";
+
+// Form validation schema
+export const formSchema = z.object({
+  name: z
+    .string()
+    .min(1, "Collection name is required")
+    .min(2, "Collection name must be at least 2 characters")
+    .max(100, "Collection name must be less than 100 characters"),
+  description: z.string().max(500, "Description must be less than 500 characters").optional(),
+  schema_id: z.string(),
+  website_id: z.string(),
+});
+
+type FormData = z.infer<typeof formSchema>;
 
 interface CollectionFormDialogProps {
   isOpen: boolean;
@@ -16,37 +34,45 @@ interface CollectionFormDialogProps {
   websiteId: string;
 }
 
-export function CollectionFormDialog({
-  isOpen,
-  onClose,
-  onSuccess,
-  websiteId,
-}: CollectionFormDialogProps) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+export function CollectionFormDialog({ isOpen, onClose, onSuccess, websiteId }: CollectionFormDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      schema_id: "",
+      website_id: websiteId,
+    },
+  });
 
-    if (!name.trim()) {
-      toast.error("Please enter a collection name");
-      return;
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      form.reset({
+        name: "",
+        description: "",
+        schema_id: "",
+        website_id: websiteId,
+      });
     }
+  }, [isOpen, websiteId, form]);
 
+  const handleSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     try {
       const result = await createCollection({
-        name: name.trim(),
-        description: description.trim() || undefined,
-        website_id: websiteId,
+        name: data.name.trim(),
+        description: data.description?.trim() || undefined,
+        schema_id: data.schema_id,
+        website_id: data.website_id,
       });
 
       if (result.success && result.data) {
         toast.success("Collection created successfully");
         onSuccess(result.data as CollectionWithSchema);
-        setName("");
-        setDescription("");
+        onClose();
       } else {
         toast.error(result.error || "Failed to create collection");
       }
@@ -59,8 +85,6 @@ export function CollectionFormDialog({
 
   const handleClose = () => {
     if (!isSubmitting) {
-      setName("");
-      setDescription("");
       onClose();
     }
   };
@@ -71,44 +95,62 @@ export function CollectionFormDialog({
         <DialogHeader>
           <DialogTitle>Create Collection</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                placeholder="Team Members"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={isSubmitting}
-                required
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Team Members" {...field} disabled={isSubmitting} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Collection for managing team member profiles" {...field} disabled={isSubmitting} rows={3} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="schema_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Schema</FormLabel>
+                    <SchemaSelect value={field.value} onChange={field.onChange} type="collection" />
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                placeholder="Collection for managing team member profiles"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                disabled={isSubmitting}
-                rows={3}
-              />
+
+            <div className="flex justify-end space-x-2 pt-4 border-t">
+              <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Creating..." : "Create Collection"}
+              </Button>
             </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Creating..." : "Create Collection"}
-            </Button>
-          </DialogFooter>
-        </form>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
 }
-
-
-
