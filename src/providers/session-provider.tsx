@@ -241,6 +241,7 @@ export const UserSessionProvider: React.FC<UserSessionProviderProps> = ({
         }
       };
     });
+    
   }, []);
 
   // Function to set active website

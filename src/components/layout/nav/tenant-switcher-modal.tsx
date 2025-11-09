@@ -3,13 +3,13 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useActiveTenant } from "@/hooks/use-active-tenant";
+import { useUserSession } from "@/providers/session-provider";
 import { Check } from "lucide-react";
 import * as React from "react";
 
 export function TenantSwitcherModal() {
   const [open, setOpen] = React.useState(false);
-  const { activeTenant, setActiveTenant, availableTenants, isInitialized } = useActiveTenant();
-
+  const { userSession, setActiveTenant } = useUserSession();
   // Keyboard shortcut: Cmd+O/Cmd+K (or Ctrl+O/Ctrl+K on Windows)
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -23,7 +23,11 @@ export function TenantSwitcherModal() {
     return () => document.removeEventListener("keydown", down);
   }, []);
 
-  if (!isInitialized) {
+
+  const availableTenants = userSession?.tenants || [];
+
+
+  if (!userSession) {
     return null;
   }
 
@@ -50,7 +54,7 @@ export function TenantSwitcherModal() {
               <div className="flex flex-1 flex-col">
                 <span className="font-medium">{tenant.name}</span>
               </div>
-              {activeTenant?.id === tenant.id && <Check className="h-4 w-4 text-primary" />}
+              {userSession?.active_tenant?.id === tenant.id && <Check className="h-4 w-4 text-primary" />}
             </CommandItem>
           ))}
         </CommandGroup>
@@ -59,7 +63,7 @@ export function TenantSwitcherModal() {
         <p className="text-xs text-muted-foreground">
           Press{" "}
           <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-            <span className="text-xs">⌘</span>Shift O
+            <span className="text-xs">⌘</span>Ctrl K
           </kbd>{" "}
           to toggle
         </p>
