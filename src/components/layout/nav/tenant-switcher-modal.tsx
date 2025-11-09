@@ -2,7 +2,8 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { useActiveTenant } from "@/hooks/use-active-tenant";
+import { DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useUserSession } from "@/providers/session-provider";
 import { Check } from "lucide-react";
 import * as React from "react";
@@ -33,6 +34,9 @@ export function TenantSwitcherModal() {
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
+      <VisuallyHidden>
+        <DialogTitle>Switch Organization</DialogTitle>
+      </VisuallyHidden>
       <CommandInput placeholder="Search organizations..." />
       <CommandList>
         <CommandEmpty>No organizations found.</CommandEmpty>
