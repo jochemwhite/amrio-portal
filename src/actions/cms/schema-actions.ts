@@ -14,12 +14,14 @@ interface CreateSchemaData {
   name: string;
   description?: string;
   template?: boolean;
+  schema_type: "page" | "collection";
 }
 
 interface UpdateSchemaData {
   name?: string;
   description?: string;
   template?: boolean;
+  schema_type?: "page" | "collection";
 }
 
 export async function createSchema(data: CreateSchemaData): Promise<ActionResponse<Schema>> {
@@ -55,6 +57,7 @@ export async function createSchema(data: CreateSchemaData): Promise<ActionRespon
         template: data.template ?? false,
         created_by: user.id,
         tenant_id: tenantId,
+        schema_type: data.schema_type ?? "page",
       })
       .select()
       .single();
@@ -98,7 +101,10 @@ export async function updateSchema(schemaId: string, data: UpdateSchemaData): Pr
   }
 
   try {
-    const { data: schema, error } = await supabase.from("cms_schemas").update(data).eq("id", schemaId).eq("tenant_id", tenantId).select().single();
+    const { data: schema, error } = await supabase.from("cms_schemas").update({
+      ...data,
+      schema_type: data.schema_type ?? "page",
+    }).eq("id", schemaId).eq("tenant_id", tenantId).select().single();
 
     if (error) {
       console.error("Error updating schema:", error);

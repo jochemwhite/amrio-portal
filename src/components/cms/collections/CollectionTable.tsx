@@ -18,7 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Eye, Edit, Trash, List } from "lucide-react";
+import { MoreHorizontal, Edit, Trash, List } from "lucide-react";
 import { CollectionWithSchema, deleteCollection } from "@/actions/cms/collection-actions";
 import { toast } from "sonner";
 import { format } from "date-fns";

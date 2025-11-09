@@ -187,8 +187,7 @@ export function AddFieldMenu() {
                         {...field}
                         onChange={(e) => {
                           // Auto-convert to lowercase and replace spaces with underscores
-                          const value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/^_+|_+$/g, '');
-                          field.onChange(value);
+                          field.onChange(e.target.value);
                         }}
                       />
                     </FormControl>

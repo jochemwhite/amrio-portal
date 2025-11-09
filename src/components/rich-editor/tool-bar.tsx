@@ -9,9 +9,13 @@ import {
   Underline
 } from "lucide-react";
 import { Toggle } from "../ui/toggle";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
+import LinkDialog from "./link-dialog";
 
 const ToolBar = ({ editor }: { editor: Editor | null }) => {
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [previousUrl, setPreviousUrl] = useState("");
+
   if (!editor) return null;
 
   // Use useEditorState to get real-time editor state updates
@@ -31,30 +35,37 @@ const ToolBar = ({ editor }: { editor: Editor | null }) => {
     },
   });
 
-  
-  const setLink = useCallback(() => {
-    const previousUrl = editor.getAttributes('link').href
-    const url = window.prompt('URL', previousUrl)
+  const openLinkDialog = useCallback(() => {
+    const currentUrl = editor.getAttributes('link').href || "";
+    setPreviousUrl(currentUrl);
+    setLinkDialogOpen(true);
+  }, [editor]);
 
+  const handleLinkSubmit = useCallback((url: string | null) => {
     // cancelled
     if (url === null) {
-      return
+      return;
     }
 
-    // empty
+    // empty - remove link
     if (url === '') {
-      editor.chain().focus().extendMarkRange('link').unsetLink().run()
-
-      return
+      editor.chain().focus().extendMarkRange('link').unsetLink().run();
+      return;
     }
 
-    // update link
+    // update/create link
     try {
-      editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
+      // If there's already a link, extend the range first, otherwise just set it
+      if (editor.isActive('link')) {
+        editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+      } else {
+        editor.chain().focus().setLink({ href: url }).run();
+      }
     } catch (e: any) {
+      console.error('Error setting link:', e);
       alert(e.message);
     }
-  }, [editor])
+  }, [editor]);
 
   const Options = [
 
@@ -90,28 +101,36 @@ const ToolBar = ({ editor }: { editor: Editor | null }) => {
     },
     {
       icon: <Link className="size-4" />,
-      onClick: setLink,
+      onClick: openLinkDialog,
       pressed: editorState.isLink,
     },
   ];
 
   return (
-    <div className="border rounded-md p-1 mb-1 space-x-2 z-50">
-      {Options.map((option, index) => {
-        return (
-          <Toggle
-            key={index}
-            pressed={option.pressed}
-            onMouseDown={(e) => {
-              e.preventDefault(); // Prevent focus loss
-              option.onClick();
-            }}
-          >
-            {option.icon}
-          </Toggle>
-        );
-      })}
-    </div>
+    <>
+      <div className="border rounded-md p-1 mb-1 space-x-2 z-50">
+        {Options.map((option, index) => {
+          return (
+            <Toggle
+              key={index}
+              pressed={option.pressed}
+              onMouseDown={(e) => {
+                e.preventDefault(); // Prevent focus loss
+                option.onClick();
+              }}
+            >
+              {option.icon}
+            </Toggle>
+          );
+        })}
+      </div>
+      <LinkDialog
+        open={linkDialogOpen}
+        onOpenChange={setLinkDialogOpen}
+        initialUrl={previousUrl}
+        onSubmit={handleLinkSubmit}
+      />
+    </>
   );
 };
 

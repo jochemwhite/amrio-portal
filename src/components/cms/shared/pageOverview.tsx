@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PageStatus, Page } from "@/types/cms";
 import { deletePage } from "@/actions/cms/page-actions";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,10 @@ export function PageOverview({ pages, websiteId }: PageOverviewProps) {
     draft: pages.filter((page) => page.status === "draft").length,
     archived: pages.filter((page) => page.status === "archived").length,
   };
+
+  useEffect(() => {
+    setData(pages);
+  }, [pages]);
 
   const handleSuccess = (data: Database["public"]["Tables"]["cms_pages"]["Row"]) => {
     setData((prev) => [...prev, data]);

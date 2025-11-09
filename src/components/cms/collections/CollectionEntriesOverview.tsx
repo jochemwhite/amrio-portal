@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowLeft, Settings } from "lucide-react";
+import { Plus, ArrowLeft } from "lucide-react";
 import { CollectionEntryTable } from "./CollectionEntryTable";
 import { CollectionWithSchema } from "@/actions/cms/collection-actions";
 import { CollectionEntry, createCollectionEntry } from "@/actions/cms/collection-entry-actions";

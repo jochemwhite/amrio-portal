@@ -8,21 +8,11 @@ import { Database } from "@/types/supabase";
 import { SupabaseWebsite } from "@/types/cms";
 import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
-import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState, useRef } from "react";
+import React, { ReactNode, useCallback, useEffect, useRef } from "react";
 import { getWebsitesByTenant } from "@/actions/cms/website-actions";
+import { useSessionStore, getCookie, setCookie, ACTIVE_TENANT_COOKIE_NAME, ACTIVE_WEBSITE_COOKIE_NAME, COOKIE_MAX_AGE } from "@/stores/session-store";
 
 type Tenant = UserSession["tenants"][0];
-
-interface UserSessionContextValue {
-  userSession: UserSession | null;
-  loadingSession: boolean;
-  sessionError: any;
-  refreshSession: () => Promise<void>;
-  setActiveTenant: (tenant: Tenant) => void;
-  setActiveWebsite: (website: SupabaseWebsite) => void;
-}
-
-const UserSessionContext = createContext<UserSessionContextValue | null>(null);
 
 interface UserSessionProviderProps {
   children: ReactNode;
@@ -31,120 +21,29 @@ interface UserSessionProviderProps {
   initialActiveWebsite?: SupabaseWebsite | null;
 }
 
-// Cookie constants
-const ACTIVE_TENANT_COOKIE_NAME = "active-tenant";
-const ACTIVE_WEBSITE_COOKIE_NAME = "active-website";
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
-
-// Cookie helper functions
-const getCookie = (name: string): string | null => {
-  if (typeof document === "undefined") return null;
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
-  return null;
-};
-
-const setCookie = (name: string, value: string, maxAge: number) => {
-  if (typeof document === "undefined") return;
-  document.cookie = `${name}=${value}; path=/; max-age=${maxAge}; SameSite=Lax`;
-};
-
-const removeCookie = (name: string) => {
-  if (typeof document === "undefined") return;
-  document.cookie = `${name}=; path=/; max-age=0`;
-};
-
 export const UserSessionProvider: React.FC<UserSessionProviderProps> = ({ children, userData, initialActiveTenant, initialActiveWebsite }) => {
-  const [userSession, setUserSession] = useState<UserSession | null>(userData);
-  const [loadingSession, setLoadingSession] = useState<boolean>(true);
-  const [sessionError, setSessionError] = useState<any>(null);
-  const [showMFAScreen, setShowMFAScreen] = useState(false);
+  // Use Zustand store
+  const {
+    userSession,
+    loadingSession,
+    sessionError,
+    showMFAScreen,
+    setShowMFAScreen,
+    setSessionError,
+    refreshSession,
+    checkMFA,
+    setActiveTenant,
+    setActiveWebsite,
+    initialize,
+    reset,
+  } = useSessionStore();
 
   const router = useRouter();
   const supabaseRef = useRef(createClient());
   const subscriptionRef = useRef<{ auth: any; realtime: any } | null>(null);
-  const initializationRef = useRef(false);
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isRefreshingRef = useRef(false);
   const lastSessionRef = useRef<string | null>(null);
   const isUserAlreadySignedInRef = useRef(false);
-
-  const getSupabaseUserSession = useCallback(async (): Promise<UserSession | null> => {
-    try {
-      const supabase = supabaseRef.current;
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) return null;
-
-      const { data, error } = await supabase.rpc("get_user_session", {
-        p_uid: user.id,
-      });
-
-      if (error) {
-        console.error("Error fetching user session from RPC:", error);
-        throw error;
-      }
-
-      return data as UserSession;
-    } catch (error) {
-      console.error("Unexpected error during RPC call:", error);
-      throw error;
-    }
-  }, []);
-
-  const refreshSession = useCallback(
-    async (showLoading = true) => {
-      if (isRefreshingRef.current) return; // Prevent concurrent refreshes
-
-      isRefreshingRef.current = true;
-
-      // Clear any pending refresh timeout
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current);
-        refreshTimeoutRef.current = null;
-      }
-
-      if (showLoading) {
-        setLoadingSession(true);
-      }
-      setSessionError(null);
-
-      try {
-        const session = await getSupabaseUserSession();
-        setUserSession(session);
-      } catch (error) {
-        setSessionError(error);
-        setUserSession(null);
-      } finally {
-        if (showLoading) {
-          setLoadingSession(false);
-        }
-        isRefreshingRef.current = false;
-      }
-    },
-    [getSupabaseUserSession]
-  );
-
-  const checkMFA = useCallback(async () => {
-    try {
-      const { data, error } = await supabaseRef.current.auth.mfa.getAuthenticatorAssuranceLevel();
-
-      if (error) {
-        console.error("MFA check error:", error);
-        return;
-      }
-
-      if (data.nextLevel === "aal2" && data.nextLevel !== data.currentLevel) {
-        setShowMFAScreen(true);
-      }
-      setLoadingSession(false);
-    } catch (error) {
-      console.error("MFA check failed:", error);
-    }
-  }, []);
 
   const handleRoleChange = useCallback(
     async (payload: RealtimePostgresChangesPayload<Database["public"]["Tables"]["user_global_roles"]["Row"]>) => {
@@ -214,86 +113,22 @@ export const UserSessionProvider: React.FC<UserSessionProviderProps> = ({ childr
       subscriptionRef.current.realtime.unsubscribe();
     }
     subscriptionRef.current = null;
-    isRefreshingRef.current = false;
     lastSessionRef.current = null;
     isUserAlreadySignedInRef.current = false;
   }, []);
 
-  // Function to set active tenant
-  const setActiveTenant = useCallback((tenant: Tenant) => {
-    setCookie(ACTIVE_TENANT_COOKIE_NAME, tenant.id, COOKIE_MAX_AGE);
-
-    setUserSession((prev) => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        active_tenant: tenant,
-      };
-    });
-
-    // Reset active website when tenant changes
-    removeCookie(ACTIVE_WEBSITE_COOKIE_NAME);
-    setUserSession((prev) => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        active_website: {
-          id: "",
-          name: "",
-          url: "",
-        },
-      };
-    });
-    router.refresh();
-  }, []);
-
-  // Function to set active website
-  const setActiveWebsite = useCallback((website: SupabaseWebsite) => {
-    setCookie(ACTIVE_WEBSITE_COOKIE_NAME, website.id, COOKIE_MAX_AGE);
-
-    setUserSession((prev) => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        active_website: {
-          id: website.id,
-          name: website.name,
-          url: website.domain,
-        },
-      };
-    });
-    router.refresh();
-  }, []);
-
   // Initialize session once on mount
   useEffect(() => {
-    if (initializationRef.current) return;
-    initializationRef.current = true;
-
     const initializeSession = async () => {
-      try {
-        if (userData) {
-          setUserSession(userData);
-          isUserAlreadySignedInRef.current = true;
-        } else {
-          // Fetch fresh session
-          await refreshSession(true);
-          // Set signed in flag if we got a session
-          const {
-            data: { session },
-          } = await supabaseRef.current.auth.getSession();
-          if (session) {
-            isUserAlreadySignedInRef.current = true;
-            lastSessionRef.current = session.access_token;
-          }
-        }
-        await checkMFA();
-        setLoadingSession(false);
-      } catch (error) {
-        console.error("Session initialization failed:", error);
-        setSessionError(error);
-        setLoadingSession(false);
-      } finally {
+      await initialize(userData);
+
+      // Set signed in flag if we got a session
+      const {
+        data: { session },
+      } = await supabaseRef.current.auth.getSession();
+      if (session) {
+        isUserAlreadySignedInRef.current = true;
+        lastSessionRef.current = session.access_token;
       }
     };
 
@@ -335,9 +170,7 @@ export const UserSessionProvider: React.FC<UserSessionProviderProps> = ({ childr
           case "SIGNED_OUT":
             lastSessionRef.current = null;
             isUserAlreadySignedInRef.current = false;
-            setUserSession(null);
-            setShowMFAScreen(false);
-            setSessionError(null);
+            reset();
             router.push("/");
             break;
           case "MFA_CHALLENGE_VERIFIED":
@@ -391,6 +224,7 @@ export const UserSessionProvider: React.FC<UserSessionProviderProps> = ({ childr
   // Initialize active tenant from props or cookie
   useEffect(() => {
     if (!userSession?.tenants || userSession.tenants.length === 0) return;
+    if (userSession.active_tenant?.id) return; // Already set
 
     let selectedTenant: Tenant | null = null;
 
@@ -411,21 +245,15 @@ export const UserSessionProvider: React.FC<UserSessionProviderProps> = ({ childr
     }
 
     // Set the tenant
-    setCookie(ACTIVE_TENANT_COOKIE_NAME, selectedTenant.id, COOKIE_MAX_AGE);
-    setUserSession((prev) => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        active_tenant: selectedTenant!,
-      };
-    });
-  }, [userSession?.tenants, initialActiveTenant]);
+    setActiveTenant(selectedTenant);
+  }, [userSession?.tenants, userSession?.active_tenant?.id, initialActiveTenant, setActiveTenant]);
 
   // Initialize active website from props or cookie
   useEffect(() => {
     const initializeActiveWebsite = async () => {
       const activeTenant = userSession?.active_tenant;
       if (!activeTenant) return;
+      if (userSession.active_website?.id) return; // Already set
 
       try {
         const result = await getWebsitesByTenant(activeTenant.id);
@@ -451,18 +279,7 @@ export const UserSessionProvider: React.FC<UserSessionProviderProps> = ({ childr
 
           // Set the website if we have one
           if (selectedWebsite) {
-            setCookie(ACTIVE_WEBSITE_COOKIE_NAME, selectedWebsite.id, COOKIE_MAX_AGE);
-            setUserSession((prev) => {
-              if (!prev) return null;
-              return {
-                ...prev,
-                active_website: {
-                  id: selectedWebsite!.id,
-                  name: selectedWebsite!.name,
-                  url: selectedWebsite!.domain,
-                },
-              };
-            });
+            setActiveWebsite(selectedWebsite);
           }
         }
       } catch (error) {
@@ -471,16 +288,7 @@ export const UserSessionProvider: React.FC<UserSessionProviderProps> = ({ childr
     };
 
     initializeActiveWebsite();
-  }, [userSession?.active_tenant, initialActiveWebsite]);
-
-  const contextValue: UserSessionContextValue = {
-    userSession,
-    loadingSession,
-    sessionError,
-    refreshSession,
-    setActiveTenant,
-    setActiveWebsite,
-  };
+  }, [userSession?.active_tenant, userSession?.active_website?.id, initialActiveWebsite, setActiveWebsite]);
 
   if (loadingSession) {
     return (
@@ -498,13 +306,26 @@ export const UserSessionProvider: React.FC<UserSessionProviderProps> = ({ childr
     );
   }
 
-  return <UserSessionContext.Provider value={contextValue}>{children}</UserSessionContext.Provider>;
+  return <>{children}</>;
 };
 
-export const useUserSession = (): UserSessionContextValue => {
-  const context = useContext(UserSessionContext);
-  if (!context) {
-    throw new Error("useUserSession must be used within a UserSessionProvider");
-  }
-  return context;
+// Custom hook to use the session store with router refresh wrappers
+export const useUserSession = () => {
+  const store = useSessionStore();
+  const router = useRouter();
+
+  return {
+    userSession: store.userSession,
+    loadingSession: store.loadingSession,
+    sessionError: store.sessionError,
+    refreshSession: store.refreshSession,
+    setActiveTenant: (tenant: Tenant) => {
+      store.setActiveTenant(tenant);
+      router.refresh();
+    },
+    setActiveWebsite: (website: SupabaseWebsite) => {
+      store.setActiveWebsite(website);
+      router.refresh();
+    },
+  };
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -8,16 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Save, ChevronDown, ChevronRight } from "lucide-react";
 import { CollectionWithSchema } from "@/actions/cms/collection-actions";
-import {
-  CollectionEntryWithItems,
-  saveCollectionEntryContent,
-  updateCollectionEntry,
-} from "@/actions/cms/collection-entry-actions";
-import { toast } from "sonner";
+import { CollectionEntryWithItems } from "@/actions/cms/collection-entry-actions";
 import { FIELD_TYPES } from "../shared/field-types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { useCollectionEntryEditorStore } from "@/stores/useCollectionEntryEditorStore";
 
 interface CollectionEntryEditorProps {
   collection: CollectionWithSchema;
@@ -33,111 +29,55 @@ export function CollectionEntryEditor({
   entryId,
 }: CollectionEntryEditorProps) {
   const router = useRouter();
-  const [entryName, setEntryName] = useState(entry.name || "");
-  const [fieldValues, setFieldValues] = useState<Record<string, any>>({});
-  const [hasChanges, setHasChanges] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const {
+    currentEntryName,
+    hasUnsavedChanges,
+    isSaving,
+    errors,
+    expandedSections,
+    initializeEditor,
+    setEntryName,
+    setFieldValue,
+    getFieldValue,
+    clearFieldError,
+    setFieldError,
+    toggleSection,
+    saveContent,
+  } = useCollectionEntryEditorStore();
 
-  // Initialize field values from entry items
+  // Initialize store with entry data
   useEffect(() => {
-    const initialValues: Record<string, any> = {};
-    entry.cms_collections_items?.forEach((item) => {
-      initialValues[item.schema_field_id] = item.content;
-    });
-    setFieldValues(initialValues);
-  }, [entry]);
+    const initialFields = collection.cms_schemas?.cms_schema_sections
+      ?.flatMap((section) =>
+        section.cms_schema_fields?.map((field: any) => {
+          const item = entry.cms_collections_items?.find((i) => i.schema_field_id === field.id);
+          return {
+            id: field.id,
+            type: field.type,
+            content: item?.content,
+            item_id: item?.id,
+            required: field.required,
+          };
+        }) || []
+      ) || [];
+
+    initializeEditor(entry.name || "", initialFields);
+  }, [entry, collection, initializeEditor]);
 
   const handleFieldChange = (fieldId: string, value: any) => {
-    setFieldValues((prev) => ({ ...prev, [fieldId]: value }));
-    setHasChanges(true);
-    // Clear error for this field
-    if (errors[fieldId]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[fieldId];
-        return newErrors;
-      });
-    }
+    setFieldValue(fieldId, value);
   };
 
   const handleFieldBlur = (field: any) => {
-    if (field.required && !fieldValues[field.id]) {
-      setErrors((prev) => ({ ...prev, [field.id]: "This field is required" }));
+    const value = getFieldValue(field.id);
+    if (field.required && !value) {
+      setFieldError(field.id, "This field is required");
     }
-  };
-
-  const toggleNestedSection = (fieldId: string) => {
-    setExpandedSections((prev) => ({
-      ...prev,
-      [fieldId]: !prev[fieldId],
-    }));
-  };
-
-  const validateFields = (): boolean => {
-    const newErrors: Record<string, string> = {};
-    const allFields = collection.cms_schemas?.cms_schema_sections?.flatMap(
-      (section) => section.cms_schema_fields || []
-    ) || [];
-
-    allFields.forEach((field: any) => {
-      if (field.required && !fieldValues[field.id]) {
-        newErrors[field.id] = "This field is required";
-      }
-    });
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
 
   const handleSave = async () => {
-    if (!validateFields()) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      // Update entry name if changed
-      if (entryName !== entry.name) {
-        const nameResult = await updateCollectionEntry(entryId, { name: entryName });
-        if (!nameResult.success) {
-          toast.error(nameResult.error || "Failed to update entry name");
-          setIsSaving(false);
-          return;
-        }
-      }
-
-      // Prepare field updates
-      const updatedFields = Object.entries(fieldValues).map(([fieldId, content]) => {
-        const item = entry.cms_collections_items?.find((i) => i.schema_field_id === fieldId);
-        const field = collection.cms_schemas?.cms_schema_sections
-          ?.flatMap((s) => s.cms_schema_fields || [])
-          .find((f: any) => f.id === fieldId);
-
-        return {
-          id: fieldId,
-          content,
-          type: field?.type || "text",
-          item_id: item?.id,
-        };
-      });
-
-      const result = await saveCollectionEntryContent(entryId, updatedFields);
-
-      if (result.success) {
-        toast.success("Entry saved successfully");
-        setHasChanges(false);
-        router.refresh();
-      } else {
-        toast.error(result.error || "Failed to save entry");
-      }
-    } catch (error) {
-      toast.error("An unexpected error occurred");
-    } finally {
-      setIsSaving(false);
-    }
+    await saveContent(entryId);
+    router.refresh();
   };
 
   const renderField = (field: any, sectionId: string, allFields: any[] = []) => {
@@ -151,7 +91,7 @@ export function CollectionEntryEditor({
 
     const FieldComponent = fieldType.cmsComponent;
     const fieldId = `${sectionId}-${field.id}`;
-    const value = fieldValues[field.id];
+    const value = getFieldValue(field.id);
     const error = errors[field.id];
 
     return (
@@ -179,7 +119,7 @@ export function CollectionEntryEditor({
           {/* Nested Section Header */}
           <div 
             className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors"
-            onClick={() => toggleNestedSection(parentField.id)}
+            onClick={() => toggleSection(parentField.id)}
           >
             <div className="flex items-center gap-2">
               <Button
@@ -188,7 +128,7 @@ export function CollectionEntryEditor({
                 className="p-0 h-auto hover:bg-transparent"
                 onClick={(e) => {
                   e.stopPropagation();
-                  toggleNestedSection(parentField.id);
+                  toggleSection(parentField.id);
                 }}
               >
                 {isExpanded ? (
@@ -249,16 +189,13 @@ export function CollectionEntryEditor({
               <Label htmlFor="entry-name">Entry Name</Label>
               <Input
                 id="entry-name"
-                value={entryName}
-                onChange={(e) => {
-                  setEntryName(e.target.value);
-                  setHasChanges(true);
-                }}
+                value={currentEntryName}
+                onChange={(e) => setEntryName(e.target.value)}
                 placeholder="Entry name"
                 className="text-lg font-semibold mt-2"
               />
             </div>
-            <Button onClick={handleSave} disabled={!hasChanges || isSaving}>
+            <Button onClick={handleSave} disabled={!hasUnsavedChanges || isSaving}>
               <Save className="mr-2 h-4 w-4" />
               {isSaving ? "Saving..." : "Save Changes"}
             </Button>

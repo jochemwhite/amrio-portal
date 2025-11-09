@@ -9,6 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { createClient } from "@/lib/supabase/supabaseClient";
 import { Database } from "@/types/supabase";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, Check, Loader2 } from "lucide-react";
@@ -16,8 +17,6 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
-import { createClient } from "@/lib/supabase/supabaseClient";
-import { useActiveTenant } from "@/hooks/use-active-tenant";
 import SchemaSelect from "../form-components/schema-select";
 
 // Form validation schema
@@ -34,7 +33,7 @@ export const formSchema = z.object({
     .refine((slug) => slug === "/" || /^[a-z0-9-]+$/.test(slug), "Slug can only contain lowercase letters, numbers, and hyphens (or '/' for home)")
     .refine((slug) => slug === "/" || (!slug.startsWith("-") && !slug.endsWith("-")), "Slug cannot start or end with a hyphen"),
   status: z.enum(["draft", "active", "archived"] as const),
-  schema_id: z.string(),
+  schema_id: z.string().uuid("Schema ID is required"),
   website_id: z.string(),
 });
 

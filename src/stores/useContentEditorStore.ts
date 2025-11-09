@@ -192,9 +192,8 @@ export const useContentEditorStore = create<ContentEditorState>()(
         set({ isSaving: true }, false, "savingContent");
 
         try {
-          // Convert updatedFields to FieldWithValue format for savePageContent
 
-          await savePageContent(updatedFields);
+          await savePageContent(JSON.stringify(updatedFields));
 
           // After successful save, update originalFields with new values and clear updatedFields
           set(

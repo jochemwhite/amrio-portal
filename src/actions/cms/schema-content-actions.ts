@@ -74,14 +74,8 @@ const formatContentForFieldType = (fieldType: string, value: any): any => {
 };
 
 // Updated savePageContent function that works with schema-based fields
-export async function savePageContent(
-  updatedFields: Array<{
-    id: string; // schema field ID
-    content: any;
-    type: string;
-    content_field_id?: string | null; // actual content field ID
-  }>
-) {
+export async function savePageContent(updatedFields: string) {
+  const updatedFieldsArray: Array<{ id: string; content: any; type: string; content_field_id?: string | null }> = JSON.parse(updatedFields);
   try {
     const supabase = await createClient();
 
@@ -94,18 +88,26 @@ export async function savePageContent(
       throw new Error("Unauthorized");
     }
 
-    if (updatedFields.length === 0) {
+    if (updatedFieldsArray.length === 0) {
       return { success: true, message: "No changes to save" };
     }
 
     // Process each updated field
-    const updatePromises = updatedFields.map(async (field) => {
+    const updatePromises = updatedFieldsArray.map(async (field) => {
       const { id: schemaFieldId, content: value, type: fieldType, content_field_id } = field;
 
+      // Debug logging for richtext fields
+      if (fieldType === 'richtext') {
+        console.log('=== RICHTEXT FIELD DEBUG ===');
+        console.log('Original Value:', JSON.stringify(value, null, 2));
+      }
 
       // Format the content based on field type
       const formattedContent = formatContentForFieldType(fieldType, value);
 
+      if (fieldType === 'richtext') {
+        console.log('Formatted Content:', JSON.stringify(formattedContent, null, 2));
+      }
 
       // If we have content_field_id, just update that specific field
       if (content_field_id) {
@@ -115,11 +117,16 @@ export async function savePageContent(
             content: formattedContent,
             updated_at: new Date().toISOString(),
           })
-          .eq("id", content_field_id);
+          .eq("id", content_field_id)
+          .select();
 
         if (error) {
           console.error(`Error saving field ${schemaFieldId}:`, error);
           throw error;
+        }
+
+        if (fieldType === 'richtext' && data) {
+          console.log('Saved to DB:', JSON.stringify(data, null, 2));
         }
 
         return data;
@@ -132,11 +139,16 @@ export async function savePageContent(
           content: formattedContent,
           updated_at: new Date().toISOString(),
         })
-        .eq("schema_field_id", schemaFieldId);
+        .eq("schema_field_id", schemaFieldId)
+        .select();
 
       if (error) {
         console.error(`Error saving field ${schemaFieldId}:`, error);
         throw error;
+      }
+
+      if (fieldType === 'richtext' && data) {
+        console.log('Saved to DB (by schema_field_id):', JSON.stringify(data, null, 2));
       }
 
       return data;

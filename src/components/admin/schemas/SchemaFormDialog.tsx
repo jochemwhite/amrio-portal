@@ -1,106 +1,94 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { Schema } from '@/types/cms'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import { createSchema, updateSchema } from '@/actions/cms/schema-actions'
-import { toast } from 'sonner'
+import { useState, useEffect } from "react";
+import { Schema } from "@/types/cms";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { createSchema, updateSchema } from "@/actions/cms/schema-actions";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
 
 interface SchemaFormDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  schema?: Schema | null
-  onSuccess?: () => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  schema?: Schema | null;
+  onSuccess?: () => void;
 }
 
-export function SchemaFormDialog({
-  open,
-  onOpenChange,
-  schema,
-  onSuccess,
-}: SchemaFormDialogProps) {
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [isTemplate, setIsTemplate] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+export function SchemaFormDialog({ open, onOpenChange, schema, onSuccess }: SchemaFormDialogProps) {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [isTemplate, setIsTemplate] = useState(false);
+  const [schemaType, setSchemaType] = useState("page");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isEdit = !!schema
+  const isEdit = !!schema;
 
   useEffect(() => {
     if (schema) {
-      setName(schema.name)
-      setDescription(schema.description || '')
-      setIsTemplate(schema.template)
+      setName(schema.name);
+      setDescription(schema.description || "");
+      setIsTemplate(schema.template);
     } else {
-      setName('')
-      setDescription('')
-      setIsTemplate(false)
+      setName("");
+      setDescription("");
+      setIsTemplate(false);
     }
-  }, [schema, open])
+  }, [schema, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!name.trim()) {
-      toast.error('Please enter a schema name')
-      return
+      toast.error("Please enter a schema name");
+      return;
     }
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
 
     try {
-      let result
+      let result;
       if (isEdit && schema) {
         result = await updateSchema(schema.id, {
           name: name.trim(),
           description: description.trim() || undefined,
           template: isTemplate,
-        })
+          schema_type: schemaType as "page" | "collection",
+        });
       } else {
         result = await createSchema({
           name: name.trim(),
           description: description.trim() || undefined,
           template: isTemplate,
-        })
+          schema_type: schemaType as "page" | "collection",
+        });
       }
 
       if (result.success) {
-        toast.success(isEdit ? 'Schema updated successfully' : 'Schema created successfully')
-        onSuccess?.()
-        onOpenChange(false)
+        toast.success(isEdit ? "Schema updated successfully" : "Schema created successfully");
+        onSuccess?.();
+        onOpenChange(false);
       } else {
-        toast.error(result.error || 'Failed to save schema')
+        toast.error(result.error || "Failed to save schema");
       }
     } catch (error) {
-      toast.error('An unexpected error occurred')
+      toast.error("An unexpected error occurred");
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>{isEdit ? 'Edit Schema' : 'Create New Schema'}</DialogTitle>
-            <DialogDescription>
-              {isEdit
-                ? 'Update the schema details below.'
-                : 'Create a new schema for your content structure.'}
-            </DialogDescription>
+            <DialogTitle>{isEdit ? "Edit Schema" : "Create New Schema"}</DialogTitle>
+            <DialogDescription>{isEdit ? "Update the schema details below." : "Create a new schema for your content structure."}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
@@ -117,6 +105,18 @@ export function SchemaFormDialog({
               />
             </div>
             <div className="grid gap-2">
+              <Label htmlFor="schema-type">Schema Type</Label>
+              <Select value={schemaType} onValueChange={setSchemaType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select schema type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="page">Page</SelectItem>
+                  <SelectItem value="collection">Collection</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
@@ -127,37 +127,17 @@ export function SchemaFormDialog({
                 rows={3}
               />
             </div>
-            <div className="flex items-center justify-between space-x-2">
-              <div className="space-y-0.5">
-                <Label htmlFor="template">Template Schema</Label>
-                <p className="text-sm text-muted-foreground">
-                  Mark this as a reusable template for multiple pages
-                </p>
-              </div>
-              <Switch
-                id="template"
-                checked={isTemplate}
-                onCheckedChange={setIsTemplate}
-                disabled={isSubmitting}
-              />
-            </div>
           </div>
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
-            >
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : isEdit ? 'Update' : 'Create'}
+              {isSubmitting ? "Saving..." : isEdit ? "Update" : "Create"}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
-
