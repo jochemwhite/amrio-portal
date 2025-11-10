@@ -1,5 +1,5 @@
 import React from "react";
-import { ContentEditor } from "@/components/cms/content-editor/ContentEditor";
+import { PageContentEditor } from "@/components/cms/pages/PageContentEditor";
 import { createClient } from "@/lib/supabase/supabaseServerClient";
 import { notFound } from "next/navigation";
 import { RPCPageResponse } from "@/types/cms";
@@ -56,6 +56,6 @@ export default async function PageContentPage({ params }: PageContentProps) {
       collection_id: field.collection_id || null,
     }));
 
-  return <ContentEditor pageId={pageId} existingContent={page} originalFields={fields} />;
+  return <PageContentEditor pageId={pageId} existingContent={page} originalFields={fields} />;
 }
 

@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { getActiveTenantId } from "@/server/utils";
 import { getCollectionById } from "@/actions/cms/collection-actions";
 import { getCollectionEntryById } from "@/actions/cms/collection-entry-actions";
-import { CollectionEntryEditor } from "@/components/cms/collections/CollectionEntryEditor";
+import { CollectionContentEditor } from "@/components/cms/collections/CollectionContentEditor";
 
 interface CollectionEntryPageProps {
   params: Promise<{
@@ -38,7 +38,7 @@ export default async function CollectionEntryPage({ params }: CollectionEntryPag
   const entry = entryResult.data;
 
   return (
-    <CollectionEntryEditor
+    <CollectionContentEditor
       collection={collection}
       entry={entry}
       collectionId={collectionId}

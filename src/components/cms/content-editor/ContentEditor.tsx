@@ -6,8 +6,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useContentEditorStore } from "@/stores/useContentEditorStore";
 import { RPCPageResponse } from "@/types/cms";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import ContentEditorHeader from "./ContentEditorHeader";
+import { useEffect, useMemo, useState, ReactNode } from "react";
 import RenderComponent from "./RenderComponent";
 import NoSectionsFound from "./NoSectionsFound";
 
@@ -15,13 +14,21 @@ interface ContentEditorProps {
   pageId: string;
   existingContent: RPCPageResponse;
   originalFields: { id: string; type: string; content: any; collection_id?: string | null }[];
+  header?: ReactNode;
+  onSave?: () => void | Promise<void>;
+  expandedSections?: Record<string, boolean>;
+  setExpandedSections?: (expandedSections: Record<string, boolean>) => void;
 }
 
-export function ContentEditor({ pageId, existingContent, originalFields }: ContentEditorProps) {
+export function ContentEditor({ pageId, existingContent, originalFields, header, onSave, expandedSections: externalExpandedSections, setExpandedSections: externalSetExpandedSections }: ContentEditorProps) {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const [internalExpandedSections, setInternalExpandedSections] = useState<Record<string, boolean>>({});
+  
+  // Use external state if provided, otherwise use internal state
+  const expandedSections = externalExpandedSections ?? internalExpandedSections;
+  const setExpandedSections = externalSetExpandedSections ?? setInternalExpandedSections;
 
-  const { isLoading, initializeContent, getFieldValue } = useContentEditorStore();
+  const { isLoading, initializeContent, getFieldValue, setOnSaveCallback } = useContentEditorStore();
 
   // The RPC response already has the nested structure built-in
   const processedSections = useMemo(() => {
@@ -64,11 +71,21 @@ export function ContentEditor({ pageId, existingContent, originalFields }: Conte
     initializeContent(originalFields);
   }, [pageId, existingContent, processedSections, initializeContent]);
 
+  // Set the onSave callback in the store
+  useEffect(() => {
+    if (onSave) {
+      setOnSaveCallback(onSave);
+    }
+    return () => {
+      setOnSaveCallback(undefined);
+    };
+  }, [onSave, setOnSaveCallback]);
+
   const toggleSection = (sectionId: string) => {
-    setExpandedSections((prev) => ({
-      ...prev,
-      [sectionId]: !prev[sectionId],
-    }));
+    setExpandedSections({
+      ...expandedSections,
+      [sectionId]: !expandedSections[sectionId],
+    });
   };
 
   if (isLoading) {
@@ -85,7 +102,7 @@ export function ContentEditor({ pageId, existingContent, originalFields }: Conte
   return (
     <div className="space-y-6">
       {/* Header */}
-      <ContentEditorHeader existingContent={existingContent} processedSections={processedSections} setExpandedSections={setExpandedSections} />
+      {header}
 
       {/* Content Sections */}
       <div className="space-y-6">

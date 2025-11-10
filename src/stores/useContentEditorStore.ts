@@ -37,6 +37,9 @@ interface ContentEditorState {
   isSaving: boolean;
   isLoading: boolean;
 
+  // Callbacks
+  onSaveCallback?: () => void | Promise<void>;
+
   // Actions
   initializeContent: (originalFields: FieldWithValue[]) => void;
   setFieldValue: (fieldId: string, value: any) => void;
@@ -46,6 +49,7 @@ interface ContentEditorState {
   resetField: (fieldId: string) => void;
   resetAllFields: () => void;
   saveContent: () => Promise<void>;
+  setOnSaveCallback: (callback?: () => void | Promise<void>) => void;
 }
 
 export const useContentEditorStore = create<ContentEditorState>()(
@@ -57,6 +61,7 @@ export const useContentEditorStore = create<ContentEditorState>()(
       hasUnsavedChanges: false,
       isSaving: false,
       isLoading: false,
+      onSaveCallback: undefined,
 
       // Initialize store with page data
       initializeContent: (originalFields: FieldWithValue[]) => {
@@ -182,7 +187,7 @@ export const useContentEditorStore = create<ContentEditorState>()(
 
       // Save content values to the server
       saveContent: async () => {
-        const { updatedFields } = get();
+        const { updatedFields, onSaveCallback } = get();
 
         if (updatedFields.length === 0) {
           toast.info("No changes to save");
@@ -219,11 +224,21 @@ export const useContentEditorStore = create<ContentEditorState>()(
           );
 
           toast.success("Content saved successfully");
+
+          // Call the onSave callback if provided
+          if (onSaveCallback) {
+            await onSaveCallback();
+          }
         } catch (error) {
           console.error("Error saving content:", error);
           toast.error(error instanceof Error ? error.message : "Failed to save content");
           set({ isSaving: false }, false, "saveContentError");
         }
+      },
+
+      // Set the onSave callback
+      setOnSaveCallback: (callback?: () => void | Promise<void>) => {
+        set({ onSaveCallback: callback }, false, "setOnSaveCallback");
       },
     }),
     {

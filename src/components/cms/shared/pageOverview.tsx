@@ -13,14 +13,14 @@ import WebsiteStats from "./website-stats";
 import PageFormModal from "@/components/modals/page-form-modal";
 
 interface PageOverviewProps {
-  pages: Database["public"]["Tables"]["cms_pages"]["Row"][];
+  pages: (Database["public"]["Tables"]["cms_pages"]["Row"] & { cms_content_sections: number })[];
   websiteId: string;
 }
 
 export function PageOverview({ pages, websiteId }: PageOverviewProps) {
-  const [data, setData] = useState<Database["public"]["Tables"]["cms_pages"]["Row"][]>(pages);
+  const [data, setData] = useState<(Database["public"]["Tables"]["cms_pages"]["Row"] & { cms_content_sections: number })[]>(pages);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [page, setPage] = useState<Database["public"]["Tables"]["cms_pages"]["Row"] | undefined>(undefined);
+  const [page, setPage] = useState<(Database["public"]["Tables"]["cms_pages"]["Row"] & { cms_content_sections: number }) | undefined>(undefined);
 
   const stats = {
     total: pages.length,
@@ -33,8 +33,8 @@ export function PageOverview({ pages, websiteId }: PageOverviewProps) {
     setData(pages);
   }, [pages]);
 
-  const handleSuccess = (data: Database["public"]["Tables"]["cms_pages"]["Row"]) => {
-    setData((prev) => [...prev, data]);
+  const handleSuccess = (data: Database["public"]["Tables"]["cms_pages"]["Row"] & { cms_content_sections: number }) => {
+    setData((prev) => [...prev, { ...data, sections: Array(data.cms_content_sections || 0).fill({}) }]);
   };
 
   const handleDeletePage = async (pageId: string) => {
@@ -79,7 +79,7 @@ export function PageOverview({ pages, websiteId }: PageOverviewProps) {
     setPage(pages.find((page) => page.id === pageId));
   };
 
-  const columns = createColumns(handleEdit, handleEditSchema, handleDeletePage, handleStatusChange);
+  const columns = createColumns(handleEdit, handleEditSchema, handleDeletePage, handleStatusChange, websiteId);
 
   return (
     <div className="space-y-6">

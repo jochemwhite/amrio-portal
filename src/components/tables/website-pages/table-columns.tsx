@@ -15,10 +15,12 @@ import {
   AlertDialogTitle, 
   AlertDialogTrigger 
 } from "@/components/ui/alert-dialog";
-import { Edit, Trash2, Archive, Play, MoreVertical, FileText, Calendar, Eye } from "lucide-react";
+import { Edit, Trash2, Archive, Play, MoreVertical, FileText, Calendar, Eye, Code2 } from "lucide-react";
 import { PageStatus } from "@/types/cms";
 import { DataTableColumnHeader } from "./page-table-column-header";
 import { Database } from "@/types/supabase";
+import { PageTypeGeneratorDialog } from "@/components/cms/page-type-generator/PageTypeGeneratorDialog";
+import { useUserSession } from "@/providers/session-provider";
 
 export type Page = {
   id: string;
@@ -30,17 +32,21 @@ export type Page = {
   updated_at?: string;
   created_at: string;
   website_id: string;
+  cms_content_sections: number;
 };
 
 interface PageTableActionsProps {
-  page: Database["public"]["Tables"]["cms_pages"]["Row"];
+  page: Database["public"]["Tables"]["cms_pages"]["Row"] & { cms_content_sections: number };
   onEdit: (pageId: string) => void;
   onEditSchema: (pageId: string) => void;
   onDelete: (pageId: string) => void;
   onStatusChange: (pageId: string, status: PageStatus) => void;
+  websiteId: string;
 }
 
-function PageTableActions({ page, onEdit, onEditSchema, onDelete, onStatusChange }: PageTableActionsProps) {
+function PageTableActions({ page, onEdit, onEditSchema, onDelete, onStatusChange, websiteId }: PageTableActionsProps) {
+  const { userSession } = useUserSession();
+  const isSystemAdmin = userSession?.global_roles?.some((role) => role === "system_admin");
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -57,6 +63,18 @@ function PageTableActions({ page, onEdit, onEditSchema, onDelete, onStatusChange
           <FileText className="mr-2 h-4 w-4" />
           Edit Schema
         </DropdownMenuItem>
+        {isSystemAdmin && (
+          <>
+            <DropdownMenuSeparator />
+            <div className="px-2 py-1.5">
+              <PageTypeGeneratorDialog 
+                pageId={page.id} 
+                websiteId={websiteId} 
+                pageName={page.name} 
+              />
+            </div>
+          </>
+        )}
         <DropdownMenuSeparator />
         {page.status !== "active" && (
           <DropdownMenuItem onClick={() => onStatusChange(page.id, "active")}>
@@ -111,8 +129,9 @@ export const createColumns = (
   onEdit: (pageId: string) => void,
   onEditSchema: (pageId: string) => void,
   onDelete: (pageId: string) => void,
-  onStatusChange: (pageId: string, status: PageStatus) => void
-): ColumnDef<Database["public"]["Tables"]["cms_pages"]["Row"]>[] => [
+  onStatusChange: (pageId: string, status: PageStatus) => void,
+  websiteId: string
+): ColumnDef<Database["public"]["Tables"]["cms_pages"]["Row"] & { cms_content_sections: number }>[] => [
   {
     accessorKey: "name",
     header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
@@ -197,6 +216,7 @@ export const createColumns = (
           onEditSchema={onEditSchema}
           onDelete={onDelete}
           onStatusChange={onStatusChange}
+          websiteId={websiteId}
         />
       </div>
     ),

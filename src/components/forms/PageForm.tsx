@@ -42,8 +42,8 @@ type FormData = z.infer<typeof formSchema>;
 interface PageFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (data: Database["public"]["Tables"]["cms_pages"]["Row"]) => void;
-  page?: Database["public"]["Tables"]["cms_pages"]["Row"]; // undefined for create, string for edit
+  onSuccess: (data: Database["public"]["Tables"]["cms_pages"]["Row"] & { cms_content_sections: number }) => void;
+  page?: Database["public"]["Tables"]["cms_pages"]["Row"] & { cms_content_sections: number }; // undefined for create, string for edit
   websiteId: string;
 }
 
@@ -219,7 +219,10 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
 
         if (result.success) {
           toast.success("Page updated successfully");
-          onSuccess(result.data as Database["public"]["Tables"]["cms_pages"]["Row"]);
+          onSuccess({ 
+            ...(result.data as Database["public"]["Tables"]["cms_pages"]["Row"]), 
+            cms_content_sections: page?.cms_content_sections || 0 
+          });
         } else {
           toast.error(result.error || "Failed to update page");
           return;
@@ -236,7 +239,10 @@ export function PageForm({ isOpen, onClose, onSuccess, page, websiteId }: PageFo
 
         if (result.success) {
           toast.success("Page created successfully");
-          onSuccess(result.data as Database["public"]["Tables"]["cms_pages"]["Row"]);
+          onSuccess({ 
+            ...(result.data as Database["public"]["Tables"]["cms_pages"]["Row"]), 
+            cms_content_sections: 0 
+          });
         } else {
           toast.error(result.error || "Failed to create page");
           return;

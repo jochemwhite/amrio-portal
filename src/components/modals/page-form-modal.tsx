@@ -8,9 +8,9 @@ import { Database } from "@/types/supabase";
 interface Props {
   isFormOpen: boolean;
   handleFormClose: () => void;
-  page?: Database["public"]["Tables"]["cms_pages"]["Row"];
+  page?: Database["public"]["Tables"]["cms_pages"]["Row"] & { cms_content_sections: number };
   websiteId: string;
-  onSuccess: (data: Database["public"]["Tables"]["cms_pages"]["Row"]) => void;
+  onSuccess: (data: Database["public"]["Tables"]["cms_pages"]["Row"] & { cms_content_sections: number }) => void;
 }
 
 export default function PageFormModal({ isFormOpen, handleFormClose, page, websiteId, onSuccess }: Props) {

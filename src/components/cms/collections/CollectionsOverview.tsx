@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import { CollectionTable } from "./CollectionTable";
 import { CollectionFormDialog } from "./CollectionFormDialog";
 import { CollectionWithSchema } from "@/actions/cms/collection-actions";
+import { useUserSession } from "@/providers/session-provider";
 
 interface CollectionsOverviewProps {
   website: {
@@ -20,6 +21,7 @@ interface CollectionsOverviewProps {
 export function CollectionsOverview({ website, initialCollections, websiteId }: CollectionsOverviewProps) {
   const [collections, setCollections] = useState<CollectionWithSchema[]>(initialCollections);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const { userSession } = useUserSession();
 
   const handleCollectionCreated = (newCollection: CollectionWithSchema) => {
     setCollections((prev) => [newCollection, ...prev]);
@@ -39,9 +41,16 @@ export function CollectionsOverview({ website, initialCollections, websiteId }: 
             <p className="text-muted-foreground mt-1">Manage content collections for {website.name}</p>
           </div>
 
+          {userSession?.global_roles.includes("system_admin") && (
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Collection
+            </Button>
+          )}
+
         </div>
 
-        {collections.length === 0 ? (
+        {collections.length === 0 && userSession?.global_roles.includes("system_admin") ? (
           <div className="text-center py-12 bg-muted/30 rounded-lg border-2 border-dashed">
             <h3 className="text-lg font-semibold mb-2">No collections yet</h3>
             <p className="text-muted-foreground mb-4">Create your first collection to start managing reusable content.</p>

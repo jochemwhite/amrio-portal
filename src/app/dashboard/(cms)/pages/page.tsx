@@ -25,9 +25,9 @@ export default async function PagesPage() {
   }
 
   // Fetch pages for this website
-  const { data: pages, error: pagesError } = await supabase
+  const { data: pagesData, error: pagesError } = await supabase
     .from("cms_pages")
-    .select("*")
+    .select("*, cms_content_sections(count)")
     .eq("website_id", activeWebsiteId)
     .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false });
@@ -36,9 +36,16 @@ export default async function PagesPage() {
     console.error("Error fetching pages:", pagesError);
   }
 
+  // Transform the data to extract section count
+  const pages = pagesData?.map(({ cms_content_sections, ...page }) => ({
+    ...page,
+    cms_content_sections: cms_content_sections?.[0]?.count || 0,
+    sections: Array(cms_content_sections?.[0]?.count || 0).fill({}),
+  })) || [];
+
   return (
     <div className="container mx-auto py-6">
-      <PageOverview pages={pages || []} websiteId={activeWebsiteId} />
+      <PageOverview pages={pages} websiteId={activeWebsiteId} />
     </div>
   );
 }

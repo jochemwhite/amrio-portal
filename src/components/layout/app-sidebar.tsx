@@ -1,5 +1,5 @@
 "use client";
-import { ArchiveRestore, Building2, Code2, FileText, FileUser, GalleryVerticalEnd, Key, Library, User } from "lucide-react";
+import { ArchiveRestore, Building2, FileText, FileUser, GalleryVerticalEnd, Key, Library, User } from "lucide-react";
 
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar";
 import { useActiveWebsite } from "@/hooks/use-active-website";
@@ -44,11 +44,6 @@ export function AppSidebar() {
         title: "API Keys",
         url: "/dashboard/api-keys",
         icon: Key,
-      },
-      {
-        title: "Type Generator",
-        url: "/dashboard/type-generator",
-        icon: Code2,
       },
     ],
 

@@ -1,17 +1,19 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useContentEditorStore } from "@/stores/useContentEditorStore";
-import { RPCPageResponse, RPCPageSection } from "@/types/cms";
+import { RPCPageSection } from "@/types/cms";
 import { AlertCircle, Expand, Minimize, RotateCcw, Save } from "lucide-react";
-import React from "react";
+import React, { ReactNode } from "react";
 
 interface ContentEditorHeaderProps {
-  existingContent: RPCPageResponse;
+  title: string;
+  description?: string;
   processedSections: RPCPageSection[];
   setExpandedSections: (expandedSections: Record<string, boolean>) => void;
+  children?: ReactNode;
 }
 
-export default function ContentEditorHeader({ existingContent, processedSections, setExpandedSections }: ContentEditorHeaderProps) {
+export default function ContentEditorHeader({ title, description, processedSections, setExpandedSections, children }: ContentEditorHeaderProps) {
   const { hasUnsavedChanges, isSaving, saveContent, resetAllFields } = useContentEditorStore();
 
   const expandAllSections = () => {
@@ -36,9 +38,10 @@ export default function ContentEditorHeader({ existingContent, processedSections
 
   return (
     <div className="flex items-center justify-between">
-      <div>
-        <h1 className="text-2xl font-bold">Content Editor</h1>
-        <p className="text-muted-foreground">Edit content for "{existingContent.name}"</p>
+      <div className="flex-1">
+        <h1 className="text-2xl font-bold">{title}</h1>
+        {description && <p className="text-muted-foreground">{description}</p>}
+        {children}
       </div>
 
       <div className="flex items-center gap-2">

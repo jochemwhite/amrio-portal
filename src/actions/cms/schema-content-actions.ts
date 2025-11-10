@@ -13,11 +13,25 @@ const isRichTextEmpty = (value: any): boolean => {
   );
 };
 
+const isEmpty = (value: any): boolean => {
+  if (value === null || value === undefined) return true;
+  if (typeof value === "string" && value.trim() === "") return true;
+  if (Array.isArray(value) && value.length === 0) return true;
+  if (typeof value === "object" && Object.keys(value).length === 0) return true;
+  return false;
+};
+
 // Format content based on field type
 const formatContentForFieldType = (fieldType: string, value: any): any => {
   if (fieldType === "richtext") {
     return isRichTextEmpty(value) ? null : value;
   }
+
+  if(isEmpty(value)) {
+    return null;
+  }
+
+
 
   switch (fieldType) {
     case "text":
@@ -96,18 +110,8 @@ export async function savePageContent(updatedFields: string) {
     const updatePromises = updatedFieldsArray.map(async (field) => {
       const { id: schemaFieldId, content: value, type: fieldType, content_field_id } = field;
 
-      // Debug logging for richtext fields
-      if (fieldType === 'richtext') {
-        console.log('=== RICHTEXT FIELD DEBUG ===');
-        console.log('Original Value:', JSON.stringify(value, null, 2));
-      }
-
       // Format the content based on field type
       const formattedContent = formatContentForFieldType(fieldType, value);
-
-      if (fieldType === 'richtext') {
-        console.log('Formatted Content:', JSON.stringify(formattedContent, null, 2));
-      }
 
       // If we have content_field_id, just update that specific field
       if (content_field_id) {
@@ -123,10 +127,6 @@ export async function savePageContent(updatedFields: string) {
         if (error) {
           console.error(`Error saving field ${schemaFieldId}:`, error);
           throw error;
-        }
-
-        if (fieldType === 'richtext' && data) {
-          console.log('Saved to DB:', JSON.stringify(data, null, 2));
         }
 
         return data;
@@ -147,8 +147,8 @@ export async function savePageContent(updatedFields: string) {
         throw error;
       }
 
-      if (fieldType === 'richtext' && data) {
-        console.log('Saved to DB (by schema_field_id):', JSON.stringify(data, null, 2));
+      if (fieldType === "richtext" && data) {
+        console.log("Saved to DB (by schema_field_id):", JSON.stringify(data, null, 2));
       }
 
       return data;

@@ -8,6 +8,8 @@ The TypeScript Type Generator is a powerful feature that automatically generates
 - 🔄 **Field Type Mapping**: Automatically maps CMS field types to appropriate TypeScript types
 - 📦 **Nested Support**: Handles nested sections and complex field structures
 - 🔗 **Collection Integration**: Reference fields automatically get proper collection types
+- 🔁 **Recursive Reference Resolution**: Automatically resolves deeply nested collection references
+- 🔀 **API Transformer**: Utility to convert raw API responses to typed structures
 - 📋 **Copy & Download**: Easy copy-to-clipboard or download as `.ts` file
 - 🎨 **Clean Output**: Minimal, focused type definitions without unnecessary comments
 
@@ -267,8 +269,38 @@ get_page_content(page_id_param: string, website_id_param: string)
 }]
 ```
 
+## Important: API Response Transformation
+
+The generated types represent a **clean, flattened structure** for your content. However, your CMS API returns data in a **raw database structure** with metadata (IDs, orders, field arrays, etc.).
+
+**You need to transform the API response** to match the generated types. We provide a utility for this:
+
+📘 **See [API Transformer Guide](./API_TRANSFORMER_GUIDE.md)** for complete instructions on:
+- How to transform raw API responses
+- Using the provided transformer utility
+- Working with reference fields and nested sections
+- Creating custom transformations
+- React hooks and server-side transformation
+
+**Quick Example:**
+
+```typescript
+import { transformApiResponse } from '@/lib/api-transformer';
+import { PageContent } from './types/cms';
+
+const response = await fetch('/api/page-content?slug=/');
+const rawData = await response.json();
+
+// Transform raw API response to typed structure
+const pageData = transformApiResponse<PageContent['sections']>(rawData);
+
+// Now you have full type safety!
+console.log(pageData.sections.Hero.title); // ✅ Autocomplete works!
+```
+
 ## Related Documentation
 
+- [API Transformer Guide](./API_TRANSFORMER_GUIDE.md) - **Start here for API integration**
 - [Schema Builder Guide](./README.md)
 - [Field Types Reference](./README.md#field-types-reference)
 - [API Integration](./API_KEYS_QUICK_START.md)

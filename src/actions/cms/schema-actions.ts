@@ -658,9 +658,11 @@ export async function bulkSaveSchemaChanges(payload: BulkSaveSchemaPayload): Pro
     const deletes = payload.changes.filter((c) => c.type === "delete");
     const reorders = payload.changes.filter((c) => c.type === "reorder");
 
+
     // 1. Process creates
     for (const change of creates) {
       if (change.entity === "section") {
+        
         const { data: section, error } = await supabase
           .from("cms_schema_sections")
           .insert({
