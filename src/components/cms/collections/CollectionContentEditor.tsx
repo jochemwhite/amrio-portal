@@ -10,85 +10,41 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft } from "lucide-react";
-import { CollectionWithSchema } from "@/actions/cms/collection-actions";
-import { CollectionEntryWithItems, updateCollectionEntry } from "@/actions/cms/collection-entry-actions";
-import { RPCPageResponse } from "@/types/cms";
+import { updateCollectionEntry, saveCollectionEntryContent } from "@/actions/cms/collection-entry-actions";
+import { RPCCollectionEntryResponse } from "@/types/cms";
 import { toast } from "sonner";
 
 interface CollectionContentEditorProps {
-  collection: CollectionWithSchema;
-  entry: CollectionEntryWithItems;
-  collectionId: string;
   entryId: string;
+  collectionId: string;
+  existingContent: RPCCollectionEntryResponse;
+  originalFields: { id: string; type: string; content: any; content_field_id: string | null; collection_id?: string | null }[];
 }
 
-export function CollectionContentEditor({ collection, entry, collectionId, entryId }: CollectionContentEditorProps) {
+export function CollectionContentEditor({ entryId, collectionId, existingContent, originalFields }: CollectionContentEditorProps) {
   const router = useRouter();
-  const [entryName, setEntryName] = useState(entry.name || "");
+  const [entryName, setEntryName] = useState(existingContent.name || "");
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
-  // Transform collection schema to match RPCPageResponse format
-  const transformedContent: RPCPageResponse = useMemo(() => {
-    const sections = collection.cms_schemas?.cms_schema_sections?.map((section) => ({
-      id: section.id,
-      name: section.name,
-      description: section.description,
-      order: section.order,
-      fields: section.cms_schema_fields?.map((field) => {
-        // Find the corresponding collection item for this field
-        const item = entry.cms_collections_items?.find((i) => i.schema_field_id === field.id);
-        return {
-          id: field.id,
-          name: field.name,
-          type: field.type,
-          description: field.description,
-          required: field.required,
-          order: field.order,
-          content: item?.content,
-          content_field_id: item?.id || null,
-          collection_id: field.collection_id || null,
-          parent_field_id: field.parent_field_id,
-          fields: field.fields || [],
-        };
-      }) || [],
-    })) || [];
-
-    return {
-      id: entry.id,
-      name: entryName,
-      sections,
-    } as RPCPageResponse;
-  }, [collection, entry, entryName]);
-
-  // Flatten fields for ContentEditor
-  const flattenFields = (fields: any[]): any[] => {
-    return fields.flatMap((field) => {
-      if (field.type === "section" && field.fields) {
-        return flattenFields(field.fields);
-      }
-      return [field];
-    });
-  };
-
-  const originalFields = useMemo(() => {
-    return transformedContent.sections
-      .flatMap((section) => flattenFields(section.fields))
-      .map((field) => ({
-        id: field.id,
-        type: field.type,
-        content: field.content,
-        content_field_id: field.content_field_id,
-        collection_id: field.collection_id || null,
-      }));
-  }, [transformedContent]);
-
   const processedSections = useMemo(() => {
-    return transformedContent.sections || [];
-  }, [transformedContent.sections]);
+    return existingContent.sections || [];
+  }, [existingContent.sections]);
+
+  // Create save function that matches SaveContentFunction signature
+  const saveFn = useMemo(() => {
+    return async (updatedFields: string): Promise<{ success: boolean; message?: string; error?: string }> => {
+      const result = await saveCollectionEntryContent(entryId, updatedFields);
+      if (result.success) {
+        return { success: true, message: "Collection entry saved successfully" };
+      } else {
+        return { success: false, error: result.error };
+      }
+    };
+  }, [entryId]);
 
   const handleSave = async () => {
     // Update entry name if it changed
-    if (entryName !== entry.name) {
+    if (entryName !== existingContent.name) {
       const nameResult = await updateCollectionEntry(entryId, { name: entryName });
       if (!nameResult.success) {
         toast.error(nameResult.error || "Failed to update entry name");
@@ -97,10 +53,10 @@ export function CollectionContentEditor({ collection, entry, collectionId, entry
     }
     router.refresh();
   };
-
   const header = (
     <ContentEditorHeader
       title="Collection Entry Editor"
+      description={`Edit content for "${existingContent.collection_name}"`}
       processedSections={processedSections}
       setExpandedSections={setExpandedSections}
     >
@@ -135,9 +91,10 @@ export function CollectionContentEditor({ collection, entry, collectionId, entry
 
         <ContentEditor
           pageId={entryId}
-          existingContent={transformedContent}
+          existingContent={existingContent as any}
           originalFields={originalFields}
           header={header}
+          saveFn={saveFn}
           onSave={handleSave}
           expandedSections={expandedSections}
           setExpandedSections={setExpandedSections}

@@ -1,4 +1,3 @@
-import { savePageContent } from "@/actions/cms/schema-content-actions";
 import { FIELD_TYPES } from "@/components/cms/shared/field-types";
 import { RPCPageField, RPCPageSection, SupabaseField } from "@/types/cms";
 import { toast } from "sonner";
@@ -22,6 +21,9 @@ export interface FieldComponentProps {
   allSections?: RPCPageSection[];
 }
 
+// Type for the save function that handles the actual save operation
+export type SaveContentFunction = (updatedFields: string) => Promise<{ success: boolean; message?: string; error?: string }>;
+
 interface ContentEditorState {
   // Core data
   originalFields: FieldWithValue[]; // Flattened array of all original fields
@@ -38,7 +40,7 @@ interface ContentEditorState {
   isLoading: boolean;
 
   // Callbacks
-  onSaveCallback?: () => void | Promise<void>;
+  saveFn?: SaveContentFunction; // Function that handles the actual save operation
 
   // Actions
   initializeContent: (originalFields: FieldWithValue[]) => void;
@@ -48,8 +50,7 @@ interface ContentEditorState {
   getFieldCollectionId: (fieldId: string) => string | null;
   resetField: (fieldId: string) => void;
   resetAllFields: () => void;
-  saveContent: () => Promise<void>;
-  setOnSaveCallback: (callback?: () => void | Promise<void>) => void;
+  setSaveFunction: (saveFn: SaveContentFunction) => void;
 }
 
 export const useContentEditorStore = create<ContentEditorState>()(
@@ -61,6 +62,7 @@ export const useContentEditorStore = create<ContentEditorState>()(
       hasUnsavedChanges: false,
       isSaving: false,
       isLoading: false,
+      saveFn: undefined,
       onSaveCallback: undefined,
 
       // Initialize store with page data
@@ -187,18 +189,28 @@ export const useContentEditorStore = create<ContentEditorState>()(
 
       // Save content values to the server
       saveContent: async () => {
-        const { updatedFields, onSaveCallback } = get();
+        const { updatedFields, saveFn } = get();
 
         if (updatedFields.length === 0) {
           toast.info("No changes to save");
           return;
         }
 
+        if (!saveFn) {
+          toast.error("No save function configured. Please set a save function using setSaveFunction.");
+          console.error("No save function configured. Use setSaveFunction to set a save function before calling saveContent.");
+          return;
+        }
+
         set({ isSaving: true }, false, "savingContent");
 
         try {
+          // Call the dynamic save function
+          const result = await saveFn(JSON.stringify(updatedFields));
 
-          await savePageContent(JSON.stringify(updatedFields));
+          if (!result.success) {
+            throw new Error(result.error || "Failed to save content");
+          }
 
           // After successful save, update originalFields with new values and clear updatedFields
           set(
@@ -223,12 +235,7 @@ export const useContentEditorStore = create<ContentEditorState>()(
             "saveContentSuccess"
           );
 
-          toast.success("Content saved successfully");
-
-          // Call the onSave callback if provided
-          if (onSaveCallback) {
-            await onSaveCallback();
-          }
+          toast.success(result.message || "Content saved successfully");
         } catch (error) {
           console.error("Error saving content:", error);
           toast.error(error instanceof Error ? error.message : "Failed to save content");
@@ -236,9 +243,9 @@ export const useContentEditorStore = create<ContentEditorState>()(
         }
       },
 
-      // Set the onSave callback
-      setOnSaveCallback: (callback?: () => void | Promise<void>) => {
-        set({ onSaveCallback: callback }, false, "setOnSaveCallback");
+      // Set the save function
+      setSaveFunction: (saveFn: SaveContentFunction) => {
+        set({ saveFn }, false, "setSaveFunction");
       },
     }),
     {

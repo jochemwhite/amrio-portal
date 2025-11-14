@@ -454,6 +454,7 @@ interface CreateSchemaFieldData {
   required?: boolean;
   default_value?: string;
   validation?: string;
+  settings?: Record<string, any> | null;
   order?: number;
   parent_field_id?: string;
 }
@@ -465,6 +466,7 @@ interface UpdateSchemaFieldData {
   required?: boolean;
   default_value?: string;
   validation?: string;
+  settings?: Record<string, any> | null;
   order?: number;
 }
 
@@ -515,6 +517,7 @@ export async function createSchemaField(data: CreateSchemaFieldData): Promise<Ac
         required: data.required ?? false,
         default_value: data.default_value,
         validation: data.validation,
+        settings: data.settings,
         order: order,
         parent_field_id: data.parent_field_id,
       })
@@ -700,6 +703,7 @@ export async function bulkSaveSchemaChanges(payload: BulkSaveSchemaPayload): Pro
             required: change.data.required ?? false,
             default_value: change.data.default_value,
             validation: change.data.validation,
+            settings: change.data.settings,
             order: 0, // Will update order later
             parent_field_id: parentFieldId,
             collection_id: collectionId || null,
@@ -739,6 +743,7 @@ export async function bulkSaveSchemaChanges(payload: BulkSaveSchemaPayload): Pro
             required: change.data.required,
             default_value: change.data.default_value,
             validation: change.data.validation,
+            settings: change.data.settings,
             parent_field_id: parentFieldId,
             collection_id: collectionId,
           })

@@ -45,6 +45,7 @@ interface SchemaBuilderState {
     required: boolean;
     default_value: string;
     validation: string;
+    settings: Record<string, any> | null;
     collection_id: string | null;
   };
 
@@ -143,6 +144,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
         required: false,
         default_value: "",
         validation: "",
+        settings: null,
         collection_id: null,
       },
 
@@ -381,6 +383,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
               default_value: "",
               validation: "",
               collection_id: null,
+              settings: null,
             },
             isAddFieldOpen: true,
             parentFieldId: null,
@@ -401,6 +404,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
               required: field.required || false,
               default_value: field.default_value || "",
               validation: field.validation || "",
+              settings: field.settings || null,
               collection_id: field.collection_id || null,
             },
             editingFieldId: field.id,
@@ -490,6 +494,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
             required: fieldFormData.required,
             default_value: fieldFormData.default_value,
             validation: fieldFormData.validation,
+            settings: fieldFormData.settings,
             collection_id: fieldFormData.collection_id || null,
           };
 
@@ -522,6 +527,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
                     required: updatedFieldData.required,
                     default_value: updatedFieldData.default_value,
                     validation: updatedFieldData.validation,
+                    settings: updatedFieldData.settings,
                     collection_id: updatedFieldData.collection_id,
                   };
                 });
@@ -574,6 +580,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
             required: fieldFormData.required,
             default_value: fieldFormData.default_value,
             validation: fieldFormData.validation,
+            settings: fieldFormData.settings,
             order: nextOrder,
             schema_section_id: selectedSectionId,
             parent_field_id: parentFieldId,
@@ -604,6 +611,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
                     required: fieldFormData.required,
                     default_value: fieldFormData.default_value,
                     validation: fieldFormData.validation,
+                    settings: fieldFormData.settings,
                     parent_field_id: parentFieldId,
                     collection_id: fieldFormData.collection_id || null,
                   },
@@ -695,6 +703,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
               required: false,
               default_value: "",
               validation: "",
+              settings: null,
               collection_id: null,
             },
             isAddFieldOpen: true,
@@ -716,6 +725,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
               required: field.required || false,
               default_value: field.default_value || "",
               validation: field.validation || "",
+              settings: field.settings || null,
               collection_id: field.collection_id || null,
             },
             editingFieldId: field.id,

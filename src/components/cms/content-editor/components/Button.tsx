@@ -62,7 +62,7 @@ export default function ButtonComponent({ field, fieldId, value, handleFieldChan
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      href: value?.href ?? false,
+      href: value?.href ?? "",
       label: value?.label ?? "",
       target: value?.target ?? "_self",
       custom_href: value?.custom_href ?? undefined,
@@ -71,7 +71,7 @@ export default function ButtonComponent({ field, fieldId, value, handleFieldChan
     mode: "onChange",
   });
 
-  const { control, watch, handleSubmit, setValue } = form;
+  const { control, watch } = form;
 
   // Watch for changes and update CMS store
   useEffect(() => {
@@ -105,7 +105,6 @@ export default function ButtonComponent({ field, fieldId, value, handleFieldChan
     };
 
     fetchPages();
-    console.log(value)
   }, [activeWebsite]);
 
   useEffect(() => {
@@ -120,7 +119,7 @@ export default function ButtonComponent({ field, fieldId, value, handleFieldChan
 
       <Form {...form}>
         <form className="space-y-4">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <FormField
               name="label"
               control={control}
@@ -135,52 +134,35 @@ export default function ButtonComponent({ field, fieldId, value, handleFieldChan
               )}
             />
 
-            <div>
-              <FormField
-                name="href"
-                control={control}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Href (URL)</FormLabel>
-                    <FormControl>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger disabled={loading} className="h-10">
-                          <SelectValue placeholder={loading ? "Loading..." : "Select a page"} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            <SelectLabel>Pages</SelectLabel>
-                            {pages.map((page, _) => (
-                              <SelectItem key={_} value={page.slug}>
-                                {page.slug}
-                              </SelectItem>
-                            ))}
-                            <SelectItem value="custom_link">Other Link</SelectItem>
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {form.watch("href") === "custom_link" && (
-                <FormField
-                  name="custom_href"
-                  control={control}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Custom Link</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://google.com" {...field} value={field.value || ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            <FormField
+              name="href"
+              control={control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Href (URL)</FormLabel>
+                  <FormControl>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <SelectTrigger disabled={loading} className="h-10">
+                        <SelectValue placeholder={loading ? "Loading..." : "Select a page"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectLabel>Pages</SelectLabel>
+                          {pages.map((page, _) => (
+                            <SelectItem key={_} value={page.slug}>
+                              {page.slug}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value="custom_link">Other Link</SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
-            </div>
+            />
+
             <FormField
               name="target"
               control={control}
@@ -205,63 +187,79 @@ export default function ButtonComponent({ field, fieldId, value, handleFieldChan
                 </FormItem>
               )}
             />
+          </div>
 
+          {form.watch("href") === "custom_link" && (
             <FormField
-              name="icon"
+              name="custom_href"
               control={control}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Target</FormLabel>
+                  <FormLabel>Custom Link</FormLabel>
                   <FormControl>
-                    <Select
-                      onValueChange={(value) => {
-                        if (value === "none") {
-                          field.onChange(undefined);
-                          return;
-                        }
-                        field.onChange(value);
-                      }}
-                      value={field.value && field.value !== "none" ? field.value : ""}
-                    >
-                      <SelectTrigger className="h-10">
-                        <SelectValue placeholder="Select a icon" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectLabel>Icons</SelectLabel>
-                          <SelectItem value="none">None</SelectItem>
-                          {ICON_OPTIONS.map((icon, _) => (
-                            <SelectItem key={_} value={icon}>
-                              <span className="flex gap-3">
-                                <SocialIcon icon={icon} /> {icon.charAt(0).toUpperCase() + icon.slice(1)}
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
+                    <Input placeholder="https://google.com" {...field} value={field.value || ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+          )}
 
-            {/* <FormField
-              name="download"
-              control={control}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Download </FormLabel>
-                  <FormControl>
-                    <div className="h-9 flex items-center justify-center">
-                      <Checkbox onCheckedChange={field.onChange} checked={field.value} className="ml-4 " />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            /> */}
-          </div>
+          <FormField
+            name="icon"
+            control={control}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Icon</FormLabel>
+                <FormControl>
+                  <Select
+                    onValueChange={(value) => {
+                      if (value === "none") {
+                        field.onChange(undefined);
+                        return;
+                      }
+                      field.onChange(value);
+                    }}
+                    value={field.value && field.value !== "none" ? field.value : ""}
+                  >
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Select an icon" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectLabel>Icons</SelectLabel>
+                        <SelectItem value="none">None</SelectItem>
+                        {ICON_OPTIONS.map((icon, _) => (
+                          <SelectItem key={_} value={icon}>
+                            <span className="flex gap-3">
+                              <SocialIcon icon={icon} /> {icon.charAt(0).toUpperCase() + icon.slice(1)}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* <FormField
+            name="download"
+            control={control}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Download </FormLabel>
+                <FormControl>
+                  <div className="h-9 flex items-center justify-center">
+                    <Checkbox onCheckedChange={field.onChange} checked={field.value} className="ml-4 " />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          /> */}
         </form>
       </Form>
     </div>

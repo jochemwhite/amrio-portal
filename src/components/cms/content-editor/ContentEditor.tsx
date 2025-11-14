@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useContentEditorStore } from "@/stores/useContentEditorStore";
+import { useContentEditorStore, SaveContentFunction } from "@/stores/useContentEditorStore";
 import { RPCPageResponse } from "@/types/cms";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useState, ReactNode } from "react";
@@ -15,20 +15,30 @@ interface ContentEditorProps {
   existingContent: RPCPageResponse;
   originalFields: { id: string; type: string; content: any; collection_id?: string | null }[];
   header?: ReactNode;
-  onSave?: () => void | Promise<void>;
+  saveFn: SaveContentFunction; // Required: Function that handles saving content
+  onSave?: () => void | Promise<void>; // Optional: Called after successful save
   expandedSections?: Record<string, boolean>;
   setExpandedSections?: (expandedSections: Record<string, boolean>) => void;
 }
 
-export function ContentEditor({ pageId, existingContent, originalFields, header, onSave, expandedSections: externalExpandedSections, setExpandedSections: externalSetExpandedSections }: ContentEditorProps) {
+export function ContentEditor({
+  pageId,
+  existingContent,
+  originalFields,
+  header,
+  saveFn,
+  onSave,
+  expandedSections: externalExpandedSections,
+  setExpandedSections: externalSetExpandedSections,
+}: ContentEditorProps) {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [internalExpandedSections, setInternalExpandedSections] = useState<Record<string, boolean>>({});
-  
+
   // Use external state if provided, otherwise use internal state
   const expandedSections = externalExpandedSections ?? internalExpandedSections;
   const setExpandedSections = externalSetExpandedSections ?? setInternalExpandedSections;
 
-  const { isLoading, initializeContent, getFieldValue, setOnSaveCallback } = useContentEditorStore();
+  const { isLoading, initializeContent, getFieldValue, setSaveFunction } = useContentEditorStore();
 
   // The RPC response already has the nested structure built-in
   const processedSections = useMemo(() => {
@@ -71,15 +81,14 @@ export function ContentEditor({ pageId, existingContent, originalFields, header,
     initializeContent(originalFields);
   }, [pageId, existingContent, processedSections, initializeContent]);
 
-  // Set the onSave callback in the store
+  // Set the save function in the store
   useEffect(() => {
-    if (onSave) {
-      setOnSaveCallback(onSave);
-    }
+    setSaveFunction(saveFn);
     return () => {
-      setOnSaveCallback(undefined);
+      // Clean up on unmount
+      setSaveFunction(async () => ({ success: false, error: "No save function configured" }));
     };
-  }, [onSave, setOnSaveCallback]);
+  }, [saveFn, setSaveFunction]);
 
   const toggleSection = (sectionId: string) => {
     setExpandedSections({

@@ -476,6 +476,7 @@ export type Database = {
           parent_field_id: string | null
           required: boolean
           schema_section_id: string
+          settings: Json | null
           type: Database["public"]["Enums"]["field_type"]
           updated_at: string
           validation: string | null
@@ -491,6 +492,7 @@ export type Database = {
           parent_field_id?: string | null
           required?: boolean
           schema_section_id: string
+          settings?: Json | null
           type: Database["public"]["Enums"]["field_type"]
           updated_at?: string
           validation?: string | null
@@ -506,6 +508,7 @@ export type Database = {
           parent_field_id?: string | null
           required?: boolean
           schema_section_id?: string
+          settings?: Json | null
           type?: Database["public"]["Enums"]["field_type"]
           updated_at?: string
           validation?: string | null
@@ -1118,12 +1121,36 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      build_collection_entry_data: {
+        Args: { collection_id_param: string; entry_id_param: string }
+        Returns: Json
+      }
+      build_collection_items_with_fields: {
+        Args: {
+          collection_id_param: string
+          entry_id_param: string
+          parent_item_id: string
+        }
+        Returns: Json
+      }
+      build_collection_nested_items: {
+        Args: { collection_id_param: string; parent_item_id: string }
+        Returns: Json
+      }
       build_nested_content_fields_recursive: {
-        Args: { parent_field_id_param?: string; section_id_param: string }
+        Args: { parent_field_id_param: string; section_id_param: string }
         Returns: Json
       }
       build_nested_fields_recursive: {
         Args: { parent_field_id_param?: string; section_id_param: string }
+        Returns: Json
+      }
+      build_schema_fields_with_collection_items: {
+        Args: {
+          entry_id_param: string
+          parent_field_id_param?: string
+          schema_section_id_param: string
+        }
         Returns: Json
       }
       build_schema_fields_with_content: {
@@ -1133,14 +1160,6 @@ export type Database = {
           schema_section_id_param: string
         }
         Returns: Json
-      }
-      calculate_tenant_storage: {
-        Args: { p_tenant_id: string }
-        Returns: number
-      }
-      can_tenant_upload_file: {
-        Args: { p_file_size: number; p_tenant_id: string }
-        Returns: boolean
       }
       create_user_profile_and_assign_role: {
         Args: {
@@ -1152,28 +1171,48 @@ export type Database = {
         }
         Returns: boolean
       }
-      format_file_size: { Args: { size_bytes: number }; Returns: string }
       generate_api_key: {
         Args: {
           p_created_by: string
           p_environment: string
-          p_expires_at?: string
-          p_metadata?: Json
+          p_expires_at: string
+          p_metadata: Json
           p_name: string
-          p_rate_limit?: number
-          p_scopes?: Json
+          p_rate_limit: number
+          p_scopes: Json
           p_tenant_id: string
           p_website_id: string
         }
         Returns: Json
       }
-      get_all_users_with_roles: { Args: never; Returns: Json[] }
+      get_collection: {
+        Args: {
+          p_collection_id: string
+          p_entry_id: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      get_collection_entry: {
+        Args: { entry_id_param: string }
+        Returns: {
+          collection_description: string
+          collection_id: string
+          collection_name: string
+          created_at: string
+          id: string
+          name: string
+          schema_description: string
+          schema_id: string
+          schema_name: string
+          schema_template: boolean
+          sections: Json
+        }[]
+      }
       get_collection_with_schema: {
         Args: { p_collection_id: string; p_tenant_id: string }
         Returns: Json
       }
-      get_file_extension: { Args: { filename: string }; Returns: string }
-      get_file_type: { Args: { mime_type: string }; Returns: string }
       get_or_create_content_section: {
         Args: { page_id_param: string; schema_section_id_param: string }
         Returns: string
@@ -1222,16 +1261,10 @@ export type Database = {
         Args: { page_id_param: string; schema_id_param: string }
         Returns: undefined
       }
-      migrate_existing_content_to_schemas: { Args: never; Returns: undefined }
-      revoke_global_role: {
-        Args: { role_name_input: string; user_id_input: string }
-        Returns: undefined
+      resolve_collection_reference: {
+        Args: { collection_id_param: string; field_content: Json }
+        Returns: Json
       }
-      save_page_content: {
-        Args: { field_updates: Json; page_id_param: string }
-        Returns: undefined
-      }
-      set_system_admin: { Args: { user_id_input: string }; Returns: undefined }
       sync_schema_changes: {
         Args: { schema_id_param: string }
         Returns: {
@@ -1253,6 +1286,8 @@ export type Database = {
         | "reference"
         | "section"
         | "video"
+        | "button"
+        | "social_media"
       global_roles: "default_user" | "system_admin"
       page_status: "draft" | "active" | "archived"
       schema_type: "page" | "collection"
@@ -1410,6 +1445,8 @@ export const Constants = {
         "reference",
         "section",
         "video",
+        "button",
+        "social_media",
       ],
       global_roles: ["default_user", "system_admin"],
       page_status: ["draft", "active", "archived"],

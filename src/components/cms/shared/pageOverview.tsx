@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Database } from "@/types/supabase";
 import WebsiteStats from "./website-stats";
 import PageFormModal from "@/components/modals/page-form-modal";
+import { useUserSession } from "@/providers/session-provider";
 
 interface PageOverviewProps {
   pages: (Database["public"]["Tables"]["cms_pages"]["Row"] & { cms_content_sections: number })[];
@@ -21,7 +22,7 @@ export function PageOverview({ pages, websiteId }: PageOverviewProps) {
   const [data, setData] = useState<(Database["public"]["Tables"]["cms_pages"]["Row"] & { cms_content_sections: number })[]>(pages);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [page, setPage] = useState<(Database["public"]["Tables"]["cms_pages"]["Row"] & { cms_content_sections: number }) | undefined>(undefined);
-
+  const { userSession } = useUserSession();
   const stats = {
     total: pages.length,
     active: pages.filter((page) => page.status === "active").length,
@@ -80,6 +81,7 @@ export function PageOverview({ pages, websiteId }: PageOverviewProps) {
   };
 
   const columns = createColumns(handleEdit, handleEditSchema, handleDeletePage, handleStatusChange, websiteId);
+  const isSystemAdmin = userSession?.global_roles?.some((role) => role === "system_admin");
 
   return (
     <div className="space-y-6">
@@ -90,10 +92,12 @@ export function PageOverview({ pages, websiteId }: PageOverviewProps) {
           <p className="text-muted-foreground">Manage your content pages and their schemas</p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={handleNewPage}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Page
-          </Button>
+          {isSystemAdmin && (
+            <Button variant="outline" onClick={handleNewPage}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Page
+            </Button>
+          )}
         </div>
       </div>
 

@@ -4,16 +4,16 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { 
-  AlertDialog, 
-  AlertDialogAction, 
-  AlertDialogCancel, 
-  AlertDialogContent, 
-  AlertDialogDescription, 
-  AlertDialogFooter, 
-  AlertDialogHeader, 
-  AlertDialogTitle, 
-  AlertDialogTrigger 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Edit, Trash2, Archive, Play, MoreVertical, FileText, Calendar, Eye, Code2 } from "lucide-react";
 import { PageStatus } from "@/types/cms";
@@ -67,11 +67,7 @@ function PageTableActions({ page, onEdit, onEditSchema, onDelete, onStatusChange
           <>
             <DropdownMenuSeparator />
             <div className="px-2 py-1.5">
-              <PageTypeGeneratorDialog 
-                pageId={page.id} 
-                websiteId={websiteId} 
-                pageName={page.name} 
-              />
+              <PageTypeGeneratorDialog pageId={page.id} websiteId={websiteId} pageName={page.name} />
             </div>
           </>
         )}
@@ -106,15 +102,13 @@ function PageTableActions({ page, onEdit, onEditSchema, onDelete, onStatusChange
             <AlertDialogHeader>
               <AlertDialogTitle>Delete Page</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete "{page.name}"? This will permanently remove the page and all its schema data. This action cannot be undone.
+                Are you sure you want to delete "{page.name}"? This will permanently remove the page and all its schema data. This action cannot be
+                undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => onDelete(page.id)}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
+              <AlertDialogAction onClick={() => onDelete(page.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                 Delete
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -138,20 +132,14 @@ export const createColumns = (
     cell: ({ row }) => (
       <div>
         <div className="font-medium">{row.getValue("name")}</div>
-        {row.original.description && (
-          <div className="text-sm text-muted-foreground truncate max-w-[200px]">
-            {row.original.description}
-          </div>
-        )}
+        {row.original.description && <div className="text-sm text-muted-foreground truncate max-w-[200px]">{row.original.description}</div>}
       </div>
     ),
   },
   {
     accessorKey: "slug",
     header: ({ column }) => <DataTableColumnHeader column={column} title="Slug" />,
-    cell: ({ row }) => (
-      <code className="text-sm bg-muted px-2 py-1 rounded">{row.getValue("slug")}</code>
-    ),
+    cell: ({ row }) => <code className="text-sm bg-muted px-2 py-1 rounded">{row.getValue("slug")}</code>,
   },
   {
     accessorKey: "status",
@@ -178,9 +166,7 @@ export const createColumns = (
       return (
         <div className="flex items-center space-x-1">
           <span className="text-sm">{sectionCount}</span>
-          <span className="text-xs text-muted-foreground">
-            section{sectionCount !== 1 ? "s" : ""}
-          </span>
+          <span className="text-xs text-muted-foreground">section{sectionCount !== 1 ? "s" : ""}</span>
         </div>
       );
     },
@@ -194,13 +180,15 @@ export const createColumns = (
       return (
         <div className="flex items-center text-sm text-muted-foreground">
           <Calendar className="mr-1 h-3 w-3" />
-          {updatedAt ? new Date(updatedAt).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          }) : "Never"}
+          {updatedAt
+            ? new Date(updatedAt).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "Never"}
         </div>
       );
     },
@@ -208,19 +196,25 @@ export const createColumns = (
   {
     id: "actions",
     header: "Actions",
-    cell: ({ row }) => (
-      <div onClick={(e) => e.stopPropagation()}>
-        <PageTableActions
-          page={row.original}
-          onEdit={onEdit}
-          onEditSchema={onEditSchema}
-          onDelete={onDelete}
-          onStatusChange={onStatusChange}
-          websiteId={websiteId}
-        />
-      </div>
-    ),
+    cell: ({ row }) => {
+      const { userSession } = useUserSession();
+      const isSystemAdmin = userSession?.global_roles?.some((role) => role === "system_admin");
+      return (
+        <div onClick={(e) => e.stopPropagation()}>
+          {isSystemAdmin && (
+            <PageTableActions
+              page={row.original}
+              onEdit={onEdit}
+              onEditSchema={onEditSchema}
+              onDelete={onDelete}
+              onStatusChange={onStatusChange}
+              websiteId={websiteId}
+            />
+          )}
+        </div>
+      );
+    },
     enableSorting: false,
     enableHiding: false,
   },
-]; 
+];

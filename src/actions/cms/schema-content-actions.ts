@@ -27,11 +27,9 @@ const formatContentForFieldType = (fieldType: string, value: any): any => {
     return isRichTextEmpty(value) ? null : value;
   }
 
-  if(isEmpty(value)) {
+  if (isEmpty(value)) {
     return null;
   }
-
-
 
   switch (fieldType) {
     case "text":
@@ -88,7 +86,7 @@ const formatContentForFieldType = (fieldType: string, value: any): any => {
 };
 
 // Updated savePageContent function that works with schema-based fields
-export async function savePageContent(updatedFields: string) {
+export async function savePageContent(updatedFields: string): Promise<{ success: boolean; message?: string; error?: string }> {
   const updatedFieldsArray: Array<{ id: string; content: any; type: string; content_field_id?: string | null }> = JSON.parse(updatedFields);
   try {
     const supabase = await createClient();
@@ -99,7 +97,7 @@ export async function savePageContent(updatedFields: string) {
       error: authError,
     } = await supabase.auth.getUser();
     if (authError || !user) {
-      throw new Error("Unauthorized");
+      return { success: false, error: "Unauthorized" };
     }
 
     if (updatedFieldsArray.length === 0) {
@@ -162,7 +160,7 @@ export async function savePageContent(updatedFields: string) {
     return { success: true, message: "Content saved successfully" };
   } catch (error) {
     console.error("Error saving content:", error);
-    throw new Error(error instanceof Error ? error.message : "Failed to save content");
+    return { success: false, error: error instanceof Error ? error.message : "Failed to save content" };
   }
 }
 

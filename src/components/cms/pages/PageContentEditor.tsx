@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { ContentEditor } from "@/components/cms/content-editor/ContentEditor";
 import ContentEditorHeader from "@/components/cms/content-editor/ContentEditorHeader";
+import { savePageContent } from "@/actions/cms/schema-content-actions";
 import { RPCPageResponse } from "@/types/cms";
 
 interface PageContentEditorProps {
@@ -20,10 +21,6 @@ export function PageContentEditor({ pageId, existingContent, originalFields }: P
     return existingContent.sections || [];
   }, [existingContent.sections]);
 
-  const handleSave = async () => {
-    router.refresh();
-  };
-
   const header = (
     <ContentEditorHeader
       title="Content Editor"
@@ -39,10 +36,9 @@ export function PageContentEditor({ pageId, existingContent, originalFields }: P
       existingContent={existingContent}
       originalFields={originalFields}
       header={header}
-      onSave={handleSave}
+      saveFn={savePageContent}
       expandedSections={expandedSections}
       setExpandedSections={setExpandedSections}
     />
   );
 }
-

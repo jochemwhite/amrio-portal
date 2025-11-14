@@ -25,12 +25,24 @@ export interface CollectionWithSchema extends Collection {
     cms_schema_sections?: Array<{
       id: string;
       name: string;
+      description?: string | null;
       order: number | null;
       cms_schema_fields?: Array<{
         id: string;
+        field_key?: string;
         name: string;
         type: string;
+        required?: boolean;
+        default_value?: string | null;
+        validation?: string | null;
+        settings?: Record<string, any> | null;
+        collection_id?: string | null;
         order: number;
+        parent_field_id?: string | null;
+        schema_section_id?: string;
+        created_at?: string;
+        updated_at?: string | null;
+        fields?: Array<CollectionWithSchema['cms_schemas']['cms_schema_sections'][0]['cms_schema_fields'][0]>;
       }>;
     }>;
   };
@@ -312,7 +324,8 @@ export async function getCollectionById(collectionId: string): Promise<ActionRes
               default_value,
               validation,
               order,
-              parent_field_id
+              parent_field_id,
+              settings
             )
           )
         )
@@ -345,7 +358,39 @@ export async function getCollectionById(collectionId: string): Promise<ActionRes
       return { success: true, data: sortedCollection as CollectionWithSchema };
     }
 
-    return { success: true, data: collection as CollectionWithSchema };
+    // Fix: defensively map collection to CollectionWithSchema shape
+    if (collection) {
+      const shaped: CollectionWithSchema = {
+        ...collection,
+        cms_schemas: collection.cms_schemas
+          ? {
+              id: collection.cms_schemas.id,
+              name: collection.cms_schemas.name,
+              description: collection.cms_schemas.description,
+              cms_schema_sections: collection.cms_schemas.cms_schema_sections
+                ? collection.cms_schemas.cms_schema_sections.map((section: any) => ({
+                    id: section.id,
+                    name: section.name,
+                    order: section.order,
+                    cms_schema_fields: Array.isArray(section.cms_schema_fields)
+                      ? section.cms_schema_fields.map((field: any) => ({
+                          id: field.id,
+                          name: field.name,
+                          type: field.type,
+                          order: field.order,
+                          settings: field.settings ?? null,
+                        }))
+                      : [],
+                  }))
+                : [],
+            }
+          : undefined,
+      };
+
+      return { success: true, data: shaped };
+    }
+
+    return { success: false, error: "Collection not found." };
   } catch (error) {
     console.error("Unexpected error fetching collection:", error);
     return { success: false, error: "An unexpected error occurred." };

@@ -1,5 +1,5 @@
 import { FieldType } from "@/types/cms";
-import { Calendar, CircleDot, FileText, FolderOpen, Hash, Image, Link, ToggleLeft, Type, Video } from "lucide-react";
+import { Calendar, CircleDot, FileText, FolderOpen, Hash, Image, Link, ToggleLeft, Type, Video, Share2 } from "lucide-react";
 import Boolean from "../content-editor/components/Boolean";
 import Date from "../content-editor/components/Date";
 import ImageComponent from "../content-editor/components/Image";
@@ -9,6 +9,8 @@ import SectionField from "../content-editor/components/SectionField";
 import Text from "../content-editor/components/Text";
 import YoutubeVideo from "../content-editor/components/Video";
 import ButtonComponent from "../content-editor/components/Button";
+import SocialMedia from "../content-editor/components/SocialMedia";
+import { SocialMediaSettings } from "../schema-builder/field-settings/SocialMediaSettings";
 
 export const FIELD_TYPES: FieldType[] = [
   {
@@ -82,6 +84,15 @@ export const FIELD_TYPES: FieldType[] = [
     description: "Embed another section within this section",
     color: "bg-slate-100 text-slate-800",
     cmsComponent: SectionField,
+  },
+  {
+    value: "social_media",
+    label: "Social Media",
+    icon: <Share2 className="h-4 w-4" />,
+    description: "Social media links array",
+    color: "bg-cyan-100 text-cyan-800",
+    cmsComponent: SocialMedia,
+    settingsComponent: SocialMediaSettings,
   },
 ];
 

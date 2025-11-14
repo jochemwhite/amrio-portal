@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/supabaseServerClient";
 import { getActiveTenantId } from "@/server/utils";
 import { ActionResponse } from "@/types/actions";
+import { RPCCollectionEntryResponse } from "@/types/cms";
 import { revalidatePath } from "next/cache";
 import { initializePageContent } from "./schema-content-actions";
 
@@ -26,6 +27,8 @@ export interface CollectionEntryWithItems extends CollectionEntry {
     parent_field_id: string | null;
     created_at: string;
     updated_at: string | null;
+    settings?: Record<string, any> | null;
+    items?: Array<CollectionEntryWithItems['cms_collections_items']>;
   }>;
 }
 
@@ -318,6 +321,68 @@ export async function getCollectionEntryById(entryId: string): Promise<ActionRes
   }
 }
 
+// ============== RPC FUNCTION TO GET COLLECTION ENTRY (SIMILAR TO GET_PAGE) ==============
+
+export async function getCollectionEntryRPC(entryId: string): Promise<ActionResponse<RPCCollectionEntryResponse>> {
+  const supabase = await createClient();
+
+  // Check authentication
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { success: false, error: "Unauthorized: User not authenticated." };
+  }
+
+  // Get active tenant ID
+  const tenantId = await getActiveTenantId();
+  if (!tenantId) {
+    return { success: false, error: "No active tenant selected." };
+  }
+
+  try {
+    const { data: entryData, error: entryError } = await supabase
+      .rpc("get_collection_entry", {
+        entry_id_param: entryId,
+      })
+      .overrideTypes<RPCCollectionEntryResponse[]>();
+
+    if (entryError) {
+      console.error("Error fetching collection entry:", entryError);
+      return { success: false, error: entryError.message };
+    }
+
+    if (!entryData || !Array.isArray(entryData) || entryData.length === 0) {
+      return { success: false, error: "Collection entry not found" };
+    }
+
+    // Extract the first (and only) entry from the response array
+    const entry = entryData[0];
+
+    // Verify tenant ownership through the collection
+    const { data: collection, error: collectionError } = await supabase
+      .from("cms_collections")
+      .select(
+        `
+        id,
+        cms_websites!inner(tenant_id)
+      `
+      )
+      .eq("id", entry.collection_id)
+      .single();
+
+    if (collectionError || !collection || (collection as any).cms_websites?.tenant_id !== tenantId) {
+      return { success: false, error: "Collection entry not found or access denied." };
+    }
+
+    return { success: true, data: entry };
+  } catch (error) {
+    console.error("Unexpected error fetching collection entry:", error);
+    return { success: false, error: "An unexpected error occurred." };
+  }
+}
+
 // ============== COLLECTION ENTRY CONTENT MANAGEMENT ==============
 
 export async function initializeCollectionEntryContent(entryId: string, schemaId: string): Promise<ActionResponse<void>> {
@@ -404,12 +469,7 @@ export async function initializeCollectionEntryContent(entryId: string, schemaId
 
 export async function saveCollectionEntryContent(
   entryId: string,
-  updatedFields: Array<{
-    id: string; // schema field ID
-    content: any;
-    type: string;
-    item_id?: string | null; // actual collection item ID
-  }>
+  updatedFields: string
 ): Promise<ActionResponse<void>> {
   const supabase = await createClient();
 
@@ -447,20 +507,27 @@ export async function saveCollectionEntryContent(
       return { success: false, error: "Entry not found or access denied." };
     }
 
-    if (updatedFields.length === 0) {
+    const updatedFieldsArray: Array<{
+      id: string; // schema field ID
+      content: any;
+      type: string;
+      content_field_id?: string | null; // actual collection item ID
+    }> = JSON.parse(updatedFields);
+
+    if (updatedFieldsArray.length === 0) {
       return { success: true };
     }
 
     // Process each updated field
-    const updatePromises = updatedFields.map(async (field) => {
-      const { id: schemaFieldId, content: value, type: fieldType, item_id } = field;
+    const updatePromises = updatedFieldsArray.map(async (field) => {
+      const { id: schemaFieldId, content: value, type: fieldType, content_field_id } = field;
 
       // Format the content based on field type (reuse logic from schema-content-actions)
       const formattedContent = formatContentForFieldType(fieldType, value);
 
       const { error, data } = await supabase.from("cms_collections_items").upsert(
         {
-          id: item_id || undefined,
+          id: content_field_id || undefined,
           schema_field_id: schemaFieldId,
           cms_collection_entry_id: entryId,
           collection_id: entry.collection_id,
@@ -490,6 +557,9 @@ export async function saveCollectionEntryContent(
     return { success: false, error: error instanceof Error ? error.message : "Failed to save content" };
   }
 }
+
+
+
 
 // Helper function to format content based on field type
 const isEmpty = (value: any): boolean => {

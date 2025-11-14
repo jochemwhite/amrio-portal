@@ -149,6 +149,7 @@ export interface SchemaField {
   required: boolean;
   default_value?: string | null;
   validation?: string | null;
+  settings?: Record<string, any> | null;
   order: number;
   parent_field_id?: string | null;
   schema_section_id: string;
@@ -223,6 +224,7 @@ export interface FieldType<C = any> {
   description: string;
   color: string;
   cmsComponent?: React.ComponentType<C>;
+  settingsComponent?: React.ComponentType<{ value: Record<string, any> | null; setValue: (value: Record<string, any> | null, options?: any) => void }>;
 }
 
 
@@ -302,6 +304,21 @@ export type RPCPageResponse = {
   schema_name: string
   schema_description: string | null
   schema_template: boolean
+  sections: RPCPageSection[];
+}
+
+// Type for collection entry RPC response (mirrors RPCPageResponse structure)
+export type RPCCollectionEntryResponse = {
+  id: string;
+  name: string;
+  created_at: string;
+  collection_id: string;
+  collection_name: string;
+  collection_description: string | null;
+  schema_id: string | null;
+  schema_name: string | null;
+  schema_description: string | null;
+  schema_template: boolean | null;
   sections: RPCPageSection[];
 }
 
