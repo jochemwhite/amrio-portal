@@ -275,6 +275,7 @@ export type RPCPageField = {
   default_value: string;
   parent_field_id: string | null;
   collection_id: string | null;
+  settings?: Record<string, any> | null;
   content?: { value?: any } | null; // JSONB content column
   content_field_id?: string | null; // ID of the cms_content_fields row for updates
   fields?: RPCPageField[]; // For nested section fields

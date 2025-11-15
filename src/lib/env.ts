@@ -11,19 +11,15 @@ export const env = createEnv({
     SMTP_PASSWORD: z.string().min(1),
     SMTP_FROM: z.string().min(1),
 
-    STRIPE_SECRET_KEY: z.string().min(1),
-    
-    MONEYBIRD_CLIENT_SECRET: z.string().min(1),
-    
+    STRIPE_SECRET_KEY: z.string().min(1),    
+    MONEYBIRD_CLIENT_SECRET: z.string().min(1),    
     NODE_ENV: z.enum(["development", "test", "production"]),
   },
   client: {
     NEXT_PUBLIC_SUPABASE_URL: z.string().min(1),
     NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
-    NEXT_PUBLIC_APP_URL: z.string().min(1), 
-    
-    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().min(1),
-    
+    NEXT_PUBLIC_APP_URL: z.string().min(1),     
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().min(1),    
     NEXT_PUBLIC_MONEYBIRD_CLIENT_ID: z.string().min(1),
 
 
