@@ -1,59 +1,54 @@
-import { LucideIcon, LucideProps } from "lucide-react";
 import {
-  Facebook,
-  Instagram,
-  Twitter,
-  Music2,
-  Camera,
-  MessageCircle,
-  Linkedin,
-  MessageSquare,
-  Send,
-  MessageCircleMore,
-  Users,
-  Mail,
-  Youtube,
-  Tv,
-  Github,
-  Music,
-  Apple,
-  Chrome,
-  Box,
-  ShoppingCart,
-  CreditCard,
-} from "lucide-react";
+  SiApple,
+  SiDiscord,
+  SiFacebook,
+  SiGithub,
+  SiGoogle,
+  SiInstagram,
+  SiMessenger,
+  SiPaypal,
+  SiReddit,
+  SiSlack,
+  SiSnapchat,
+  SiSpotify,
+  SiTelegram,
+  SiTiktok,
+  SiTwitch,
+  SiWhatsapp,
+  SiX,
+  SiYoutube
+} from '@icons-pack/react-simple-icons';
+import { ComponentType, SVGProps } from "react";
 
-const iconMap: Record<string, LucideIcon> = {
+const iconMap: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
   // Social Media
-  facebook: Facebook,
-  instagram: Instagram,
-  x: Twitter,
-  tiktok: Music2,
-  snapchat: Camera,
-  reddit: MessageCircle,
-  linkedin: Linkedin,
+  facebook: SiFacebook,
+  instagram: SiInstagram,
+  x: SiX,
+  tiktok: SiTiktok,
+  snapchat: SiSnapchat,
+  reddit: SiReddit,
   // Messaging
-  whatsapp: MessageSquare,
-  telegram: Send,
-  discord: MessageCircleMore,
-  slack: Users,
-  messenger: Mail,
+  whatsapp: SiWhatsapp,
+  telegram: SiTelegram,
+  discord: SiDiscord,
+  slack: SiSlack,
+  messenger: SiMessenger,
   // Video/Streaming
-  youtube: Youtube,
-  twitch: Tv,
+  youtube: SiYoutube,
+  twitch: SiTwitch,
   // Professional/Dev
-  github: Github,
+  github: SiGithub,
   // Other
-  spotify: Music,
-  apple: Apple,
-  google: Chrome,
-  microsoft: Box,
-  amazon: ShoppingCart,
-  paypal: CreditCard,
+  spotify: SiSpotify,
+  apple: SiApple,
+  google: SiGoogle,
+  paypal: SiPaypal,
 };
 
-interface SocialIconProps extends Omit<LucideProps, "ref"> {
+interface SocialIconProps extends Omit<SVGProps<SVGSVGElement>, "ref" | "width" | "height"> {
   icon: keyof typeof iconMap;
+  size?: number | string;
 }
 
 export function SocialIcon({ icon, size = 24, ...props }: SocialIconProps) {
@@ -63,8 +58,8 @@ export function SocialIcon({ icon, size = 24, ...props }: SocialIconProps) {
     return null;
   }
 
-  return <Icon size={size} {...props} />;
+  const sizeValue = typeof size === "number" ? size : parseInt(size, 10) || 24;
+
+  return <Icon width={sizeValue} height={sizeValue} {...props} />;
 }
 
-// Usage example:
-// <SocialIcon icon="github" size={32} className="text-blue-500" />
