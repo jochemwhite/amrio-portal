@@ -78,7 +78,7 @@ export function ContentEditor({
     });
 
     setExpandedSections(initialExpandedState);
-    initializeContent(originalFields);
+    initializeContent(originalFields, existingContent.website_id || null);
   }, [pageId, existingContent, processedSections, initializeContent]);
 
   // Set the save function in the store

@@ -1,5 +1,5 @@
 "use client";
-import { ArchiveRestore, Building2, FileText, FileUser, GalleryVerticalEnd, Key, Library, User } from "lucide-react";
+import { ArchiveRestore, Building2, FileText, FileUser, GalleryVerticalEnd, Key, Library, User, LayoutTemplate } from "lucide-react";
 
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar";
 import { useActiveWebsite } from "@/hooks/use-active-website";
@@ -15,24 +15,31 @@ export function AppSidebar() {
   const { userSession } = useUserSession();
   const { activeWebsite } = useActiveWebsite();
 
+  const cmsItems = [
+    {
+      title: "Pages",
+      url: "/dashboard/pages",
+      icon: FileText,
+    },
+    {
+      title: "Collections",
+      url: "/dashboard/collections",
+      icon: Library,
+    },
+    {
+      title: "Forms",
+      url: "/dashboard/forms",
+      icon: FileUser,
+    },
+    {
+      title: "Layouts",
+      url: "/dashboard/layouts",
+      icon: LayoutTemplate,
+    },
+  ];
+
   const data = {
-    cms: [
-      {
-        title: "Pages",
-        url: "/dashboard/pages",
-        icon: FileText,
-      },
-      {
-        title: "Collections",
-        url: "/dashboard/collections",
-        icon: Library,
-      },
-      {
-        title: "Forms",
-        url: "/dashboard/forms",
-        icon: FileUser,
-      },
-    ],
+    cms: cmsItems,
 
     tenant: [
       {

@@ -1,5 +1,5 @@
 import { FieldType } from "@/types/cms";
-import { Calendar, CircleDot, FileText, FolderOpen, Hash, Image, Link, ToggleLeft, Type, Video, Share2 } from "lucide-react";
+import { Calendar, CircleDot, FileText, FolderOpen, Hash, Image, Link, ToggleLeft, Type, Video, Share2, Menu } from "lucide-react";
 import Boolean from "../content-editor/components/Boolean";
 import Date from "../content-editor/components/Date";
 import ImageComponent from "../content-editor/components/Image";
@@ -10,7 +10,9 @@ import Text from "../content-editor/components/Text";
 import YoutubeVideo from "../content-editor/components/Video";
 import ButtonComponent from "../content-editor/components/Button";
 import SocialMedia from "../content-editor/components/SocialMedia";
+import NavigationMenu from "../content-editor/components/NavigationMenu";
 import { SocialMediaSettings } from "../schema-builder/field-settings/SocialMediaSettings";
+import { NavigationMenuSettings } from "../schema-builder/field-settings/NavigationMenuSettings";
 
 export const FIELD_TYPES: FieldType[] = [
   {
@@ -93,6 +95,15 @@ export const FIELD_TYPES: FieldType[] = [
     color: "bg-cyan-100 text-cyan-800",
     cmsComponent: SocialMedia,
     settingsComponent: SocialMediaSettings,
+  },
+  {
+    value: "navigation_menu",
+    label: "Navigation Menu",
+    icon: <Menu className="h-4 w-4" />,
+    description: "Navigation menu with nested items",
+    color: "bg-emerald-100 text-emerald-800",
+    cmsComponent: NavigationMenu,
+    settingsComponent: NavigationMenuSettings,
   },
 ];
 

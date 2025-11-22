@@ -360,3 +360,139 @@ export interface CMSStore {
   getAllSections: () => Section[];
   getAvailableParentSections: (sectionId: string) => Section[];
 }
+
+// ============================================
+// LAYOUT TEMPLATES (HEADER & FOOTER) TYPES
+// ============================================
+
+export type LayoutTemplateType = 'header' | 'footer';
+export type LayoutConditionType = 'all_pages' | 'specific_pages' | 'page_pattern';
+
+export interface LayoutTemplate {
+  id: string;
+  name: string;
+  type: LayoutTemplateType;
+  description?: string | null;
+  schema_id: string;
+  website_id: string;
+  tenant_id: string;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LayoutTemplateContent {
+  id: string;
+  template_id: string;
+  schema_field_id: string;
+  content: any; // JSONB
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LayoutAssignment {
+  id: string;
+  template_id: string;
+  website_id: string;
+  condition_type: LayoutConditionType;
+  condition_value: any; // JSONB - structure depends on condition_type
+  priority: number;
+  created_at: string;
+}
+
+export interface PageLayoutOverride {
+  id: string;
+  page_id: string;
+  header_template_id?: string | null;
+  footer_template_id?: string | null;
+  created_at: string;
+}
+
+// Type for resolved layout (returned by get_page_layout RPC)
+export interface ResolvedLayoutTemplate {
+  template: LayoutTemplate;
+  schema: {
+    id: string;
+    name: string;
+    description: string | null;
+    sections: {
+      id: string;
+      name: string;
+      description: string | null;
+      order: number;
+      fields: {
+        id: string;
+        name: string;
+        field_key: string;
+        type: string;
+        required: boolean;
+        default_value: string | null;
+        validation: string | null;
+        settings: Record<string, any> | null;
+        order: number;
+        content: any;
+        content_field_id: string | null;
+      }[];
+    }[];
+  };
+}
+
+export interface ResolvedPageLayout {
+  header: ResolvedLayoutTemplate | null;
+  footer: ResolvedLayoutTemplate | null;
+}
+
+// Type for layout template with full relations (similar to SupabaseSchemaWithRelations)
+export type LayoutTemplateWithRelations = {
+  id: string;
+  name: string;
+  type: LayoutTemplateType;
+  description: string | null;
+  schema_id: string;
+  website_id: string;
+  tenant_id: string;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+  cms_schemas: {
+    id: string;
+    name: string;
+    description: string | null;
+    cms_schema_sections: {
+      id: string;
+      name: string;
+      description: string | null;
+      order: number | null;
+      cms_schema_fields: {
+        id: string;
+        name: string;
+        field_key: string;
+        type: string;
+        required: boolean;
+        default_value: string | null;
+        validation: string | null;
+        settings: any | null;
+        order: number | null;
+      }[];
+    }[];
+  };
+  cms_layout_template_content?: LayoutTemplateContent[];
+}
+
+// Navigation menu types for the navigation_menu field type
+export type MenuItemType = 'internal' | 'external' | 'dropdown' | 'anchor';
+export type MenuItemTarget = '_self' | '_blank';
+
+export interface MenuItem {
+  id: string;
+  label: string;
+  url: string;
+  type: MenuItemType;
+  icon?: string;
+  target: MenuItemTarget;
+  cssClasses?: string;
+  visible: boolean;
+  order: number;
+  children?: MenuItem[];
+  pageId?: string; // For internal links
+}

@@ -33,6 +33,7 @@ interface ContentEditorState {
     type: string;
     content_field_id?: string | null; // actual content field ID for updates
   }[]; // Only fields that have been modified (delta tracking)
+  websiteId: string | null; // Current website ID
 
   // UI state
   hasUnsavedChanges: boolean;
@@ -43,7 +44,7 @@ interface ContentEditorState {
   saveFn?: SaveContentFunction; // Function that handles the actual save operation
 
   // Actions
-  initializeContent: (originalFields: FieldWithValue[]) => void;
+  initializeContent: (originalFields: FieldWithValue[], websiteId?: string | null) => void;
   setFieldValue: (fieldId: string, value: any) => void;
   getFieldValue: (fieldId: string) => any;
   getFieldComponent: (field: RPCPageField) => React.ComponentType<FieldComponentProps> | null;
@@ -51,6 +52,7 @@ interface ContentEditorState {
   resetField: (fieldId: string) => void;
   resetAllFields: () => void;
   setSaveFunction: (saveFn: SaveContentFunction) => void;
+  setWebsiteId: (websiteId: string | null) => void;
 }
 
 export const useContentEditorStore = create<ContentEditorState>()(
@@ -59,6 +61,7 @@ export const useContentEditorStore = create<ContentEditorState>()(
       // Initial state
       updatedFields: [],
       originalFields: [],
+      websiteId: null,
       hasUnsavedChanges: false,
       isSaving: false,
       isLoading: false,
@@ -66,12 +69,13 @@ export const useContentEditorStore = create<ContentEditorState>()(
       onSaveCallback: undefined,
 
       // Initialize store with page data
-      initializeContent: (originalFields: FieldWithValue[]) => {
+      initializeContent: (originalFields: FieldWithValue[], websiteId: string | null = null) => {
         set(
           {
             originalFields: originalFields, // Store flattened fields only
             updatedFields: [], // Start with no changes
             hasUnsavedChanges: false,
+            websiteId: websiteId,
           },
           false,
           "initializeContent"
@@ -246,6 +250,11 @@ export const useContentEditorStore = create<ContentEditorState>()(
       // Set the save function
       setSaveFunction: (saveFn: SaveContentFunction) => {
         set({ saveFn }, false, "setSaveFunction");
+      },
+
+      // Set website ID
+      setWebsiteId: (websiteId: string | null) => {
+        set({ websiteId }, false, "setWebsiteId");
       },
     }),
     {
