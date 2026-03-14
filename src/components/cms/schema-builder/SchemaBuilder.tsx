@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { SupabaseSchemaWithRelations } from "@/types/cms";
 import { Plus, Save, RotateCcw } from "lucide-react";
 import { useEffect } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { DraggableSectionsContainer } from "./DraggableSectionsContainer";
 import { AddSectionMenu } from "./AddSectionMenu";
 import { SchemaInfo } from "./SchemaInfo";
@@ -25,44 +26,47 @@ export function SchemaBuilder({
   pageId,
   websiteId,
 }: SchemaBuilderProps) {
-  // Use explicit selectors to ensure proper re-renders on state changes
-  const sections = useSchemaBuilderStore((state) => state.sections);
-  const isSaving = useSchemaBuilderStore((state) => state.isSaving);
-  const hasUnsavedChanges = useSchemaBuilderStore(
-    (state) => state.hasUnsavedChanges,
+  // FIX #7: Use useShallow to batch all selectors into a single subscription,
+  // avoiding multiple re-renders from individual selector calls.
+  const {
+    isSaving,
+    hasUnsavedChanges,
+    pendingChanges,
+    isSchemaSettingsOpen,
+    schemaSettingsData,
+    initializeStore,
+    closeSchemaSettings,
+    setSchemaSettingsData,
+    submitSchemaSettings,
+    openAddSectionDialog,
+    saveChanges,
+    resetChanges,
+  } = useSchemaBuilderStore(
+    useShallow((state) => ({
+      isSaving: state.isSaving,
+      hasUnsavedChanges: state.hasUnsavedChanges,
+      pendingChanges: state.pendingChanges,
+      isSchemaSettingsOpen: state.isSchemaSettingsOpen,
+      schemaSettingsData: state.schemaSettingsData,
+      initializeStore: state.initializeStore,
+      closeSchemaSettings: state.closeSchemaSettings,
+      setSchemaSettingsData: state.setSchemaSettingsData,
+      submitSchemaSettings: state.submitSchemaSettings,
+      openAddSectionDialog: state.openAddSectionDialog,
+      saveChanges: state.saveChanges,
+      resetChanges: state.resetChanges,
+    })),
   );
-  const pendingChanges = useSchemaBuilderStore((state) => state.pendingChanges);
-  const isSchemaSettingsOpen = useSchemaBuilderStore(
-    (state) => state.isSchemaSettingsOpen,
-  );
-  const schemaSettingsData = useSchemaBuilderStore(
-    (state) => state.schemaSettingsData,
-  );
-  const initializeStore = useSchemaBuilderStore(
-    (state) => state.initializeStore,
-  );
-  const closeSchemaSettings = useSchemaBuilderStore(
-    (state) => state.closeSchemaSettings,
-  );
-  const setSchemaSettingsData = useSchemaBuilderStore(
-    (state) => state.setSchemaSettingsData,
-  );
-  const submitSchemaSettings = useSchemaBuilderStore(
-    (state) => state.submitSchemaSettings,
-  );
-  const openAddSectionDialog = useSchemaBuilderStore(
-    (state) => state.openAddSectionDialog,
-  );
-  const saveChanges = useSchemaBuilderStore((state) => state.saveChanges);
-  const resetChanges = useSchemaBuilderStore((state) => state.resetChanges);
 
   // Enable unsaved changes protection (navigation blocking)
   useSchemaUnsavedChangesProtection();
 
-  // Initialize the store with schema data
+  // FIX #9: Use initialSchema.id as the dependency instead of the full object
+  // to prevent re-initializing on every parent render when the object reference changes.
   useEffect(() => {
     initializeStore(initialSchema);
-  }, [initialSchema, initializeStore]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialSchema.id]);
 
   const handleSchemaSettingsSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,13 +111,7 @@ export function SchemaBuilder({
         </div>
 
         {/* Content sections */}
-        {sections.length === 0 ? (
-          <div className="text-center text-muted-foreground">
-            <p>No sections found</p>
-          </div>
-        ) : (
-          <DraggableSectionsContainer />
-        )}
+        <DraggableSectionsContainer />
       </div>
 
       <SchemaSettingsDialog

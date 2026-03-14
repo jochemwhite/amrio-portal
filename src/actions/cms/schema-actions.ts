@@ -634,61 +634,75 @@ interface BulkSaveSchemaResult {
   tempIdMap: Record<string, string>; // Maps temp IDs to real IDs
 }
 
-export async function bulkSaveSchemaChanges(payload: BulkSaveSchemaPayload): Promise<BulkSaveSchemaResult> {
+export async function bulkSaveSchemaChanges(
+  payload: BulkSaveSchemaPayload,
+): Promise<BulkSaveSchemaResult> {
   const supabase = await createClient();
 
-  // Check authentication
   const {
     data: { user },
     error: authError,
   } = await supabase.auth.getUser();
+
   if (authError || !user) {
     return { success: false, error: "Unauthorized", tempIdMap: {} };
   }
 
-  // Check admin role
   const isAdmin = await checkRequiredRoles(user.id, ["system_admin"]);
   if (!isAdmin) {
-    return { success: false, error: "Unauthorized: Only admins can save schema changes.", tempIdMap: {} };
+    return {
+      success: false,
+      error: "Unauthorized: Only admins can save schema changes.",
+      tempIdMap: {},
+    };
   }
 
   try {
     const tempIdMap: Record<string, string> = {};
 
-    // Process changes in order: creates first, then updates, then deletes, then reorders
     const creates = payload.changes.filter((c) => c.type === "create");
     const updates = payload.changes.filter((c) => c.type === "update");
     const deletes = payload.changes.filter((c) => c.type === "delete");
     const reorders = payload.changes.filter((c) => c.type === "reorder");
 
-
     // 1. Process creates
     for (const change of creates) {
       if (change.entity === "section") {
-        
         const { data: section, error } = await supabase
           .from("cms_schema_sections")
           .insert({
             schema_id: payload.schemaId,
             name: change.data.name,
             description: change.data.description,
-            order: 0, // Will update order later
+            order: 0,
           })
           .select()
           .single();
 
         if (error) throw error;
+
         if (change.tempId && section) {
           tempIdMap[change.tempId] = section.id;
         }
       } else if (change.entity === "field") {
-        // Map temp section IDs to real IDs
-        const sectionId = change.data.schema_section_id.startsWith("temp_")
-          ? tempIdMap[change.data.schema_section_id]
-          : change.data.schema_section_id;
+        const sectionId =
+          typeof change.data.schema_section_id === "string" &&
+          change.data.schema_section_id.startsWith("temp_")
+            ? tempIdMap[change.data.schema_section_id]
+            : change.data.schema_section_id;
 
-        const parentFieldId = change.data.parent_field_id?.startsWith("temp_") ? tempIdMap[change.data.parent_field_id] : change.data.parent_field_id;
-        let collectionId = change.data.collection_id?.startsWith("temp_") ? tempIdMap[change.data.collection_id] : change.data.collection_id;
+        const parentFieldId =
+          typeof change.data.parent_field_id === "string" &&
+          change.data.parent_field_id.startsWith("temp_")
+            ? tempIdMap[change.data.parent_field_id]
+            : change.data.parent_field_id;
+
+        let collectionId =
+          typeof change.data.collection_id === "string" &&
+          change.data.collection_id.startsWith("temp_")
+            ? tempIdMap[change.data.collection_id]
+            : change.data.collection_id;
+
         if (!collectionId || collectionId === "") {
           collectionId = null;
         }
@@ -704,14 +718,15 @@ export async function bulkSaveSchemaChanges(payload: BulkSaveSchemaPayload): Pro
             default_value: change.data.default_value,
             validation: change.data.validation,
             settings: change.data.settings,
-            order: 0, // Will update order later
+            order: 0,
             parent_field_id: parentFieldId,
-            collection_id: collectionId || null,
+            collection_id: collectionId,
           })
           .select()
           .single();
 
         if (error) throw error;
+
         if (change.tempId && field) {
           tempIdMap[change.tempId] = field.id;
         }
@@ -721,100 +736,191 @@ export async function bulkSaveSchemaChanges(payload: BulkSaveSchemaPayload): Pro
     // 2. Process updates
     for (const change of updates) {
       if (change.entity === "section" && change.id) {
+        const updateData: Record<string, any> = {};
+
+        if ("name" in change.data) updateData.name = change.data.name;
+        if ("description" in change.data)
+          updateData.description = change.data.description;
+
+        if (Object.keys(updateData).length === 0) continue;
+
         const { error } = await supabase
           .from("cms_schema_sections")
-          .update({
-            name: change.data.name,
-            description: change.data.description,
-          })
+          .update(updateData)
           .eq("id", change.id);
 
         if (error) throw error;
       } else if (change.entity === "field" && change.id) {
-        const parentFieldId = change.data.parent_field_id?.startsWith("temp_") ? tempIdMap[change.data.parent_field_id] : change.data.parent_field_id;
-        const collectionId = change.data.collection_id?.startsWith("temp_") ? tempIdMap[change.data.collection_id] : change.data.collection_id;
+        const updateData: Record<string, any> = {};
+
+        if ("name" in change.data) updateData.name = change.data.name;
+        if ("field_key" in change.data)
+          updateData.field_key = change.data.field_key;
+        if ("type" in change.data) updateData.type = change.data.type;
+        if ("required" in change.data)
+          updateData.required = change.data.required;
+        if ("default_value" in change.data)
+          updateData.default_value = change.data.default_value;
+        if ("validation" in change.data)
+          updateData.validation = change.data.validation;
+        if ("settings" in change.data) updateData.settings = change.data.settings;
+
+        if ("schema_section_id" in change.data) {
+          updateData.schema_section_id =
+            typeof change.data.schema_section_id === "string" &&
+            change.data.schema_section_id.startsWith("temp_")
+              ? tempIdMap[change.data.schema_section_id]
+              : change.data.schema_section_id;
+        }
+
+        if ("parent_field_id" in change.data) {
+          updateData.parent_field_id =
+            typeof change.data.parent_field_id === "string" &&
+            change.data.parent_field_id.startsWith("temp_")
+              ? tempIdMap[change.data.parent_field_id]
+              : change.data.parent_field_id ?? null;
+        }
+
+        if ("collection_id" in change.data) {
+          const mappedCollectionId =
+            typeof change.data.collection_id === "string" &&
+            change.data.collection_id.startsWith("temp_")
+              ? tempIdMap[change.data.collection_id]
+              : change.data.collection_id;
+
+          updateData.collection_id =
+            !mappedCollectionId || mappedCollectionId === ""
+              ? null
+              : mappedCollectionId;
+        }
+
+        if (Object.keys(updateData).length === 0) continue;
 
         const { error } = await supabase
           .from("cms_schema_fields")
-          .update({
-            name: change.data.name,
-            field_key: change.data.field_key,
-            type: change.data.type,
-            required: change.data.required,
-            default_value: change.data.default_value,
-            validation: change.data.validation,
-            settings: change.data.settings,
-            parent_field_id: parentFieldId,
-            collection_id: collectionId,
-          })
+          .update(updateData)
           .eq("id", change.id);
 
         if (error) throw error;
       }
     }
 
-    // 3. Process deletes (in reverse order to avoid FK issues)
+    // 3. Process deletes
     for (const change of deletes.reverse()) {
       if (change.entity === "field" && change.id) {
-        const { error } = await supabase.from("cms_schema_fields").delete().eq("id", change.id);
+        const { error } = await supabase
+          .from("cms_schema_fields")
+          .delete()
+          .eq("id", change.id);
 
         if (error) throw error;
       } else if (change.entity === "section" && change.id) {
-        const { error } = await supabase.from("cms_schema_sections").delete().eq("id", change.id);
+        const { error } = await supabase
+          .from("cms_schema_sections")
+          .delete()
+          .eq("id", change.id);
 
         if (error) throw error;
       }
     }
 
-    // 4. Process reorders from pendingChanges (if any)
+    // 4. Process explicit reorder changes
     for (const reorder of reorders) {
       if (reorder.entity === "sections" && reorder.data?.sectionOrder) {
-        // Update section order from reorder change
-        const sectionOrderUpdates = reorder.data.sectionOrder.map((sectionId: string, index: number) => {
-          const realId = sectionId.startsWith("temp_") ? tempIdMap[sectionId] : sectionId;
-          return supabase.from("cms_schema_sections").update({ order: index }).eq("id", realId);
-        });
+        const sectionOrderUpdates = reorder.data.sectionOrder.map(
+          (sectionId: string, index: number) => {
+            const realId = sectionId.startsWith("temp_")
+              ? tempIdMap[sectionId]
+              : sectionId;
+
+            return supabase
+              .from("cms_schema_sections")
+              .update({ order: index })
+              .eq("id", realId);
+          },
+        );
+
         await Promise.all(sectionOrderUpdates);
-      } else if (reorder.entity === "fields" && reorder.data?.sectionId && reorder.data?.fieldOrder) {
-        // Update field order from reorder change
-        const realSectionId = reorder.data.sectionId.startsWith("temp_") ? tempIdMap[reorder.data.sectionId] : reorder.data.sectionId;
-        const fieldOrderUpdates = reorder.data.fieldOrder.map((fieldId: string, index: number) => {
-          const realFieldId = fieldId.startsWith("temp_") ? tempIdMap[fieldId] : fieldId;
-          return supabase.from("cms_schema_fields").update({ order: index }).eq("id", realFieldId);
-        });
+      } else if (
+        reorder.entity === "fields" &&
+        reorder.data?.sectionId &&
+        reorder.data?.fieldOrder
+      ) {
+        const fieldOrderUpdates = reorder.data.fieldOrder.map(
+          (fieldId: string, index: number) => {
+            const realFieldId = fieldId.startsWith("temp_")
+              ? tempIdMap[fieldId]
+              : fieldId;
+
+            return supabase
+              .from("cms_schema_fields")
+              .update({ order: index })
+              .eq("id", realFieldId);
+          },
+        );
+
         await Promise.all(fieldOrderUpdates);
       }
     }
 
-    // 5. Update section order (fallback to current state if no reorder changes)
-    if (reorders.filter((r) => r.entity === "sections").length === 0) {
+    // 5. Always sync final section order from payload
+    {
       const sectionOrderUpdates = payload.sectionOrder.map((sectionId, index) => {
-        const realId = sectionId.startsWith("temp_") ? tempIdMap[sectionId] : sectionId;
-        return supabase.from("cms_schema_sections").update({ order: index }).eq("id", realId);
+        const realId = sectionId.startsWith("temp_")
+          ? tempIdMap[sectionId]
+          : sectionId;
+
+        return supabase
+          .from("cms_schema_sections")
+          .update({ order: index })
+          .eq("id", realId);
       });
+
       await Promise.all(sectionOrderUpdates);
     }
 
-    // 6. Update field orders within each section (fallback to current state if no reorder changes)
-    if (reorders.filter((r) => r.entity === "fields").length === 0) {
-      const fieldOrderUpdates = Object.entries(payload.fieldOrders).flatMap(([sectionId, fieldIds]) => {
-        const realSectionId = sectionId.startsWith("temp_") ? tempIdMap[sectionId] : sectionId;
-        return fieldIds.map((fieldId, index) => {
-          const realFieldId = fieldId.startsWith("temp_") ? tempIdMap[fieldId] : fieldId;
-          return supabase.from("cms_schema_fields").update({ order: index }).eq("id", realFieldId);
-        });
-      });
+    // 6. Always sync final field order from payload
+    // This is important for cross-section moves, because payload.fieldOrders
+    // reflects the final section membership after drag/drop.
+    {
+      const fieldOrderUpdates = Object.entries(payload.fieldOrders).flatMap(
+        ([sectionId, fieldIds]) => {
+          const realSectionId = sectionId.startsWith("temp_")
+            ? tempIdMap[sectionId]
+            : sectionId;
+
+          return fieldIds.map((fieldId, index) => {
+            const realFieldId = fieldId.startsWith("temp_")
+              ? tempIdMap[fieldId]
+              : fieldId;
+
+            return supabase
+              .from("cms_schema_fields")
+              .update({
+                schema_section_id: realSectionId,
+                order: index,
+              })
+              .eq("id", realFieldId);
+          });
+        },
+      );
+
       await Promise.all(fieldOrderUpdates);
     }
 
     await initializePageContent(payload.schemaId);
     revalidatePath("/dashboard/schemas");
+
     return { success: true, tempIdMap };
   } catch (error) {
     console.error("Error in bulk save:", error);
+
     return {
       success: false,
-      error: error instanceof Error ? error.message : "An unexpected error occurred.",
+      error:
+        error instanceof Error
+          ? error.message
+          : "An unexpected error occurred.",
       tempIdMap: {},
     };
   }

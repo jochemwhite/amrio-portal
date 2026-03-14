@@ -20,6 +20,9 @@ export default async function SchemaBuilderPage({ params }: SchemaBuilderPagePro
   // Transform the schema data to match the expected format
   const schema = result.data as SupabaseSchemaWithRelations
 
+
+  console.log(schema)
+
   return (
     <div>
       <SchemaBuilder 

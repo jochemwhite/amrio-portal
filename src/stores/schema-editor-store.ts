@@ -1,8 +1,9 @@
+"use client";
+
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { toast } from "sonner";
 import { arrayMove } from "@dnd-kit/helpers";
-3;
 import {
   SupabaseSchemaWithRelations,
   SchemaSection,
@@ -13,26 +14,22 @@ import {
   bulkSaveSchemaChanges,
 } from "@/actions/cms/schema-actions";
 
-// Types for tracking changes
 interface PendingChange {
   type: "create" | "update" | "delete" | "reorder";
   entity: "section" | "field" | "sections" | "fields";
   id?: string;
   data?: any;
-  tempId?: string; // For new items before they get real IDs
+  tempId?: string;
 }
 
 interface SchemaBuilderState {
-  // Core data
   schema: SupabaseSchemaWithRelations | null;
   sections: SchemaSection[];
 
-  // UI state
   selectedSectionId: string | null;
   hasUnsavedChanges: boolean;
   isSaving: boolean;
 
-  // Section form state
   isAddSectionOpen: boolean;
   isEditSectionOpen: boolean;
   editingSectionId: string | null;
@@ -41,11 +38,10 @@ interface SchemaBuilderState {
     description: string;
   };
 
-  // Field form state
   isAddFieldOpen: boolean;
   isEditFieldOpen: boolean;
   editingFieldId: string | null;
-  parentFieldId: string | null; // Track which "section" field we're adding to
+  parentFieldId: string | null;
   fieldFormData: {
     name: string;
     field_key: string;
@@ -57,7 +53,6 @@ interface SchemaBuilderState {
     collection_id: string | null;
   };
 
-  // Schema settings state
   isSchemaSettingsOpen: boolean;
   schemaSettingsData: {
     name: string;
@@ -65,19 +60,15 @@ interface SchemaBuilderState {
     template: boolean;
   };
 
-  // Unsaved changes protection
   isUnsavedChangesDialogOpen: boolean;
   pendingNavigation: (() => void) | null;
 
-  // Pending changes tracking
   pendingChanges: PendingChange[];
   tempIdCounter: number;
 
-  // Actions
   initializeStore: (schema: SupabaseSchemaWithRelations) => void;
   setSelectedSection: (sectionId: string | null) => void;
 
-  // Section actions
   openAddSectionDialog: () => void;
   openEditSectionDialog: (section: SchemaSection) => void;
   closeSectionDialog: () => void;
@@ -87,7 +78,6 @@ interface SchemaBuilderState {
   submitSection: () => void;
   deleteSectionById: (sectionId: string) => void;
 
-  // Field actions
   openAddFieldDialog: (sectionId?: string) => void;
   openEditFieldDialog: (field: SchemaField) => void;
   closeFieldDialog: () => void;
@@ -102,7 +92,6 @@ interface SchemaBuilderState {
     parentSectionId?: string,
   ) => void;
 
-  // Nested field actions
   openAddNestedFieldDialog: (
     parentSectionId: string,
     parentFieldId?: string,
@@ -110,24 +99,30 @@ interface SchemaBuilderState {
   openEditNestedFieldDialog: (field: any, parentSectionId: string) => void;
   deleteNestedFieldById: (fieldId: string, parentSectionId: string) => void;
 
-  // Reordering actions
-  reorderSections: (activeId: string, overId: string) => void;
-  reorderSectionFields: (
-    sectionId: string,
-    activeId: string,
-    overId: string,
-  ) => void;
+  reorderSectionsByIndex: (fromIndex: number, toIndex: number) => void;
+  moveFieldPreview: (args: {
+    fieldId: string;
+    fromSectionId: string;
+    toSectionId: string;
+    fromIndex: number;
+    toIndex: number;
+  }) => void;
+  finalizeFieldDrag: (args: {
+    fieldId: string;
+    fromSectionId: string;
+    toSectionId: string;
+    fromIndex: number;
+    toIndex: number;
+  }) => void;
   reorderNestedFields: (
     sectionId: string,
     activeId: string,
     overId: string,
   ) => void;
 
-  // Save/Reset actions
   saveChanges: () => Promise<void>;
   resetChanges: () => void;
 
-  // Schema settings actions
   openSchemaSettings: () => void;
   closeSchemaSettings: () => void;
   setSchemaSettingsData: (
@@ -135,7 +130,6 @@ interface SchemaBuilderState {
   ) => void;
   submitSchemaSettings: () => Promise<void>;
 
-  // Unsaved changes protection
   checkUnsavedChanges: (navigationCallback: () => void) => boolean;
   confirmUnsavedChangesDialog: () => void;
   cancelUnsavedChangesDialog: () => void;
@@ -145,14 +139,12 @@ interface SchemaBuilderState {
 export const useSchemaBuilderStore = create<SchemaBuilderState>()(
   devtools(
     (set, get) => ({
-      // Initial state
       schema: null,
       sections: [],
       selectedSectionId: null,
       hasUnsavedChanges: false,
       isSaving: false,
 
-      // Section form state
       isAddSectionOpen: false,
       isEditSectionOpen: false,
       editingSectionId: null,
@@ -161,7 +153,6 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
         description: "",
       },
 
-      // Field form state
       isAddFieldOpen: false,
       isEditFieldOpen: false,
       editingFieldId: null,
@@ -177,7 +168,6 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
         collection_id: null,
       },
 
-      // Schema settings state
       isSchemaSettingsOpen: false,
       schemaSettingsData: {
         name: "",
@@ -185,15 +175,12 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
         template: false,
       },
 
-      // Unsaved changes protection
       isUnsavedChangesDialogOpen: false,
       pendingNavigation: null,
 
-      // Pending changes
       pendingChanges: [],
       tempIdCounter: 1,
 
-      // Initialize store with schema data
       initializeStore: (schema: SupabaseSchemaWithRelations) => {
         set(
           {
@@ -214,12 +201,10 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
         );
       },
 
-      // Set selected section
       setSelectedSection: (sectionId: string | null) => {
         set({ selectedSectionId: sectionId }, false, "setSelectedSection");
       },
 
-      // Section dialog actions
       openAddSectionDialog: () => {
         set(
           {
@@ -268,14 +253,12 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
         );
       },
 
-      // Submit section (create or update) - LOCAL ONLY
       submitSection: () => {
         const {
           sectionFormData,
           editingSectionId,
           schema,
           sections,
-          pendingChanges,
           tempIdCounter,
         } = get();
 
@@ -290,7 +273,6 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
         }
 
         if (editingSectionId) {
-          // Update existing section locally
           set(
             (state) => ({
               sections: state.sections.map((s: any) =>
@@ -323,9 +305,9 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
             "updateSectionLocal",
           );
         } else {
-          // Create new section locally
           const tempId = `temp_section_${tempIdCounter}`;
           const nextOrder = sections.length;
+
           const newSection = {
             id: tempId,
             name: sectionFormData.name,
@@ -344,7 +326,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
                 {
                   type: "create",
                   entity: "section",
-                  tempId: tempId,
+                  tempId,
                   data: {
                     name: sectionFormData.name,
                     description: sectionFormData.description,
@@ -361,9 +343,8 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
         }
       },
 
-      // Delete section (mark for deletion) - LOCAL ONLY
       deleteSectionById: (sectionId: string) => {
-        const { sections, pendingChanges } = get();
+        const { sections } = get();
         const section = sections.find((s) => s.id === sectionId);
 
         if (!section) {
@@ -372,21 +353,24 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
         }
 
         if (sectionId.startsWith("temp_")) {
-          // Remove temp section and its create change
           set(
-            (state) => ({
-              sections: state.sections.filter((s) => s.id !== sectionId),
-              pendingChanges: state.pendingChanges.filter(
+            (state) => {
+              const filteredChanges = state.pendingChanges.filter(
                 (c) => !(c.entity === "section" && c.tempId === sectionId),
-              ),
-              selectedSectionId: state.sections[0]?.id || null,
-              hasUnsavedChanges: state.pendingChanges.length > 1,
-            }),
+              );
+
+              return {
+                sections: state.sections.filter((s) => s.id !== sectionId),
+                pendingChanges: filteredChanges,
+                selectedSectionId:
+                  state.sections.find((s) => s.id !== sectionId)?.id || null,
+                hasUnsavedChanges: filteredChanges.length > 0,
+              };
+            },
             false,
             "deleteTempSection",
           );
         } else {
-          // Mark existing section for deletion
           set(
             (state) => ({
               sections: state.sections.filter((s) => s.id !== sectionId),
@@ -400,7 +384,8 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
                   id: sectionId,
                 },
               ],
-              selectedSectionId: state.sections[0]?.id || null,
+              selectedSectionId:
+                state.sections.find((s) => s.id !== sectionId)?.id || null,
               hasUnsavedChanges: true,
             }),
             false,
@@ -411,7 +396,6 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
         toast.success("Section deleted (not saved yet)");
       },
 
-      // Field dialog actions
       openAddFieldDialog: (sectionId?: string) => {
         const { selectedSectionId } = get();
         const targetSectionId = sectionId || selectedSectionId;
@@ -435,7 +419,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
             },
             isAddFieldOpen: true,
             parentFieldId: null,
-            selectedSectionId: targetSectionId, // Update the selected section
+            selectedSectionId: targetSectionId,
           },
           false,
           "openAddFieldDialog",
@@ -488,29 +472,21 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
 
       getFieldById: (fieldId: string) => {
         const { sections } = get();
-
-        // Search through all sections to find the field
         for (const section of sections) {
           const field = section.cms_schema_fields?.find(
             (f) => f.id === fieldId,
           );
-          if (field) {
-            return field;
-          }
+          if (field) return field;
         }
-
-        // Field not found
         return null;
       },
 
-      // Submit field (create or update) - LOCAL ONLY
       submitField: () => {
         const {
           fieldFormData,
           editingFieldId,
           selectedSectionId,
           sections,
-          pendingChanges,
           tempIdCounter,
           parentFieldId,
         } = get();
@@ -526,11 +502,9 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
         }
 
         if (editingFieldId) {
-          // Update existing field - find which section it belongs to
           let targetSectionId: string | null = null;
           let existingField: any = null;
 
-          // Search all sections to find the field
           for (const section of sections) {
             const field = section.cms_schema_fields?.find(
               (f) => f.id === editingFieldId,
@@ -560,20 +534,13 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
 
           set(
             (state) => {
-              // Create new sections array with updated field
               const newSections = state.sections.map((section) => {
-                if (section.id !== targetSectionId) {
-                  return section;
-                }
+                if (section.id !== targetSectionId) return section;
 
-                // Create new fields array with updated field
                 const newFields = (section.cms_schema_fields || []).map(
                   (field: any) => {
-                    if (field.id !== editingFieldId) {
-                      return field;
-                    }
+                    if (field.id !== editingFieldId) return field;
 
-                    // Create completely new field object
                     return {
                       id: field.id,
                       order: field.order,
@@ -581,7 +548,6 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
                       parent_field_id: field.parent_field_id,
                       created_at: field.created_at,
                       updated_at: field.updated_at,
-                      // Updated properties
                       name: updatedFieldData.name,
                       field_key: updatedFieldData.field_key,
                       type: updatedFieldData.type,
@@ -594,11 +560,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
                   },
                 );
 
-                // Return new section object with new fields array
-                return {
-                  ...section,
-                  cms_schema_fields: newFields,
-                };
+                return { ...section, cms_schema_fields: newFields };
               });
 
               return {
@@ -622,7 +584,6 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
             "updateFieldLocal",
           );
         } else {
-          // Create new field locally
           if (!selectedSectionId) {
             toast.error("No section selected");
             return;
@@ -636,6 +597,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
 
           const tempId = `temp_field_${tempIdCounter}`;
           const nextOrder = section.cms_schema_fields?.length || 0;
+
           const newField = {
             id: tempId,
             name: fieldFormData.name,
@@ -669,7 +631,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
                 {
                   type: "create",
                   entity: "field",
-                  tempId: tempId,
+                  tempId,
                   data: {
                     schema_section_id: selectedSectionId,
                     name: fieldFormData.name,
@@ -694,8 +656,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
         }
       },
 
-      // Delete field (mark for deletion) - LOCAL ONLY
-      deleteFieldById: (fieldId, sectionId, parentSectionId) => {
+      deleteFieldById: (fieldId, sectionId) => {
         const { sections } = get();
         const section = sections.find((s) => s.id === sectionId);
 
@@ -706,35 +667,35 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
 
         const field = section.cms_schema_fields?.find((f) => f.id === fieldId);
         if (!field) {
-          console.error("Field not found", fieldId, section.cms_schema_fields);
           toast.error("Field not found");
           return;
         }
 
         if (fieldId.startsWith("temp_")) {
-          // Remove temp field and its create change
           set(
-            (state) => ({
-              sections: state.sections.map((s) =>
-                s.id === sectionId
-                  ? {
-                      ...s,
-                      cms_schema_fields: s.cms_schema_fields?.filter(
-                        (f: any) => f.id !== fieldId,
-                      ),
-                    }
-                  : s,
-              ),
-              pendingChanges: state.pendingChanges.filter(
+            (state) => {
+              const filteredChanges = state.pendingChanges.filter(
                 (c) => !(c.entity === "field" && c.tempId === fieldId),
-              ),
-              hasUnsavedChanges: state.pendingChanges.length > 1,
-            }),
+              );
+              return {
+                sections: state.sections.map((s) =>
+                  s.id === sectionId
+                    ? {
+                        ...s,
+                        cms_schema_fields: s.cms_schema_fields?.filter(
+                          (f: any) => f.id !== fieldId,
+                        ),
+                      }
+                    : s,
+                ),
+                pendingChanges: filteredChanges,
+                hasUnsavedChanges: filteredChanges.length > 0,
+              };
+            },
             false,
             "deleteTempField",
           );
         } else {
-          // Mark existing field for deletion
           set(
             (state) => ({
               sections: state.sections.map((s) =>
@@ -767,7 +728,6 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
         toast.success("Field deleted (not saved yet)");
       },
 
-      // Nested field actions (simplified - treating nested fields as regular fields with parent_field_id)
       openAddNestedFieldDialog: (
         parentSectionId: string,
         parentFieldId?: string,
@@ -834,22 +794,25 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
 
         if (fieldId.startsWith("temp_")) {
           set(
-            (state) => ({
-              sections: state.sections.map((s) =>
-                s.id === parentSectionId
-                  ? {
-                      ...s,
-                      cms_schema_fields: s.cms_schema_fields?.filter(
-                        (f: any) => f.id !== fieldId,
-                      ),
-                    }
-                  : s,
-              ),
-              pendingChanges: state.pendingChanges.filter(
+            (state) => {
+              const filteredChanges = state.pendingChanges.filter(
                 (c) => !(c.entity === "field" && c.tempId === fieldId),
-              ),
-              hasUnsavedChanges: state.pendingChanges.length > 1,
-            }),
+              );
+              return {
+                sections: state.sections.map((s) =>
+                  s.id === parentSectionId
+                    ? {
+                        ...s,
+                        cms_schema_fields: s.cms_schema_fields?.filter(
+                          (f: any) => f.id !== fieldId,
+                        ),
+                      }
+                    : s,
+                ),
+                pendingChanges: filteredChanges,
+                hasUnsavedChanges: filteredChanges.length > 0,
+              };
+            },
             false,
             "deleteNestedTempField",
           );
@@ -886,15 +849,19 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
         toast.success("Nested field deleted (not saved yet)");
       },
 
-      // Reordering actions
-      reorderSections: (activeId: string, overId: string) => {
-        const { sections, pendingChanges } = get();
-        const oldIndex = sections.findIndex((s) => s.id === activeId);
-        const newIndex = sections.findIndex((s) => s.id === overId);
+      reorderSectionsByIndex: (fromIndex, toIndex) => {
+        const { sections } = get();
 
-        if (oldIndex === -1 || newIndex === -1) return;
+        if (fromIndex === toIndex) return;
+        if (fromIndex < 0 || toIndex < 0) return;
+        if (fromIndex >= sections.length || toIndex >= sections.length) return;
 
-        const newSections = arrayMove(sections, oldIndex, newIndex);
+        const newSections = arrayMove(sections, fromIndex, toIndex).map(
+          (section, index) => ({
+            ...section,
+            order: index,
+          }),
+        );
 
         set(
           (state) => ({
@@ -906,100 +873,203 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
               {
                 type: "reorder",
                 entity: "sections",
-                data: {
-                  sectionOrder: newSections.map((s) => s.id),
-                },
+                data: { sectionOrder: newSections.map((s) => s.id) },
               },
             ],
             hasUnsavedChanges: true,
           }),
           false,
-          "reorderSections",
+          "reorderSectionsByIndex",
         );
       },
 
-      reorderSectionFields: (
-        sectionId: string,
-        activeId: string,
-        overId: string,
-      ) => {
+      moveFieldPreview: ({
+        fieldId,
+        fromSectionId,
+        toSectionId,
+        fromIndex,
+        toIndex,
+      }) => {
         const { sections } = get();
 
-        console.log("reorder section fields")
+        if (fromIndex < 0 || toIndex < 0) return;
 
-        const section = sections.find((s) => s.id === sectionId);
+        const sourceSection = sections.find((s) => s.id === fromSectionId);
+        const targetSection = sections.find((s) => s.id === toSectionId);
 
-        if (!section || !section.cms_schema_fields) return;
+        if (!sourceSection || !targetSection) return;
 
-        const allFields = section.cms_schema_fields;
+        const sourceFields = [...(sourceSection.cms_schema_fields ?? [])];
+        const sameSection = fromSectionId === toSectionId;
+        const targetFields = sameSection
+          ? sourceFields
+          : [...(targetSection.cms_schema_fields ?? [])];
 
-        // Determine if we're reordering top-level or nested fields
-        const activeField = allFields.find((f: any) => f.id === activeId);
-        const isNested = !!activeField?.parent_field_id;
+        let realFromIndex = fromIndex;
 
-        // Filter to only the relevant tier so indices are correct
-        const tierFields = isNested
-          ? allFields.filter(
-              (f: any) => f.parent_field_id === activeField.parent_field_id,
-            )
-          : allFields.filter((f: any) => !f.parent_field_id);
+        if (
+          realFromIndex < 0 ||
+          realFromIndex >= sourceFields.length ||
+          sourceFields[realFromIndex]?.id !== fieldId
+        ) {
+          realFromIndex = sourceFields.findIndex((f: any) => f.id === fieldId);
+        }
 
-        const oldIndex = tierFields.findIndex((f: any) => f.id === activeId);
-        const newIndex = tierFields.findIndex((f: any) => f.id === overId);
+        if (realFromIndex === -1) return;
 
-        if (oldIndex === -1 || newIndex === -1) return;
+        const movingField = sourceFields[realFromIndex];
+        if (!movingField) return;
 
-        const reorderedTier = arrayMove(tierFields, oldIndex, newIndex);
+        if (sameSection) {
+          const safeToIndex = Math.max(
+            0,
+            Math.min(toIndex, sourceFields.length - 1),
+          );
 
-        // Rebuild the full fields array: replace the tier's fields in-place,
-        // preserving all other fields in their original positions
-        const otherFields = allFields.filter((f: any) =>
-          isNested
-            ? f.parent_field_id !== activeField.parent_field_id
-            : !!f.parent_field_id,
+          const reordered = arrayMove(
+            sourceFields,
+            realFromIndex,
+            safeToIndex,
+          ).map((field: any, index: number) => ({
+            ...field,
+            order: index,
+          }));
+
+          set(
+            (state) => ({
+              sections: state.sections.map((section) =>
+                section.id === fromSectionId
+                  ? { ...section, cms_schema_fields: reordered }
+                  : section,
+              ),
+            }),
+            false,
+            "moveFieldPreviewSameSection",
+          );
+
+          return;
+        }
+
+        sourceFields.splice(realFromIndex, 1);
+
+        const movedField = {
+          ...movingField,
+          schema_section_id: toSectionId,
+        };
+
+        const safeToIndex = Math.max(0, Math.min(toIndex, targetFields.length));
+        targetFields.splice(safeToIndex, 0, movedField);
+
+        const normalizedSourceFields = sourceFields.map(
+          (field: any, index: number) => ({
+            ...field,
+            order: index,
+          }),
         );
-        const newFields = [...reorderedTier, ...otherFields];
+
+        const normalizedTargetFields = targetFields.map(
+          (field: any, index: number) => ({
+            ...field,
+            order: index,
+          }),
+        );
 
         set(
           (state) => ({
-            sections: state.sections.map((s) =>
-              s.id === sectionId ? { ...s, cms_schema_fields: newFields } : s,
-            ),
-            pendingChanges: [
-              ...state.pendingChanges.filter(
-                (c) =>
-                  !(
-                    c.type === "reorder" &&
-                    c.entity === "fields" &&
-                    c.data?.sectionId === sectionId
-                  ),
-              ),
-              {
-                type: "reorder",
-                entity: "fields",
-                data: {
-                  sectionId,
-                  fieldOrder: newFields.map((f: any) => f.id),
-                },
-              },
-            ],
-            hasUnsavedChanges: true,
+            sections: state.sections.map((section) => {
+              if (section.id === fromSectionId) {
+                return {
+                  ...section,
+                  cms_schema_fields: normalizedSourceFields,
+                };
+              }
+
+              if (section.id === toSectionId) {
+                return {
+                  ...section,
+                  cms_schema_fields: normalizedTargetFields,
+                };
+              }
+
+              return section;
+            }),
           }),
           false,
-          "reorderSectionFields",
+          "moveFieldPreviewAcrossSections",
         );
       },
 
-      reorderNestedFields: (
-        sectionId: string,
-        activeId: string,
-        overId: string,
-      ) => {
-        // For now, same as reorderSectionFields
-        get().reorderSectionFields(sectionId, activeId, overId);
+      finalizeFieldDrag: ({
+        fieldId,
+        fromSectionId,
+        toSectionId,
+        fromIndex,
+        toIndex,
+      }) => {
+        const { sections, pendingChanges } = get();
+
+        if (fromIndex < 0 || toIndex < 0) return;
+
+        const sourceSection = sections.find((s) => s.id === fromSectionId);
+        const targetSection = sections.find((s) => s.id === toSectionId);
+
+        if (!sourceSection || !targetSection) return;
+
+        const sourceFields = [...(sourceSection.cms_schema_fields ?? [])];
+        const sameSection = fromSectionId === toSectionId;
+        const targetFields = sameSection
+          ? sourceFields
+          : [...(targetSection.cms_schema_fields ?? [])];
+
+        const fieldExistsInSource = sourceFields.some((f: any) => f.id === fieldId);
+        const fieldExistsInTarget = targetFields.some((f: any) => f.id === fieldId);
+
+        if (!fieldExistsInSource && !fieldExistsInTarget) return;
+
+        const filteredChanges = pendingChanges.filter(
+          (c) =>
+            !(
+              c.type === "reorder" &&
+              c.entity === "fields" &&
+              (c.id === fromSectionId || c.id === toSectionId)
+            ),
+        );
+
+        const nextChanges: PendingChange[] = [
+          ...filteredChanges,
+          {
+            type: "reorder",
+            entity: "fields",
+            id: fromSectionId,
+            data: {
+              fieldOrder: sourceFields.map((f: any) => f.id),
+            },
+          },
+        ];
+
+        if (fromSectionId !== toSectionId) {
+          nextChanges.push({
+            type: "reorder",
+            entity: "fields",
+            id: toSectionId,
+            data: {
+              fieldOrder: targetFields.map((f: any) => f.id),
+            },
+          });
+        }
+
+        set(
+          {
+            pendingChanges: nextChanges,
+            hasUnsavedChanges: true,
+          },
+          false,
+          "finalizeFieldDrag",
+        );
       },
 
-      // Save changes to server
+      reorderNestedFields: () => {},
+
       saveChanges: async () => {
         const { schema, sections, pendingChanges, hasUnsavedChanges } = get();
 
@@ -1016,10 +1086,8 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
         set({ isSaving: true }, false, "startSaving");
 
         try {
-          // Build section order array from current state
           const sectionOrder = sections.map((s) => s.id);
 
-          // Build field orders map from current state
           const fieldOrders: Record<string, string[]> = {};
           sections.forEach((section) => {
             if (
@@ -1040,7 +1108,6 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
           });
 
           if (result.success) {
-            // Update local state with real IDs from server
             set(
               (state) => {
                 const updatedSections = state.sections.map((section) => {
@@ -1056,6 +1123,7 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
                         const realFieldId = field.id.startsWith("temp_")
                           ? result.tempIdMap[field.id]
                           : field.id;
+
                         return {
                           ...field,
                           id: realFieldId,
@@ -1089,7 +1157,6 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
         }
       },
 
-      // Reset changes
       resetChanges: () => {
         const { schema } = get();
         if (!schema) return;
@@ -1108,7 +1175,6 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
         toast.info("Changes discarded");
       },
 
-      // Schema settings actions
       openSchemaSettings: () => {
         const { schema } = get();
         if (!schema) return;
@@ -1175,7 +1241,6 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
         }
       },
 
-      // Unsaved changes protection
       checkUnsavedChanges: (navigationCallback: () => void) => {
         const { hasUnsavedChanges } = get();
 
@@ -1188,15 +1253,15 @@ export const useSchemaBuilderStore = create<SchemaBuilderState>()(
             false,
             "checkUnsavedChanges",
           );
-          return true; // Block navigation
+          return true;
         }
 
-        return false; // Allow navigation
+        return false;
       },
 
       confirmUnsavedChangesDialog: () => {
         set(
-          { isUnsavedChangesDialogOpen: true },
+          { isUnsavedChangesDialogOpen: false },
           false,
           "confirmUnsavedChangesDialog",
         );
