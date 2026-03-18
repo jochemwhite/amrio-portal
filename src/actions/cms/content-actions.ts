@@ -1,6 +1,10 @@
 "use server";
 
+import { supabaseAdmin } from "@/lib/supabase/SupabaseAdminClient";
 import { createClient } from "@/lib/supabase/supabaseServerClient";
+import { checkRequiredRoles } from "@/server/auth/check-required-roles";
+import { getActiveTenantId } from "@/server/utils";
+import { ActionResponse } from "@/types/actions";
 import { revalidatePath } from "next/cache";
 
 // Helper function to check if a value is empty
@@ -253,3 +257,4 @@ export async function loadPageContent(pageId: string) {
     throw new Error(error instanceof Error ? error.message : "Failed to load content");
   }
 }
+

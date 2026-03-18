@@ -191,6 +191,7 @@ export type SupabaseSchemaWithRelations = {
   tenant_id: string | null;
   created_at: string | null;
   updated_at: string | null;
+  schema_type: Database["public"]["Enums"]["schema_type"];
   cms_schema_sections: {
     id: string;
     name: string;
@@ -202,10 +203,12 @@ export type SupabaseSchemaWithRelations = {
     cms_schema_fields: {
       id: string;
       name: string;
+      field_key: string;
       type: string;
       required: boolean;
       default_value: string | null;
       validation: string | null;
+      settings: Record<string, any> | null;
       order: number | null;
       parent_field_id: string | null;
       schema_section_id: string | null;
@@ -214,7 +217,7 @@ export type SupabaseSchemaWithRelations = {
       updated_at: string | null;
     }[];
   }[];
-} 
+}
 
 
 export interface FieldType<C = any> {

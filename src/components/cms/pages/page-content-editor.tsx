@@ -2,8 +2,8 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { ContentEditor } from "@/components/cms/content-editor/ContentEditor";
-import ContentEditorHeader from "@/components/cms/content-editor/ContentEditorHeader";
+import { ContentEditor } from "@/components/cms/content-editor/content_editor";
+import ContentEditorHeader from "@/components/cms/content-editor/content_editor_header";
 import { savePageContent } from "@/actions/cms/schema-content-actions";
 import { RPCPageResponse } from "@/types/cms";
 

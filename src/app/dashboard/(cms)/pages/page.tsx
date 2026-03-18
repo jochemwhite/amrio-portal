@@ -1,17 +1,11 @@
 import { PageOverview } from "@/components/cms/pages/page-overview";
 import { createClient } from "@/lib/supabase/supabaseServerClient";
-import { cookies } from "next/headers";
+import { getActiveTenantAndWebsiteIds } from "@/server/utils";
 import { redirect } from "next/navigation";
-
-const ACTIVE_TENANT_COOKIE  = "active-tenant";
-const ACTIVE_WEBSITE_COOKIE = "active-website";
 
 export default async function PagesPage() {
   const supabase = await createClient();
-  const cookieStore = await cookies();
-
-  const tenantId  = cookieStore.get(ACTIVE_TENANT_COOKIE)?.value;
-  const websiteId = cookieStore.get(ACTIVE_WEBSITE_COOKIE)?.value;
+  const { tenantId, websiteId } = await getActiveTenantAndWebsiteIds();
 
   if (!tenantId) {
     return (

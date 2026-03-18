@@ -1,102 +1,119 @@
 "use client";
 
-import { useEffect, useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+
 import { useSchemaBuilderStore } from "@/stores/schema-editor-store";
 
 export function useSchemaUnsavedChangesProtection() {
   const router = useRouter();
-  const { hasUnsavedChanges, checkUnsavedChanges } = useSchemaBuilderStore();
+  const checkUnsavedChanges = useSchemaBuilderStore(
+    (state) => state.checkUnsavedChanges,
+  );
+
   const originalPushRef = useRef<typeof router.push | null>(null);
   const originalReplaceRef = useRef<typeof router.replace | null>(null);
   const originalBackRef = useRef<typeof router.back | null>(null);
+  const ignoreNextPopRef = useRef(false);
 
-  // Handle browser beforeunload event (closing tab, refreshing, etc.)
   useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault();
-        // Modern browsers ignore custom messages and show their own
-        e.returnValue = "";
-        return "";
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!useSchemaBuilderStore.getState().hasUnsavedChanges) {
+        return;
       }
+
+      event.preventDefault();
+      event.returnValue = "";
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [hasUnsavedChanges]);
+  }, []);
 
-  // Create protected navigation functions
   const createProtectedNavigation = useCallback(
-    (originalMethod: Function, methodName: string) => {
+    (originalMethod: Function) => {
       return (...args: any[]) => {
-        const navigationCallback = () => originalMethod.apply(router, args);
-        
+        const navigationCallback = () => originalMethod(...args);
         const canNavigate = checkUnsavedChanges(navigationCallback);
+
         if (canNavigate) {
-          // No unsaved changes, proceed with navigation
-          originalMethod.apply(router, args);
+          navigationCallback();
         }
-        // If canNavigate is false, the dialog will be shown and navigation will be handled there
       };
     },
-    [checkUnsavedChanges, router]
+    [checkUnsavedChanges],
   );
 
-  // Override router methods with protection
   useEffect(() => {
-    // Store original methods
-    originalPushRef.current = router.push;
-    originalReplaceRef.current = router.replace;
-    originalBackRef.current = router.back;
-
-    // Override with protected versions
-    if (originalPushRef.current) {
-      router.push = createProtectedNavigation(originalPushRef.current, "push") as typeof router.push;
-    }
-    if (originalReplaceRef.current) {
-      router.replace = createProtectedNavigation(originalReplaceRef.current, "replace") as typeof router.replace;
-    }
-    if (originalBackRef.current) {
-      router.back = createProtectedNavigation(originalBackRef.current, "back") as typeof router.back;
+    if (!originalPushRef.current) {
+      originalPushRef.current = router.push.bind(router);
     }
 
-    // Cleanup function to restore original methods
+    if (!originalReplaceRef.current) {
+      originalReplaceRef.current = router.replace.bind(router);
+    }
+
+    if (!originalBackRef.current) {
+      originalBackRef.current = router.back.bind(router);
+    }
+
+    router.push = createProtectedNavigation(
+      originalPushRef.current,
+    ) as typeof router.push;
+    router.replace = createProtectedNavigation(
+      originalReplaceRef.current,
+    ) as typeof router.replace;
+    router.back = createProtectedNavigation(
+      originalBackRef.current,
+    ) as typeof router.back;
+
     return () => {
       if (originalPushRef.current) {
         router.push = originalPushRef.current;
       }
+
       if (originalReplaceRef.current) {
         router.replace = originalReplaceRef.current;
       }
+
       if (originalBackRef.current) {
         router.back = originalBackRef.current;
       }
     };
   }, [createProtectedNavigation, router]);
 
-  // Handle browser back/forward buttons
   useEffect(() => {
-    const handlePopState = (e: PopStateEvent) => {
-      if (hasUnsavedChanges) {
-        // Prevent the navigation by pushing the current state back
-        window.history.pushState(null, "", window.location.href);
-        
-        // Show our custom dialog
-        checkUnsavedChanges(() => {
-          // If user chooses to navigate, go back to the intended destination
+    window.history.pushState(null, "", window.location.href);
+
+    const handlePopState = () => {
+      if (ignoreNextPopRef.current) {
+        ignoreNextPopRef.current = false;
+        return;
+      }
+
+      if (!useSchemaBuilderStore.getState().hasUnsavedChanges) {
+        return;
+      }
+
+      window.history.pushState(null, "", window.location.href);
+
+      const canNavigate = useSchemaBuilderStore
+        .getState()
+        .checkUnsavedChanges(() => {
+          ignoreNextPopRef.current = true;
           window.history.back();
         });
+
+      if (canNavigate) {
+        ignoreNextPopRef.current = true;
+        window.history.back();
       }
     };
 
-    // Push initial state to handle back button
-    window.history.pushState(null, "", window.location.href);
     window.addEventListener("popstate", handlePopState);
 
     return () => {
       window.removeEventListener("popstate", handlePopState);
     };
-  }, [hasUnsavedChanges, checkUnsavedChanges]);
+  }, []);
 }
-

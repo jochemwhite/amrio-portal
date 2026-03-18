@@ -1,6 +1,8 @@
 "use server";
 
+import { supabaseAdmin } from "@/lib/supabase/SupabaseAdminClient";
 import { createClient } from "@/lib/supabase/supabaseServerClient";
+import { checkRequiredRoles } from "@/server/auth/check-required-roles";
 import { getActiveTenantId } from "@/server/utils";
 import { ActionResponse } from "@/types/actions";
 import { revalidatePath } from "next/cache";
@@ -395,4 +397,79 @@ export async function getCollectionById(collectionId: string): Promise<ActionRes
     console.error("Unexpected error fetching collection:", error);
     return { success: false, error: "An unexpected error occurred." };
   }
+}
+
+
+
+
+type CollectionOption = {
+  id: string;
+  name: string;
+};
+
+export async function getCollectionsForSchemaBuilder(): Promise<ActionResponse<CollectionOption[]>> {
+  const context = await get_authorized_context();
+  if (!context.success) {
+    return { success: false, error: context.error };
+  }
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("cms_collections")
+      .select(
+        `
+          id,
+          name,
+          cms_websites!inner (
+            tenant_id
+          )
+        `
+      )
+      .eq("cms_websites.tenant_id", context.tenantId)
+      .order("name", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching collections:", error);
+      return { success: false, error: error.message };
+    }
+
+    const collections =
+      data?.map((collection) => ({
+        id: collection.id,
+        name: collection.name,
+      })) ?? [];
+
+    return { success: true, data: collections };
+  } catch (error) {
+    console.error("Unexpected error fetching collections:", error);
+    return { success: false, error: "An unexpected error occurred while loading collections." };
+  }
+}
+
+async function get_authorized_context(): Promise<
+  | { success: true; tenantId: string }
+  | { success: false; error: string }
+> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { success: false, error: "Unauthorized: User not authenticated." };
+  }
+
+  const isAdmin = await checkRequiredRoles(user.id, ["system_admin"]);
+  if (!isAdmin) {
+    return { success: false, error: "Unauthorized: Only admins can manage schemas." };
+  }
+
+  const tenantId = await getActiveTenantId();
+  if (!tenantId) {
+    return { success: false, error: "No active tenant selected." };
+  }
+
+  return { success: true, tenantId };
 }
