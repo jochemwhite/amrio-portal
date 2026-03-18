@@ -1,5 +1,5 @@
-import { FIELD_TYPES } from "@/components/cms/field-types";
 import { RPCPageField, RPCPageSection, SupabaseField } from "@/types/cms";
+import { FIELD_TYPES } from "@/utils/schema/field_types";
 import { toast } from "sonner";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
@@ -51,6 +51,7 @@ interface ContentEditorState {
   getFieldCollectionId: (fieldId: string) => string | null;
   resetField: (fieldId: string) => void;
   resetAllFields: () => void;
+  saveContent: () => Promise<void>;
   setSaveFunction: (saveFn: SaveContentFunction) => void;
   setWebsiteId: (websiteId: string | null) => void;
 }
