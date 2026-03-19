@@ -1,6 +1,10 @@
 import { SparklesCore } from "@/components/ui/sparkles";
-import Image from "next/image";
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
+
+export const metadata: Metadata = {
+  description: "Sign in and secure access to the Amrio portal.",
+};
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (

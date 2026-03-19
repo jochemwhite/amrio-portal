@@ -1,6 +1,7 @@
 import { PageContentEditor } from "@/components/cms/pages/page-content-editor";
 import { createClient } from "@/lib/supabase/supabaseServerClient";
 import { RPCPageResponse } from "@/types/cms";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 interface PageContentProps {
@@ -8,6 +9,11 @@ interface PageContentProps {
     pageId: string;
   }>;
 }
+
+export const metadata: Metadata = {
+  title: "Page Content",
+  description: "Edit fields and sections for this page.",
+};
 
 export default async function PageContentPage({ params }: PageContentProps) {
   const { pageId } = await params;

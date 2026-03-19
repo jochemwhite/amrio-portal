@@ -3,6 +3,12 @@ import { getActiveTenantId } from "@/server/utils";
 import { getApiKeys } from "@/actions/api-keys/api_key_actions";
 import { getWebsitesByTenant } from "@/actions/cms/website-actions";
 import { ApiKeysManagement } from "@/components/api-keys/api_keys_management";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "API Keys",
+  description: "Manage API keys for programmatic access to your CMS data.",
+};
 
 export default async function api_keys_page() {
   const tenantId = await getActiveTenantId();

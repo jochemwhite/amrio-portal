@@ -1,7 +1,13 @@
 import { getCollectionWithSchemaRPC } from "@/actions/cms/collection-rpc-actions";
 import { SchemaBuilder } from "@/components/cms/schema-builder/SchemaBuilder";
 import { getActiveTenantId } from "@/server/utils";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+
+export const metadata: Metadata = {
+  title: "Collection Schema",
+  description: "Configure the schema for this collection.",
+};
 
 export default async function CollectionSchemaPage({ params }: { params: Promise<{ collectionId: string }> }) {
   const { collectionId } = await params;

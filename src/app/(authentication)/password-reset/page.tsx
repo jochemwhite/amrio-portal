@@ -1,7 +1,13 @@
 import ResetPasswordForm from "@/components/auth/reset-password-form";
 import { createClient } from "@/lib/supabase/supabaseServerClient";
 import Image from "next/image";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+
+export const metadata: Metadata = {
+  title: "Reset Password",
+  description: "Set a new password for your Amrio portal account.",
+};
 
 export default async function ResetPasswordPage() {
   const supabase = await createClient();

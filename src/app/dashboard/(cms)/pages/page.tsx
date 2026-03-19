@@ -1,7 +1,13 @@
 import { PageOverview } from "@/components/cms/pages/page-overview";
 import { createClient } from "@/lib/supabase/supabaseServerClient";
 import { getActiveTenantAndWebsiteIds } from "@/server/utils";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+
+export const metadata: Metadata = {
+  title: "Pages",
+  description: "Manage pages and their content for your website.",
+};
 
 export default async function PagesPage() {
   const supabase = await createClient();

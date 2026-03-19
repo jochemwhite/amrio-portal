@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getCollectionEntryRPC } from "@/actions/cms/collection-entry-actions";
 import { CollectionContentEditor } from "@/components/cms/collections/collection_content_editor";
 import { RPCCollectionEntryResponse } from "@/types/cms";
+import type { Metadata } from "next";
 
 interface CollectionEntryPageProps {
   params: Promise<{
@@ -9,6 +10,11 @@ interface CollectionEntryPageProps {
     entryId: string;
   }>;
 }
+
+export const metadata: Metadata = {
+  title: "Edit Entry",
+  description: "Edit content for this collection entry.",
+};
 
 export default async function CollectionEntryPage({ params }: CollectionEntryPageProps) {
   const { collectionId, entryId } = await params;

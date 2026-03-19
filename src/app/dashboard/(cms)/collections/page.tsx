@@ -3,6 +3,12 @@ import { getCollectionsByWebsite } from "@/actions/cms/collection-actions";
 import { CollectionsOverview } from "@/components/cms/collections/collections_overview";
 import { createClient } from "@/lib/supabase/supabaseServerClient";
 import { getActiveTenantAndWebsiteIds } from "@/server/utils";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Collections",
+  description: "Manage collections for your selected website.",
+};
 
 export default async function CollectionsPage() {
   const supabase = await createClient();

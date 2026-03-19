@@ -2,6 +2,12 @@ import { SchemaTable } from '@/components/admin/schemas/SchemaTable'
 import { getAllSchemas } from '@/actions/cms/schema-actions'
 import { CreateSchemaButton } from '@/components/admin/schemas/CreateSchemaButton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Schema Management",
+  description: "Create and manage CMS schemas for pages, collections, and layouts.",
+};
 
 export default async function SchemasPage() {
   const result = await getAllSchemas()

@@ -1,9 +1,14 @@
 import SingInForm from "@/components/auth/sign-in-form";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { SparklesCore } from "@/components/ui/sparkles";
 import { createClient } from "@/lib/supabase/supabaseServerClient";
-import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 import Image from "next/image";
+import { redirect } from "next/navigation";
+
+export const metadata: Metadata = {
+  title: "Login",
+  description: "Sign in to the Amrio portal to manage your content.",
+};
 
 export default async function Home() {
   const supabase = await createClient();

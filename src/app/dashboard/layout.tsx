@@ -7,11 +7,16 @@ import { createClient } from "@/lib/supabase/supabaseServerClient";
 import { SessionProvider } from "@/providers/session-provider";
 import { UserSession } from "@/types/custom-supabase-types";
 import { PostgrestError } from "@supabase/supabase-js";
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 const ACTIVE_TENANT_COOKIE  = "active-tenant";
 const ACTIVE_WEBSITE_COOKIE = "active-website";
+
+export const metadata: Metadata = {
+  description: "Manage your CMS content, pages, layouts, and collections.",
+};
 
 export default async function Layout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();

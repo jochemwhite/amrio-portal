@@ -19,7 +19,7 @@ const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(100, "Name must be less than 100 characters"),
   description: z.string().max(500, "Description must be less than 500 characters").optional(),
   schema_id: z.string().min(1, "Please select a schema"),
-  type: z.enum(["header", "footer"]),
+  type: z.enum(["header", "footer", "sidebar", "custom"]),
   is_default: z.boolean(),
 });
 
@@ -52,7 +52,7 @@ export function LayoutFormDialog({ isOpen, onClose, websiteId, onSuccess }: Layo
       description: values.description?.trim() || undefined,
       schema_id: values.schema_id,
       website_id: websiteId,
-      type: values.type as Database["public"]["Enums"]["layout_entry_type"],
+      type: values.type as Database["public"]["Enums"]["layout_slot_type"],
       is_default: values.is_default,
     });
 
@@ -101,6 +101,8 @@ export function LayoutFormDialog({ isOpen, onClose, websiteId, onSuccess }: Layo
                     <SelectContent>
                       <SelectItem value="header">Header</SelectItem>
                       <SelectItem value="footer">Footer</SelectItem>
+                      <SelectItem value="sidebar">Sidebar</SelectItem>
+                      <SelectItem value="custom">Custom</SelectItem>
                     </SelectContent>
                   </Select>
                   {fieldState.error?.message ? <FieldError>{fieldState.error.message}</FieldError> : null}
@@ -168,4 +170,3 @@ export function LayoutFormDialog({ isOpen, onClose, websiteId, onSuccess }: Layo
     </Dialog>
   );
 }
-

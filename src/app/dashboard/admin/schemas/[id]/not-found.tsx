@@ -1,6 +1,12 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { FileQuestion } from 'lucide-react'
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Schema Not Found",
+  description: "The requested schema could not be found or is not accessible.",
+};
 
 export default function NotFound() {
   return (
@@ -16,4 +22,3 @@ export default function NotFound() {
     </div>
   )
 }
-

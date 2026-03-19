@@ -1,9 +1,15 @@
 import { createClient } from "@/lib/supabase/supabaseServerClient";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import { LogoutButton } from "@/components/auth/logout-button";
 import AuthMFA from "@/components/auth/auth-mfa";
 import { SparklesCore } from "@/components/ui/sparkles";
+
+export const metadata: Metadata = {
+  title: "Two-Factor Authentication",
+  description: "Complete two-factor authentication to access your dashboard.",
+};
 
 export default async function MFAPage() {
   const supabase = await createClient();

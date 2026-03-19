@@ -11,13 +11,13 @@ export interface LayoutRow {
   template_id: string;
   template_name: string;
   template_description: string | null;
-  type: Database["public"]["Enums"]["layout_entry_type"];
+  type: Database["public"]["Enums"]["layout_slot_type"];
   schema_id: string;
   schema_name: string;
   is_default: boolean;
   assignment_type: "default" | "assignment" | "override";
   assignment_id?: string;
-  condition_type?: Database["public"]["Enums"]["layout_condition_type"];
+  condition_type?: string;
   condition_value?: unknown;
   priority?: number;
   override_id?: string;
@@ -32,7 +32,7 @@ type LayoutTemplateWithContent = {
   template: {
     id: string;
     name: string;
-    type: Database["public"]["Enums"]["layout_entry_type"];
+    type: Database["public"]["Enums"]["layout_slot_type"];
     is_default: boolean;
     created_at: string;
     layout_id: string;
@@ -87,7 +87,7 @@ type CreateLayoutEntryData = {
   description?: string;
   schema_id: string;
   website_id: string;
-  type: Database["public"]["Enums"]["layout_entry_type"];
+  type: Database["public"]["Enums"]["layout_slot_type"];
   is_default?: boolean;
 };
 
@@ -486,6 +486,45 @@ export async function getTemplateWithContent(templateId: string): Promise<Action
     return { success: true, data: payload };
   } catch (error) {
     console.error("Unexpected error fetching layout template with content:", error);
+    return { success: false, error: "An unexpected error occurred." };
+  }
+}
+
+export async function getLayoutEntryContent(layoutEntryId: string): Promise<ActionResponse<unknown>> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { success: false, error: "Unauthorized: User not authenticated." };
+  }
+
+  const tenantId = await getActiveTenantId();
+  if (!tenantId) {
+    return { success: false, error: "No active tenant selected." };
+  }
+
+  try {
+    const { data, error } = await (supabase.rpc as any)("get_content", {
+      entity_type_param: "layout_entry",
+      entity_id_param: layoutEntryId,
+      tenant_id_param: tenantId,
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    if (!data) {
+      return { success: false, error: "Layout content not found." };
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error("Unexpected error fetching layout content:", error);
     return { success: false, error: "An unexpected error occurred." };
   }
 }

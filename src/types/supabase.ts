@@ -287,6 +287,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           id: string
+          layout_entry_id: string | null
           name: string
           order: number | null
           page_id: string | null
@@ -298,6 +299,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          layout_entry_id?: string | null
           name: string
           order?: number | null
           page_id?: string | null
@@ -309,6 +311,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          layout_entry_id?: string | null
           name?: string
           order?: number | null
           page_id?: string | null
@@ -324,6 +327,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "cms_content_sections_layout_entry_id_fkey"
+            columns: ["layout_entry_id"]
+            isOneToOne: false
+            referencedRelation: "cms_layout_entries"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "cms_content_sections_schema_section_id_fkey"
             columns: ["schema_section_id"]
             isOneToOne: false
@@ -335,6 +345,167 @@ export type Database = {
             columns: ["page_id"]
             isOneToOne: false
             referencedRelation: "cms_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cms_layout_entries: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          layout_id: string
+          name: string | null
+          type: Database["public"]["Enums"]["layout_slot_type"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          layout_id: string
+          name?: string | null
+          type: Database["public"]["Enums"]["layout_slot_type"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          layout_id?: string
+          name?: string | null
+          type?: Database["public"]["Enums"]["layout_slot_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cms_layout_entries_layout_id_fkey"
+            columns: ["layout_id"]
+            isOneToOne: false
+            referencedRelation: "cms_layouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cms_layout_overrides: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          id: string
+          layout_entry_id: string
+          page_id: string | null
+          priority: number
+          route_pattern: string | null
+          slot_type: Database["public"]["Enums"]["layout_slot_type"]
+          updated_at: string
+          website_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          layout_entry_id: string
+          page_id?: string | null
+          priority?: number
+          route_pattern?: string | null
+          slot_type: Database["public"]["Enums"]["layout_slot_type"]
+          updated_at?: string
+          website_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          layout_entry_id?: string
+          page_id?: string | null
+          priority?: number
+          route_pattern?: string | null
+          slot_type?: Database["public"]["Enums"]["layout_slot_type"]
+          updated_at?: string
+          website_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cms_layout_overrides_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cms_layout_overrides_layout_entry_id_fkey"
+            columns: ["layout_entry_id"]
+            isOneToOne: false
+            referencedRelation: "cms_layout_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cms_layout_overrides_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "cms_pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cms_layout_overrides_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "cms_websites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cms_layouts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          schema_id: string | null
+          updated_at: string | null
+          website_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          schema_id?: string | null
+          updated_at?: string | null
+          website_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          schema_id?: string | null
+          updated_at?: string | null
+          website_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cms_layouts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cms_layouts_schema_id_fkey"
+            columns: ["schema_id"]
+            isOneToOne: false
+            referencedRelation: "cms_schemas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cms_layouts_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "cms_websites"
             referencedColumns: ["id"]
           },
         ]
@@ -1130,6 +1301,7 @@ export type Database = {
         | "social_media"
         | "navigation_menu"
       global_roles: "default_user" | "system_admin"
+      layout_slot_type: "header" | "footer" | "sidebar" | "custom"
       page_status: "draft" | "active" | "archived"
       schema_type: "page" | "collection" | "layout"
       subscription_status:
@@ -1291,6 +1463,7 @@ export const Constants = {
         "navigation_menu",
       ],
       global_roles: ["default_user", "system_admin"],
+      layout_slot_type: ["header", "footer", "sidebar", "custom"],
       page_status: ["draft", "active", "archived"],
       schema_type: ["page", "collection", "layout"],
       subscription_status: [

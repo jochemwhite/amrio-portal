@@ -3,12 +3,18 @@ import { getActiveTenantId } from "@/server/utils";
 import { getCollectionById } from "@/actions/cms/collection-actions";
 import { getCollectionEntries } from "@/actions/cms/collection-entry-actions";
 import { CollectionEntriesOverview } from "@/components/cms/collections/collection_entries_overview";
+import type { Metadata } from "next";
 
 interface CollectionEntriesPageProps {
   params: Promise<{
     collectionId: string;
   }>;
 }
+
+export const metadata: Metadata = {
+  title: "Collection Entries",
+  description: "View and manage entries in this collection.",
+};
 
 export default async function CollectionEntriesPage({ params }: CollectionEntriesPageProps) {
   const { collectionId } = await params;

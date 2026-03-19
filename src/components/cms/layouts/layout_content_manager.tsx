@@ -70,7 +70,10 @@ export function LayoutContentManager({ initialLayouts, websiteId }: LayoutConten
   };
 
   const getTypeColor = (type: string) => {
-    return type === "header" ? "text-blue-700 dark:text-blue-400" : "text-emerald-700 dark:text-emerald-400";
+    if (type === "header") return "text-blue-700 dark:text-blue-400";
+    if (type === "footer") return "text-emerald-700 dark:text-emerald-400";
+    if (type === "sidebar") return "text-orange-700 dark:text-orange-400";
+    return "text-muted-foreground";
   };
 
   if (initialLayouts.length === 0) {
@@ -79,7 +82,7 @@ export function LayoutContentManager({ initialLayouts, websiteId }: LayoutConten
         <CardContent className="py-12 text-center">
           <FileText className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
           <p className="mb-2 text-lg font-medium">No layouts configured</p>
-          <p className="text-sm text-muted-foreground">Create header and footer templates to get started</p>
+          <p className="text-sm text-muted-foreground">Create header, footer, sidebar, or custom templates to get started</p>
           <Button className="mt-4" onClick={() => setIsDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Create Layout
@@ -104,7 +107,7 @@ export function LayoutContentManager({ initialLayouts, websiteId }: LayoutConten
             <div>
               <CardTitle>Layout Templates</CardTitle>
               <CardDescription>
-                All headers and footers with their assignments. Defaults are shown first. Click on a row to edit content.
+                All layout templates with their assignments. Defaults are shown first. Click a row to edit content.
               </CardDescription>
             </div>
             <Button onClick={() => setIsDialogOpen(true)}>

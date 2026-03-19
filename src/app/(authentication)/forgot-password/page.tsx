@@ -3,6 +3,12 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import ForgotPasswordForm from "@/components/auth/forget-password-form";
 import { SparklesCore } from "@/components/ui/sparkles";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Forgot Password",
+  description: "Request a password reset link for your Amrio portal account.",
+};
 
 export default function ForgotPasswordPage() {
   return (

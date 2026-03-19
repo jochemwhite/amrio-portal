@@ -5,12 +5,18 @@ import {
 import { SchemaBuilder } from "@/components/cms/schema_builder/schema_builder";
 import { SchemaSavePayload } from "@/types/schema_builder";
 import { map_schema_to_document } from "@/utils/schema/schema_builder_mapper";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 type SchemaPageProps = {
   params: Promise<{
     id: string;
   }>;
+};
+
+export const metadata: Metadata = {
+  title: "Schema Editor",
+  description: "View and edit a schema definition.",
 };
 
 export default async function SchemaPage({ params }: SchemaPageProps) {

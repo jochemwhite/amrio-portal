@@ -3,6 +3,12 @@ import { LayoutContentManager } from "@/components/cms/layouts/layout_content_ma
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getActiveWebsiteId } from "@/server/utils";
 import { AlertCircle } from "lucide-react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Layouts",
+  description: "Manage shared website layouts such as header, footer, and sidebar.",
+};
 
 export default async function LayoutsPage() {
   const websiteId = await getActiveWebsiteId();
@@ -12,7 +18,7 @@ export default async function LayoutsPage() {
       <div className="container mx-auto py-6">
         <div className="mb-6 space-y-1">
           <h1 className="text-2xl font-bold">Page Layout Settings</h1>
-          <p className="text-muted-foreground">Manage headers and footers for your website</p>
+          <p className="text-muted-foreground">Manage header, footer, sidebar, and custom layouts for your website</p>
         </div>
         <Alert>
           <AlertCircle className="h-4 w-4" />
@@ -28,7 +34,7 @@ export default async function LayoutsPage() {
     <div className="container mx-auto py-6">
       <div className="mb-6 space-y-1">
         <h1 className="text-2xl font-bold">Page Layout Settings</h1>
-        <p className="text-muted-foreground">Manage headers and footers for your website</p>
+        <p className="text-muted-foreground">Manage header, footer, sidebar, and custom layouts for your website</p>
       </div>
 
       {layoutsResult.success && layoutsResult.data ? (
