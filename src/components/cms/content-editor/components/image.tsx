@@ -98,6 +98,8 @@ export default function Image({ field, fieldId, value, handleFieldChange }: Fiel
     }
   }, [isOpen, activeTenantId]);
 
+  
+
   const uploadFile = async (file: File) => {
     if (!activeTenantId) {
       toast.error("No active tenant selected");

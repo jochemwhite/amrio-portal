@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/supabaseClient";
 import { useUserSession } from "@/providers/session-provider";
+import { Database } from "@/types/supabase";
 import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "../ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
@@ -9,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 interface SchemaSelectProps {
   value: string;
   onChange: (value: string) => void;
-  type: "collection" | "page";
+  type: "collection" | "page" | "layout";
 }
 
 export const SchemaSelect = ({ value, onChange, type }: SchemaSelectProps) => {
@@ -17,7 +18,7 @@ export const SchemaSelect = ({ value, onChange, type }: SchemaSelectProps) => {
   const [isLoadingSchemas, setIsLoadingSchemas] = useState(false);
   const { userSession } = useUserSession();
   // Load schemas function
-  const loadSchemas = async () => {
+  const loadSchemas = useCallback(async () => {
     setIsLoadingSchemas(true);
 
     try {
@@ -30,7 +31,7 @@ export const SchemaSelect = ({ value, onChange, type }: SchemaSelectProps) => {
         .select("id, name, description, template")
         .order("name")
         .eq("tenant_id", userSession.active_tenant.id)
-        .eq("schema_type", type);
+        .eq("schema_type", type as unknown as Database["public"]["Enums"]["schema_type"]);
 
       if (error) throw error;
       setSchemas(data || []);
@@ -40,11 +41,11 @@ export const SchemaSelect = ({ value, onChange, type }: SchemaSelectProps) => {
     } finally {
       setIsLoadingSchemas(false);
     }
-  };
+  }, [type, userSession?.active_tenant]);
 
   useEffect(() => {
     loadSchemas();
-  }, [userSession?.active_tenant]);
+  }, [loadSchemas]);
 
   return (
     <Select

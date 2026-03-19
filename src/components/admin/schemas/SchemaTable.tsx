@@ -5,7 +5,7 @@ import { Schema } from "@/types/cms";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Eye, FileText } from "lucide-react";
+import { Edit, Trash2, FileText } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useRouter } from "next/navigation";
 import { deleteSchema } from "@/actions/cms/schema-actions";
@@ -50,7 +50,7 @@ export function SchemaTable({ schemas, onRefresh }: SchemaTableProps) {
       } else {
         toast.error(result.error || "Failed to delete schema");
       }
-    } catch (error) {
+    } catch {
       toast.error("An unexpected error occurred");
     } finally {
       setIsDeleting(false);
@@ -78,6 +78,22 @@ export function SchemaTable({ schemas, onRefresh }: SchemaTableProps) {
 
   const getSectionCount = (schema: Schema) => {
     return schema.cms_schema_sections?.length || 0;
+  };
+
+  const getSchemaTypeMeta = (schemaType: string) => {
+    if (schemaType === "page") {
+      return { label: "Page", variant: "default" as const };
+    }
+
+    if (schemaType === "collection") {
+      return { label: "Collection", variant: "secondary" as const };
+    }
+
+    if (schemaType === "layout") {
+      return { label: "Layout", variant: "outline" as const };
+    }
+
+    return { label: schemaType, variant: "secondary" as const };
   };
 
   return (
@@ -109,8 +125,8 @@ export function SchemaTable({ schemas, onRefresh }: SchemaTableProps) {
                     {schema.description || <span className="text-muted-foreground italic">No description</span>}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={schema.schema_type === "page" ? "default" : "secondary"}>
-                      {schema.schema_type === "page" ? "Page" : "Collection"}
+                    <Badge variant={getSchemaTypeMeta(String(schema.schema_type)).variant}>
+                      {getSchemaTypeMeta(String(schema.schema_type)).label}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -162,7 +178,7 @@ export function SchemaTable({ schemas, onRefresh }: SchemaTableProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the schema "{schemaToDelete?.name}". This action cannot be undone and will affect all pages using this
+              This will permanently delete the schema &quot;{schemaToDelete?.name}&quot;. This action cannot be undone and will affect all pages using this
               schema.
             </AlertDialogDescription>
           </AlertDialogHeader>

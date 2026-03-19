@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { createSchema, updateSchema } from "@/actions/cms/schema-actions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { Database } from "@/types/supabase";
 
 interface SchemaFormDialogProps {
   open: boolean;
@@ -20,10 +20,11 @@ interface SchemaFormDialogProps {
 }
 
 export function SchemaFormDialog({ open, onOpenChange, schema, onSuccess }: SchemaFormDialogProps) {
+  type SchemaTypeOption = Database["public"]["Enums"]["schema_type"] | "layout";
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isTemplate, setIsTemplate] = useState(false);
-  const [schemaType, setSchemaType] = useState("page");
+  const [schemaType, setSchemaType] = useState<SchemaTypeOption>("page");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isEdit = !!schema;
@@ -33,10 +34,12 @@ export function SchemaFormDialog({ open, onOpenChange, schema, onSuccess }: Sche
       setName(schema.name);
       setDescription(schema.description || "");
       setIsTemplate(schema.template);
+      setSchemaType(schema.schema_type as SchemaTypeOption);
     } else {
       setName("");
       setDescription("");
       setIsTemplate(false);
+      setSchemaType("page");
     }
   }, [schema, open]);
 
@@ -57,14 +60,14 @@ export function SchemaFormDialog({ open, onOpenChange, schema, onSuccess }: Sche
           name: name.trim(),
           description: description.trim() || undefined,
           template: isTemplate,
-          schema_type: schemaType as "page" | "collection",
+          schema_type: schemaType as Database["public"]["Enums"]["schema_type"],
         });
       } else {
         result = await createSchema({
           name: name.trim(),
           description: description.trim() || undefined,
           template: isTemplate,
-          schema_type: schemaType as "page" | "collection",
+          schema_type: schemaType as Database["public"]["Enums"]["schema_type"],
         });
       }
 
@@ -75,7 +78,7 @@ export function SchemaFormDialog({ open, onOpenChange, schema, onSuccess }: Sche
       } else {
         toast.error(result.error || "Failed to save schema");
       }
-    } catch (error) {
+    } catch {
       toast.error("An unexpected error occurred");
     } finally {
       setIsSubmitting(false);
@@ -106,13 +109,14 @@ export function SchemaFormDialog({ open, onOpenChange, schema, onSuccess }: Sche
             </div>
             <div className="grid gap-2">
               <Label htmlFor="schema-type">Schema Type</Label>
-              <Select value={schemaType} onValueChange={setSchemaType}>
+              <Select value={schemaType} onValueChange={(value) => setSchemaType(value as SchemaTypeOption)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select schema type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="page">Page</SelectItem>
                   <SelectItem value="collection">Collection</SelectItem>
+                  <SelectItem value="layout">Layout</SelectItem>
                 </SelectContent>
               </Select>
             </div>

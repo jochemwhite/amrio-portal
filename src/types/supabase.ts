@@ -210,87 +210,6 @@ export type Database = {
           },
         ]
       }
-      cms_collections_items: {
-        Row: {
-          cms_collection_entry_id: string
-          collection_id: string
-          content: Json | null
-          created_at: string
-          created_by: string | null
-          field_type: Database["public"]["Enums"]["field_type"] | null
-          id: string
-          name: string | null
-          order: number
-          parent_field_id: string | null
-          schema_field_id: string
-          updated_at: string | null
-        }
-        Insert: {
-          cms_collection_entry_id: string
-          collection_id: string
-          content?: Json | null
-          created_at?: string
-          created_by?: string | null
-          field_type?: Database["public"]["Enums"]["field_type"] | null
-          id?: string
-          name?: string | null
-          order?: number
-          parent_field_id?: string | null
-          schema_field_id: string
-          updated_at?: string | null
-        }
-        Update: {
-          cms_collection_entry_id?: string
-          collection_id?: string
-          content?: Json | null
-          created_at?: string
-          created_by?: string | null
-          field_type?: Database["public"]["Enums"]["field_type"] | null
-          id?: string
-          name?: string | null
-          order?: number
-          parent_field_id?: string | null
-          schema_field_id?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cms_collections_items_cms_collection_entry_id_fkey"
-            columns: ["cms_collection_entry_id"]
-            isOneToOne: false
-            referencedRelation: "cms_collection_entries"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cms_collections_items_collection_id_fkey"
-            columns: ["collection_id"]
-            isOneToOne: false
-            referencedRelation: "cms_collections"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cms_collections_items_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cms_collections_items_parent_field_id_fkey"
-            columns: ["parent_field_id"]
-            isOneToOne: false
-            referencedRelation: "cms_collections_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cms_collections_items_schema_field_id_fkey"
-            columns: ["schema_field_id"]
-            isOneToOne: false
-            referencedRelation: "cms_schema_fields"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       cms_content_fields: {
         Row: {
           collection_id: string | null
@@ -347,6 +266,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "cms_content_fields_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "cms_content_sections"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "cms_fields_section_id_fkey"
             columns: ["section_id"]
             isOneToOne: false
@@ -357,6 +283,7 @@ export type Database = {
       }
       cms_content_sections: {
         Row: {
+          cms_collection_entry_id: string | null
           created_at: string | null
           description: string | null
           id: string
@@ -367,6 +294,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          cms_collection_entry_id?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -377,6 +305,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          cms_collection_entry_id?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -387,6 +316,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "cms_content_sections_cms_collection_entry_id_fkey"
+            columns: ["cms_collection_entry_id"]
+            isOneToOne: false
+            referencedRelation: "cms_collection_entries"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cms_content_sections_schema_section_id_fkey"
             columns: ["schema_section_id"]
@@ -398,200 +334,6 @@ export type Database = {
             foreignKeyName: "cms_sections_page_id_fkey"
             columns: ["page_id"]
             isOneToOne: false
-            referencedRelation: "cms_pages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      cms_layout_assignments: {
-        Row: {
-          condition_type: Database["public"]["Enums"]["layout_condition_type"]
-          condition_value: Json
-          created_at: string | null
-          id: string
-          priority: number
-          template_id: string
-          website_id: string
-        }
-        Insert: {
-          condition_type: Database["public"]["Enums"]["layout_condition_type"]
-          condition_value: Json
-          created_at?: string | null
-          id?: string
-          priority?: number
-          template_id: string
-          website_id: string
-        }
-        Update: {
-          condition_type?: Database["public"]["Enums"]["layout_condition_type"]
-          condition_value?: Json
-          created_at?: string | null
-          id?: string
-          priority?: number
-          template_id?: string
-          website_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cms_layout_assignments_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "cms_layout_templates"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cms_layout_assignments_website_id_fkey"
-            columns: ["website_id"]
-            isOneToOne: false
-            referencedRelation: "cms_websites"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      cms_layout_template_content: {
-        Row: {
-          content: Json | null
-          created_at: string | null
-          id: string
-          schema_field_id: string
-          template_id: string
-          updated_at: string | null
-        }
-        Insert: {
-          content?: Json | null
-          created_at?: string | null
-          id?: string
-          schema_field_id: string
-          template_id: string
-          updated_at?: string | null
-        }
-        Update: {
-          content?: Json | null
-          created_at?: string | null
-          id?: string
-          schema_field_id?: string
-          template_id?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cms_layout_template_content_schema_field_id_fkey"
-            columns: ["schema_field_id"]
-            isOneToOne: false
-            referencedRelation: "cms_schema_fields"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cms_layout_template_content_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "cms_layout_templates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      cms_layout_templates: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          id: string
-          is_default: boolean | null
-          name: string
-          schema_id: string
-          tenant_id: string
-          type: Database["public"]["Enums"]["layout_template_type"]
-          updated_at: string | null
-          website_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          is_default?: boolean | null
-          name: string
-          schema_id: string
-          tenant_id: string
-          type: Database["public"]["Enums"]["layout_template_type"]
-          updated_at?: string | null
-          website_id: string
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          is_default?: boolean | null
-          name?: string
-          schema_id?: string
-          tenant_id?: string
-          type?: Database["public"]["Enums"]["layout_template_type"]
-          updated_at?: string | null
-          website_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cms_layout_templates_schema_id_fkey"
-            columns: ["schema_id"]
-            isOneToOne: false
-            referencedRelation: "cms_schemas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cms_layout_templates_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cms_layout_templates_website_id_fkey"
-            columns: ["website_id"]
-            isOneToOne: false
-            referencedRelation: "cms_websites"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      cms_page_layout_overrides: {
-        Row: {
-          created_at: string | null
-          footer_template_id: string | null
-          header_template_id: string | null
-          id: string
-          page_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          footer_template_id?: string | null
-          header_template_id?: string | null
-          id?: string
-          page_id: string
-        }
-        Update: {
-          created_at?: string | null
-          footer_template_id?: string | null
-          header_template_id?: string | null
-          id?: string
-          page_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cms_page_layout_overrides_footer_template_id_fkey"
-            columns: ["footer_template_id"]
-            isOneToOne: false
-            referencedRelation: "cms_layout_templates"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cms_page_layout_overrides_header_template_id_fkey"
-            columns: ["header_template_id"]
-            isOneToOne: false
-            referencedRelation: "cms_layout_templates"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cms_page_layout_overrides_page_id_fkey"
-            columns: ["page_id"]
-            isOneToOne: true
             referencedRelation: "cms_pages"
             referencedColumns: ["id"]
           },
@@ -1315,41 +1057,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      build_collection_entry_data: {
-        Args: { collection_id_param: string; entry_id_param: string }
-        Returns: Json
-      }
-      build_collection_items_with_fields: {
+      build_schema_fields_with_content_section: {
         Args: {
-          collection_id_param: string
-          entry_id_param: string
-          parent_item_id: string
-        }
-        Returns: Json
-      }
-      build_collection_nested_items: {
-        Args: { collection_id_param: string; parent_item_id: string }
-        Returns: Json
-      }
-      build_nested_content_fields_recursive: {
-        Args: { parent_field_id_param: string; section_id_param: string }
-        Returns: Json
-      }
-      build_nested_fields_recursive: {
-        Args: { parent_field_id_param?: string; section_id_param: string }
-        Returns: Json
-      }
-      build_schema_fields_with_collection_items: {
-        Args: {
-          entry_id_param: string
-          parent_field_id_param?: string
-          schema_section_id_param: string
-        }
-        Returns: Json
-      }
-      build_schema_fields_with_content: {
-        Args: {
-          page_id_param: string
+          content_section_id_param: string
           parent_field_id_param?: string
           schema_section_id_param: string
         }
@@ -1379,102 +1089,30 @@ export type Database = {
         }
         Returns: Json
       }
-      get_collection: {
+      get_content: {
         Args: {
-          p_collection_id: string
-          p_entry_id: string
-          p_tenant_id: string
+          create_missing_sections_param?: boolean
+          entity_id_param: string
+          entity_type_param: string
+          tenant_id_param?: string
         }
         Returns: Json
       }
-      get_collection_entry: {
-        Args: { entry_id_param: string }
-        Returns: {
-          collection_description: string
-          collection_id: string
-          collection_name: string
-          created_at: string
-          id: string
-          name: string
-          schema_description: string
-          schema_id: string
-          schema_name: string
-          schema_template: boolean
-          sections: Json
-        }[]
-      }
-      get_collection_with_schema: {
-        Args: { p_collection_id: string; p_tenant_id: string }
+      get_user_session: {
+        Args: { p_active_tenant_id?: string; p_uid: string }
         Returns: Json
       }
-      get_or_create_content_section: {
-        Args: { page_id_param: string; schema_section_id_param: string }
-        Returns: string
+      has_global_role: {
+        Args: { role_name_input: string; uid: string }
+        Returns: boolean
       }
-      get_page: {
-        Args: { page_id_param: string }
-        Returns: {
-          created_at: string
-          description: string
-          id: string
-          name: string
-          schema_description: string
-          schema_id: string
-          schema_name: string
-          schema_template: boolean
-          sections: Json
-          slug: string
-          status: Database["public"]["Enums"]["page_status"]
-          updated_at: string
-          website_id: string
-        }[]
-      }
-      get_page_content: {
-        Args: { page_id_param: string; website_id_param: string }
-        Returns: {
-          id: string
-          sections: Json
-          slug: string
-        }[]
-      }
-      get_page_layout: {
-        Args: { page_id_param?: string; website_id_param?: string }
-        Returns: Json
-      }
-      get_template_with_content: {
-        Args: { template_id_param: string }
-        Returns: Json
-      }
-      get_user_session:
-        | { Args: never; Returns: Json }
-        | { Args: { p_uid: string }; Returns: Json }
-      has_global_role:
-        | { Args: { role_name_input: string }; Returns: boolean }
-        | { Args: { role_name_input: string; uid: string }; Returns: boolean }
-      initialize_collection_entry_content: {
+      update_schema_structure_tx: {
         Args: {
-          collection_id_param: string
-          entry_id_param: string
+          payload_param: Json
           schema_id_param: string
+          tenant_id_param: string
         }
         Returns: undefined
-      }
-      initialize_page_content: {
-        Args: { page_id_param: string; schema_id_param: string }
-        Returns: undefined
-      }
-      resolve_collection_reference: {
-        Args: { collection_id_param: string; field_content: Json }
-        Returns: Json
-      }
-      sync_schema_changes: {
-        Args: { schema_id_param: string }
-        Returns: {
-          changes_applied: number
-          updated_id: string
-          updated_name: string
-          updated_type: string
-        }[]
       }
     }
     Enums: {
@@ -1492,10 +1130,8 @@ export type Database = {
         | "social_media"
         | "navigation_menu"
       global_roles: "default_user" | "system_admin"
-      layout_condition_type: "all_pages" | "specific_pages" | "page_pattern"
-      layout_template_type: "header" | "footer"
       page_status: "draft" | "active" | "archived"
-      schema_type: "page" | "collection"
+      schema_type: "page" | "collection" | "layout"
       subscription_status:
         | "trialing"
         | "active"
@@ -1655,10 +1291,8 @@ export const Constants = {
         "navigation_menu",
       ],
       global_roles: ["default_user", "system_admin"],
-      layout_condition_type: ["all_pages", "specific_pages", "page_pattern"],
-      layout_template_type: ["header", "footer"],
       page_status: ["draft", "active", "archived"],
-      schema_type: ["page", "collection"],
+      schema_type: ["page", "collection", "layout"],
       subscription_status: [
         "trialing",
         "active",

@@ -12,6 +12,13 @@ interface FieldWithValue {
   collection_id?: string | null; // collection id
 }
 
+const normalizeFieldContent = (content: any) => {
+  if (content && typeof content === "object" && "value" in content) {
+    return content.value;
+  }
+  return content;
+};
+
 export interface FieldComponentProps {
   field: RPCPageField;
   fieldId: string;
@@ -136,12 +143,12 @@ export const useContentEditorStore = create<ContentEditorState>()(
         // First check if field has been updated
         const updatedField = state.updatedFields.find((f) => f.id === fieldId);
         if (updatedField) {
-          return updatedField.content;
+          return normalizeFieldContent(updatedField.content);
         }
 
         // Otherwise, get value from original fields (flattened array)
         const originalField = state.originalFields.find((f) => f.id === fieldId);
-        return originalField?.content;
+        return normalizeFieldContent(originalField?.content);
       },
 
       // Get a field component

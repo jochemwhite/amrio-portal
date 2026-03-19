@@ -1,4 +1,7 @@
-import { getSchemaById, updateSchemaStructure } from "@/actions/cms/schema-actions";
+import {
+  getSchemaById,
+  updateSchemaStructure,
+} from "@/actions/cms/schema-actions";
 import { SchemaBuilder } from "@/components/cms/schema_builder/schema_builder";
 import { SchemaSavePayload } from "@/types/schema_builder";
 import { map_schema_to_document } from "@/utils/schema/schema_builder_mapper";
@@ -11,12 +14,8 @@ type SchemaPageProps = {
 };
 
 export default async function SchemaPage({ params }: SchemaPageProps) {
-  console.log("dfs")
   const { id } = await params;
   const schemaResponse = await getSchemaById(id);
-
-
-  console.log(`ID: ${id}` )
 
   if (!schemaResponse.success || !schemaResponse.data) {
     const normalizedError = schemaResponse.error?.toLowerCase() ?? "";
@@ -51,6 +50,3 @@ export default async function SchemaPage({ params }: SchemaPageProps) {
     />
   );
 }
-
-
-

@@ -7,7 +7,7 @@ import { getActiveTenantId } from "@/server/utils";
 import { ActionResponse } from "@/types/actions";
 import { Schema, SchemaSection, SupabaseSchemaWithRelations } from "@/types/cms";
 import { SchemaSavePayload } from "@/types/schema_builder";
-import type { Database, Json } from "@/types/supabase";
+import type { Database } from "@/types/supabase";
 import { randomUUID } from "crypto";
 
 type BaseSchemaMutationPayload = {
@@ -224,114 +224,15 @@ export async function updateSchemaStructure(
   }
 
   try {
-    const { error: schemaUpdateError } = await supabaseAdmin
-      .from("cms_schemas")
-      .update({
-        name: payload.schema.name,
-        description: payload.schema.description,
-        template: payload.schema.template,
-      })
-      .eq("id", schemaId)
-      .eq("tenant_id", context.tenantId);
+    const { error: rpcError } = await supabaseAdmin.rpc("update_schema_structure_tx", {
+      schema_id_param: schemaId,
+      tenant_id_param: context.tenantId,
+      payload_param: payload as any,
+    });
 
-    if (schemaUpdateError) {
-      console.error("Error updating schema details:", schemaUpdateError);
-      return { success: false, error: schemaUpdateError.message };
-    }
-
-    const currentSections = schemaResponse.data.cms_schema_sections ?? [];
-    const currentSectionIds = new Set(currentSections.map((section) => section.id));
-    const submittedSectionIds = new Set(payload.sections.map((section) => section.id));
-    const sectionsToDelete = currentSections.filter((section) => !submittedSectionIds.has(section.id));
-
-    const currentFields = (schemaResponse.data.cms_schema_sections ?? []).flatMap(
-      (section) => section.cms_schema_fields ?? []
-    );
-    const currentFieldIds = new Set(currentFields.map((field) => field.id));
-    const submittedFieldIds = new Set(payload.fields.map((field) => field.id));
-    const fieldsToDelete = currentFields.filter((field) => !submittedFieldIds.has(field.id));
-    const sortedFieldsToDelete = sort_fields_for_deletion(fieldsToDelete, currentFields);
-
-    for (const field of sortedFieldsToDelete) {
-      const { error } = await supabaseAdmin.from("cms_schema_fields").delete().eq("id", field.id);
-
-      if (error) {
-        console.error("Error deleting schema field:", error);
-        return { success: false, error: error.message };
-      }
-    }
-
-    for (const section of payload.sections) {
-      const sectionValues = {
-        order: section.order,
-        name: section.name,
-        description: section.description,
-      };
-
-      const { error } = currentSectionIds.has(section.id)
-        ? await supabaseAdmin
-            .from("cms_schema_sections")
-            .update(sectionValues)
-            .eq("id", section.id)
-            .eq("schema_id", schemaId)
-        : await supabaseAdmin
-            .from("cms_schema_sections")
-            .insert({
-              id: section.id,
-              schema_id: schemaId,
-              ...sectionValues,
-            });
-
-      if (error) {
-        console.error("Error updating schema section:", error);
-        return { success: false, error: error.message };
-      }
-    }
-
-    for (const field of payload.fields) {
-      const fieldValues: Omit<Database["public"]["Tables"]["cms_schema_fields"]["Insert"], "id"> = {
-        name: field.name,
-        field_key: field.fieldKey,
-        type: field.type as Database["public"]["Enums"]["field_type"],
-        required: field.required,
-        default_value: field.defaultValue,
-        validation: field.validation,
-        settings: to_supabase_json(field.settings),
-        collection_id: field.collectionId,
-        order: field.order,
-        parent_field_id: field.parentFieldId,
-        schema_section_id: field.schemaSectionId,
-      };
-
-      const { error } = currentFieldIds.has(field.id)
-        ? await supabaseAdmin
-            .from("cms_schema_fields")
-            .update(fieldValues)
-            .eq("id", field.id)
-        : await supabaseAdmin
-            .from("cms_schema_fields")
-            .insert({
-              id: field.id,
-              ...fieldValues,
-            });
-
-      if (error) {
-        console.error("Error updating schema field:", error);
-        return { success: false, error: error.message };
-      }
-    }
-
-    for (const section of sectionsToDelete) {
-      const { error } = await supabaseAdmin
-        .from("cms_schema_sections")
-        .delete()
-        .eq("id", section.id)
-        .eq("schema_id", schemaId);
-
-      if (error) {
-        console.error("Error deleting schema section:", error);
-        return { success: false, error: error.message };
-      }
+    if (rpcError) {
+      console.error("Error updating schema structure via RPC:", rpcError);
+      return { success: false, error: rpcError.message };
     }
 
     return fetch_schema_by_id(schemaId, context.tenantId);
@@ -637,48 +538,4 @@ function validate_schema_payload(
 
 function has_unique_ids(ids: string[]) {
   return new Set(ids).size === ids.length;
-}
-
-function to_supabase_json(value: Record<string, unknown> | null): Json | null {
-  return (value ?? null) as Json | null;
-}
-
-function sort_fields_for_deletion(
-  fieldsToDelete: Array<{ id: string }>,
-  allCurrentFields: Array<{ id: string; parent_field_id?: string | null }>
-) {
-  const parentById = new Map<string, string | null>(
-    allCurrentFields.map(
-      (field): [string, string | null] => [field.id, field.parent_field_id ?? null]
-    )
-  );
-
-  return [...fieldsToDelete].sort((left, right) => {
-    const leftDepth = get_field_depth(left.id, parentById);
-    const rightDepth = get_field_depth(right.id, parentById);
-    return rightDepth - leftDepth;
-  });
-}
-
-function get_field_depth(fieldId: string, parentById: Map<string, string | null>) {
-  let depth = 0;
-  let currentId: string | null = fieldId;
-  const visited = new Set<string>();
-
-  while (currentId) {
-    if (visited.has(currentId)) {
-      break;
-    }
-
-    visited.add(currentId);
-    const parentId: string | null = parentById.get(currentId) ?? null;
-    if (!parentId) {
-      break;
-    }
-
-    depth += 1;
-    currentId = parentId;
-  }
-
-  return depth;
 }

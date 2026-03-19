@@ -25,6 +25,7 @@ export default async function SchemasPage() {
             {/* <TabsTrigger value="templates">Templates</TabsTrigger> */}
             <TabsTrigger value="pages">Pages</TabsTrigger>
             <TabsTrigger value="collections">Collections</TabsTrigger>
+            <TabsTrigger value="layouts">Layouts</TabsTrigger>
           </TabsList>
           <TabsContent value="all">
             <SchemaTable schemas={result.data || []} />
@@ -38,6 +39,9 @@ export default async function SchemasPage() {
           <TabsContent value="collections">
             <SchemaTable schemas={result.data?.filter((schema) => schema.schema_type === "collection") || []} />
           </TabsContent>
+          <TabsContent value="layouts">
+            <SchemaTable schemas={result.data?.filter((schema) => String(schema.schema_type) === "layout") || []} />
+          </TabsContent>
         </Tabs>
       ) : (
         <div className="rounded-md border border-destructive bg-destructive/10 p-4">
@@ -49,4 +53,3 @@ export default async function SchemasPage() {
     </div>
   )
 }
-
