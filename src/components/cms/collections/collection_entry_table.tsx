@@ -17,8 +17,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Edit, Trash } from "lucide-react";
-import { CollectionEntry, deleteCollectionEntry } from "@/actions/cms/collection-entry-actions";
+import { MoreHorizontal, Edit, Pencil, Trash } from "lucide-react";
+import { CollectionEntry, deleteCollectionEntry, updateCollectionEntry } from "@/actions/cms/collection-entry-actions";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import {
@@ -31,21 +31,27 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { CollectionEntryFormDialog } from "./collection_entry_form_dialog";
 
 interface CollectionEntryTableProps {
   entries: CollectionEntry[];
   collectionId: string;
   onEntryDeleted: (entryId: string) => void;
+  onEntryUpdated: (entry: CollectionEntry) => void;
 }
 
 export function CollectionEntryTable({
   entries,
   collectionId,
   onEntryDeleted,
+  onEntryUpdated,
 }: CollectionEntryTableProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [entryToEdit, setEntryToEdit] = useState<CollectionEntry | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const handleDelete = async () => {
     if (!entryToDelete) return;
@@ -60,7 +66,7 @@ export function CollectionEntryTable({
       } else {
         toast.error(result.error || "Failed to delete entry");
       }
-    } catch (error) {
+    } catch {
       toast.error("An unexpected error occurred");
     } finally {
       setIsDeleting(false);
@@ -68,9 +74,35 @@ export function CollectionEntryTable({
     }
   };
 
+  const handleUpdate = async (name: string) => {
+    if (!entryToEdit) return;
+
+    setIsUpdating(true);
+    try {
+      const result = await updateCollectionEntry(entryToEdit.id, { name });
+      if (result.success && result.data) {
+        toast.success("Entry updated successfully");
+        onEntryUpdated(result.data);
+        setEditDialogOpen(false);
+        setEntryToEdit(null);
+      } else {
+        toast.error(result.error || "Failed to update entry");
+      }
+    } catch {
+      toast.error("An unexpected error occurred");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const openDeleteDialog = (entryId: string) => {
     setEntryToDelete(entryId);
     setDeleteDialogOpen(true);
+  };
+
+  const openEditDialog = (entry: CollectionEntry) => {
+    setEntryToEdit(entry);
+    setEditDialogOpen(true);
   };
 
   return (
@@ -109,8 +141,12 @@ export function CollectionEntryTable({
                       <DropdownMenuItem asChild>
                         <Link href={`/dashboard/collections/${collectionId}/entries/${entry.id}`}>
                           <Edit className="mr-2 h-4 w-4" />
-                          Edit
+                          Edit Content
                         </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => openEditDialog(entry)}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Rename
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => openDeleteDialog(entry.id)}
@@ -148,9 +184,24 @@ export function CollectionEntryTable({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <CollectionEntryFormDialog
+        key={`${entryToEdit?.id ?? "none"}-${editDialogOpen ? "open" : "closed"}`}
+        isOpen={editDialogOpen}
+        onClose={() => {
+          if (!isUpdating) {
+            setEditDialogOpen(false);
+            setEntryToEdit(null);
+          }
+        }}
+        onSubmit={handleUpdate}
+        isSubmitting={isUpdating}
+        title="Rename Entry"
+        description="Update the name of this entry."
+        submitLabel="Save"
+        submittingLabel="Saving..."
+        initialName={entryToEdit?.name}
+      />
     </>
   );
 }
-
-
-

@@ -5,8 +5,8 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
-  title: "Collection Schema",
-  description: "Configure the schema for this collection.",
+  title: "Collections",
+  description: "Configure collection.",
 };
 
 export default async function CollectionSchemaPage({ params }: { params: Promise<{ collectionId: string }> }) {
@@ -37,5 +37,5 @@ export default async function CollectionSchemaPage({ params }: { params: Promise
     return <div className="container mx-auto py-6">no Schema found</div>;
   }
 
-  return <SchemaBuilder initialSchema={schema} pageId={collectionId} websiteId={collection.website_id || ""} />;
+  // return <SchemaBuilder initialSchema={schema} pageId={collectionId} websiteId={collection.website_id || ""} />;
 }

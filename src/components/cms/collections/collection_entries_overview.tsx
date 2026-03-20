@@ -9,6 +9,7 @@ import { CollectionWithSchema } from "@/actions/cms/collection-actions";
 import { CollectionEntry, createCollectionEntry } from "@/actions/cms/collection-entry-actions";
 import { toast } from "sonner";
 import Link from "next/link";
+import { CollectionEntryFormDialog } from "./collection_entry_form_dialog";
 
 interface CollectionEntriesOverviewProps {
   collection: CollectionWithSchema;
@@ -20,24 +21,25 @@ export function CollectionEntriesOverview({ collection, initialEntries, collecti
   const router = useRouter();
   const [entries, setEntries] = useState<CollectionEntry[]>(initialEntries);
   const [isCreating, setIsCreating] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
-  const handleCreateEntry = async () => {
+  const handleCreateEntry = async (name: string) => {
     setIsCreating(true);
     try {
       const result = await createCollectionEntry({
         collection_id: collectionId,
-        name: "New Entry",
+        name,
       });
 
       if (result.success && result.data) {
         toast.success("Entry created successfully");
         setEntries((prev) => [result.data!, ...prev]);
-        // Navigate to the new entry
+        setIsCreateDialogOpen(false);
         router.push(`/dashboard/collections/${collectionId}/entries/${result.data.id}`);
       } else {
         toast.error(result.error || "Failed to create entry");
       }
-    } catch (error) {
+    } catch {
       toast.error("An unexpected error occurred");
     } finally {
       setIsCreating(false);
@@ -46,6 +48,10 @@ export function CollectionEntriesOverview({ collection, initialEntries, collecti
 
   const handleEntryDeleted = (entryId: string) => {
     setEntries((prev) => prev.filter((e) => e.id !== entryId));
+  };
+
+  const handleEntryUpdated = (updatedEntry: CollectionEntry) => {
+    setEntries((prev) => prev.map((entry) => (entry.id === updatedEntry.id ? updatedEntry : entry)));
   };
 
   return (
@@ -65,9 +71,9 @@ export function CollectionEntriesOverview({ collection, initialEntries, collecti
               {collection.description && <p className="text-muted-foreground mt-1">{collection.description}</p>}
             </div>
             <div className="flex gap-2">
-              <Button onClick={handleCreateEntry} disabled={isCreating}>
+              <Button onClick={() => setIsCreateDialogOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
-                {isCreating ? "Creating..." : "Add Entry"}
+                Add Entry
               </Button>
             </div>
           </div>
@@ -77,14 +83,31 @@ export function CollectionEntriesOverview({ collection, initialEntries, collecti
           <div className="text-center py-12 bg-muted/30 rounded-lg border-2 border-dashed">
             <h3 className="text-lg font-semibold mb-2">No entries yet</h3>
             <p className="text-muted-foreground mb-4">Add your first entry to start building your collection content.</p>
-            <Button onClick={handleCreateEntry} disabled={isCreating}>
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              {isCreating ? "Creating..." : "Add Entry"}
+              Add Entry
             </Button>
           </div>
         ) : (
-          <CollectionEntryTable entries={entries} collectionId={collectionId} onEntryDeleted={handleEntryDeleted} />
+          <CollectionEntryTable
+            entries={entries}
+            collectionId={collectionId}
+            onEntryDeleted={handleEntryDeleted}
+            onEntryUpdated={handleEntryUpdated}
+          />
         )}
+
+        <CollectionEntryFormDialog
+          key={isCreateDialogOpen ? "create-open" : "create-closed"}
+          isOpen={isCreateDialogOpen}
+          onClose={() => setIsCreateDialogOpen(false)}
+          onSubmit={handleCreateEntry}
+          isSubmitting={isCreating}
+          title="Create Entry"
+          description="Add a new entry to this collection."
+          submitLabel="Create Entry"
+          submittingLabel="Creating..."
+        />
       </div>
     </div>
   );
