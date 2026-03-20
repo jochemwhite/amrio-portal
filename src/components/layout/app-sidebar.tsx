@@ -50,11 +50,6 @@ export function AppSidebar() {
     admin: [
       { name: "Users", url: "/dashboard/admin/users", icon: User },
       { name: "Tenants", url: "/dashboard/admin/tenants", icon: Building2 },
-      {
-        name: "Websites",
-        url: "/dashboard/admin/websites",
-        icon: GalleryVerticalEnd,
-      },
       { name: "Schemas", url: "/dashboard/admin/schemas", icon: FileText },
     ],
   };
