@@ -4,11 +4,10 @@ import {
   Building2,
   FileText,
   FileUser,
-  GalleryVerticalEnd,
   Key,
+  LayoutTemplate,
   Library,
   User,
-  LayoutTemplate,
 } from "lucide-react";
 
 import {
@@ -21,10 +20,9 @@ import {
 import { useUserSession } from "@/providers/session-provider";
 import { NavAdmin } from "./nav/nav-admin";
 import { NavCms } from "./nav/nav-main";
-import { NavUser } from "./nav/nav-user";
-import { TenantSwitcherModal } from "./nav/tenant-switcher-modal";
-import { WebsiteSwitcher } from "./nav/website-switcher";
 import { NavTenant } from "./nav/nav-tenant";
+import { NavUser } from "./nav/nav-user";
+import { WebsiteSwitcher } from "./nav/website-switcher";
 
 export function AppSidebar() {
   const { userSession } = useUserSession();
@@ -70,7 +68,6 @@ export function AppSidebar() {
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>
-
     </>
   );
 }

@@ -349,6 +349,111 @@ export type Database = {
           },
         ]
       }
+      cms_form_submissions: {
+        Row: {
+          content: Json
+          created_at: string
+          form_id: string
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          form_id: string
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          form_id?: string
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cms_form_submissions_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "cms_forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cms_forms: {
+        Row: {
+          archived_at: string | null
+          content: Json
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          name: string
+          published: boolean
+          share_url: string
+          submissions: number
+          tenant_id: string
+          updated_at: string
+          visits: number
+          website_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          content?: Json
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          name: string
+          published?: boolean
+          share_url?: string
+          submissions?: number
+          tenant_id: string
+          updated_at?: string
+          visits?: number
+          website_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          content?: Json
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          name?: string
+          published?: boolean
+          share_url?: string
+          submissions?: number
+          tenant_id?: string
+          updated_at?: string
+          visits?: number
+          website_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cms_forms_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cms_forms_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cms_forms_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "cms_websites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cms_layout_entries: {
         Row: {
           created_at: string
