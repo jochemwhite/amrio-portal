@@ -37,6 +37,13 @@ export function FormBuilderEditor({ form }: FormBuilderEditorProps) {
             options: Array.isArray(field.options)
               ? field.options.map((option) => String(option))
               : undefined,
+            min: typeof field.min === "number" ? field.min : undefined,
+            max: typeof field.max === "number" ? field.max : undefined,
+            step: typeof field.step === "number" ? field.step : undefined,
+            minDate: field.minDate ? String(field.minDate) : undefined,
+            maxDate: field.maxDate ? String(field.maxDate) : undefined,
+            checkedValue: field.checkedValue ? String(field.checkedValue) : undefined,
+            uncheckedValue: field.uncheckedValue ? String(field.uncheckedValue) : undefined,
           } satisfies BuilderField,
         ];
       });

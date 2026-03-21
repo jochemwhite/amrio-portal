@@ -1,0 +1,83 @@
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+import { getFieldTypeDefinition } from "../field-type-registry";
+import type { BuilderField } from "../types";
+
+interface SortableFieldCardProps {
+  field: BuilderField;
+  isSelected: boolean;
+  isOver: boolean;
+  onSelect: () => void;
+}
+
+export function SortableFieldCard({ field, isSelected, isOver, onSelect }: SortableFieldCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: `field:${field.id}`,
+  });
+  const FieldIcon = getFieldTypeDefinition(field.type).icon;
+
+  return (
+    <div
+      ref={setNodeRef}
+      data-field-id={field.id}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      onClick={onSelect}
+      {...attributes}
+      {...listeners}
+      className={cn(
+        "relative cursor-grab touch-none select-none rounded-md border border-border bg-card px-3 py-4 active:cursor-grabbing",
+        isSelected && "ring-2 ring-primary/70",
+        isOver && "border-primary/70 bg-primary/5",
+        isDragging && "cursor-grabbing opacity-60",
+      )}
+    >
+      <button
+        type="button"
+        className="absolute right-2 top-2 cursor-grab rounded p-1 text-foreground/50 hover:bg-muted hover:text-foreground active:cursor-grabbing"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+
+      <div className="mb-2 flex items-center gap-2 pr-8 text-foreground/80">
+        <FieldIcon className="h-4 w-4" />
+        <span className="text-xs uppercase tracking-wide">{field.type}</span>
+      </div>
+
+      <p className="pr-8 text-sm font-semibold text-foreground">
+        {field.label}
+        {field.required ? "*" : ""}
+      </p>
+
+      {field.type === "textarea" ? (
+        <Textarea
+          value={field.placeholder ?? ""}
+          readOnly
+          className="pointer-events-none mt-2 min-h-20 border-border bg-background text-muted-foreground"
+        />
+      ) : field.type === "checkbox" ? (
+        <label className="pointer-events-none mt-2 flex items-center gap-2 text-sm text-foreground/80">
+          <input type="checkbox" checked={false} readOnly tabIndex={-1} />
+          {field.label}
+        </label>
+      ) : field.type === "select" ? (
+        <Input
+          value={field.placeholder ?? "Select..."}
+          readOnly
+          className="pointer-events-none mt-2 border-border bg-background text-muted-foreground"
+        />
+      ) : (
+        <Input
+          value={field.placeholder ?? "Value here..."}
+          readOnly
+          className="pointer-events-none mt-2 border-border bg-background text-muted-foreground"
+        />
+      )}
+
+      {field.helpText ? <p className="mt-2 text-xs text-muted-foreground">{field.helpText}</p> : null}
+    </div>
+  );
+}
