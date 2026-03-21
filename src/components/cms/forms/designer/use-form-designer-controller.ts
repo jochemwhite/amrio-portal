@@ -26,6 +26,7 @@ export function useFormDesignerController({ value, onChange }: HeadlessFormDesig
   const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
   const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null);
   const [sidebarTab, setSidebarTab] = useState<"elements" | "properties">("elements");
+  const [autoFocusLabelFieldId, setAutoFocusLabelFieldId] = useState<string | null>(null);
 
   const lastOverId = useRef<UniqueIdentifier | null>(null);
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -235,7 +236,8 @@ export function useFormDesignerController({ value, onChange }: HeadlessFormDesig
       const newField = createFieldFromType(type, value.length);
       onChange(createInsertedFieldList(insertIndex ?? value.length, newField));
       setSelectedId(newField.id);
-      setSidebarTab("properties");
+      setSidebarTab("elements");
+      setAutoFocusLabelFieldId(newField.id);
       clearDragState();
       return;
     }
@@ -283,6 +285,7 @@ export function useFormDesignerController({ value, onChange }: HeadlessFormDesig
     isDraggingCanvas,
     isPaletteDragging,
     removeField,
+    autoFocusLabelFieldId,
     selectedField,
     selectedId,
     sensors,
@@ -291,6 +294,7 @@ export function useFormDesignerController({ value, onChange }: HeadlessFormDesig
     setSelectedId,
     setSidebarTab,
     sidebarTab,
+    setAutoFocusLabelFieldId,
     updateField,
   };
 }

@@ -23,6 +23,7 @@ export function PaletteItem({ type, label, icon: Icon }: PaletteItemProps) {
     <button
       ref={setNodeRef}
       type="button"
+      onMouseDown={(event) => event.preventDefault()}
       className={cn(
         "w-full cursor-grab touch-none select-none rounded-md border border-border bg-card px-3 py-4 text-left transition hover:border-primary/40 hover:bg-muted/50 active:cursor-grabbing",
         isDragging && "cursor-grabbing opacity-60",

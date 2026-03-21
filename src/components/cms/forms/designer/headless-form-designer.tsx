@@ -30,12 +30,14 @@ export function HeadlessFormDesigner({ value, onChange }: HeadlessFormDesignerPr
     selectedField,
     selectedId,
     sensors,
+    setAutoFocusLabelFieldId,
     setCanvasRefs,
     setCanvasShellNodeRef,
     setSelectedId,
     setSidebarTab,
     sidebarTab,
     updateField,
+    autoFocusLabelFieldId,
   } = useFormDesignerController({ value, onChange });
   const showDropIndicators = isPaletteDragging;
   const isReorderingField = Boolean(activeId?.startsWith("field:"));
@@ -57,6 +59,23 @@ export function HeadlessFormDesigner({ value, onChange }: HeadlessFormDesignerPr
       document.body.style.cursor = previousCursor;
     };
   }, [isReorderingField]);
+
+  useEffect(() => {
+    if (!autoFocusLabelFieldId) return;
+    const timeoutId = setTimeout(() => {
+      const input = document.querySelector<HTMLInputElement>(
+        `[data-field-label-input="${autoFocusLabelFieldId}"]`,
+      );
+
+      input?.focus();
+      input?.select();
+      setAutoFocusLabelFieldId(null);
+    }, 40);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [autoFocusLabelFieldId, setAutoFocusLabelFieldId]);
 
   return (
     <DndContext
@@ -113,6 +132,11 @@ export function HeadlessFormDesigner({ value, onChange }: HeadlessFormDesignerPr
                           onSelect={() => {
                             setSelectedId(field.id);
                             setSidebarTab("properties");
+                          }}
+                          onLableChange={(nextLabel) => {
+                            setSelectedId(field.id);
+                            setSidebarTab("properties");
+                            updateField(field.id, { label: nextLabel });
                           }}
                         />
                         {showDropIndicators ? <DropIndicator active={dropIndicatorIndex === index + 1} /> : null}
