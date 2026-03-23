@@ -1,6 +1,28 @@
 import type React from "react";
 
-export type BuilderFieldType = "text" | "email" | "textarea" | "number" | "checkbox" | "select" | "date";
+export type BuilderFieldType =
+  | "text"
+  | "email"
+  | "textarea"
+  | "number"
+  | "checkbox"
+  | "select"
+  | "date"
+  | "radio"
+  | "multiselect"
+  | "toggle"
+  | "file"
+  | "phone"
+  | "password"
+  | "url"
+  | "time"
+  | "dateRange"
+  | "range"
+  | "rating"
+  | "heading"
+  | "paragraph"
+  | "divider"
+  | "section";
 
 export interface BuilderField {
   id: string;
@@ -18,6 +40,11 @@ export interface BuilderField {
   maxDate?: string;
   checkedValue?: string;
   uncheckedValue?: string;
+  accept?: string;
+  multiple?: boolean;
+  maxRating?: number;
+  content?: string;
+  headingLevel?: number;
 }
 
 export interface HeadlessFormDesignerProps {
@@ -36,4 +63,9 @@ export interface FieldTypeDefinition {
   icon: React.ElementType;
   createField: (index: number) => BuilderField;
   SettingsComponent?: React.ComponentType<FieldSettingsProps>;
+  supportsLabel?: boolean;
+  supportsKey?: boolean;
+  supportsPlaceholder?: boolean;
+  supportsHelpText?: boolean;
+  supportsRequired?: boolean;
 }

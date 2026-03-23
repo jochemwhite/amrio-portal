@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { ArrowLeft, Eye, Save } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { BuilderFieldPreview } from "./builder-field-preview";
 import { BuilderField, HeadlessFormDesigner } from "./headless-form-designer";
 
 interface FormBuilderEditorProps {
@@ -44,6 +45,11 @@ export function FormBuilderEditor({ form }: FormBuilderEditorProps) {
             maxDate: field.maxDate ? String(field.maxDate) : undefined,
             checkedValue: field.checkedValue ? String(field.checkedValue) : undefined,
             uncheckedValue: field.uncheckedValue ? String(field.uncheckedValue) : undefined,
+            accept: field.accept ? String(field.accept) : undefined,
+            multiple: Boolean(field.multiple),
+            maxRating: typeof field.maxRating === "number" ? field.maxRating : undefined,
+            content: field.content ? String(field.content) : undefined,
+            headingLevel: typeof field.headingLevel === "number" ? field.headingLevel : undefined,
           } satisfies BuilderField,
         ];
       });
@@ -121,7 +127,7 @@ export function FormBuilderEditor({ form }: FormBuilderEditorProps) {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Form Preview</DialogTitle>
-            <DialogDescription>Read-only preview of your current builder structure.</DialogDescription>
+            <DialogDescription>Interactive preview of your current builder structure.</DialogDescription>
           </DialogHeader>
           <div className="max-h-[70vh] space-y-3 overflow-y-auto rounded-md border border-border bg-card p-3">
             {content.length === 0 ? (
@@ -129,37 +135,8 @@ export function FormBuilderEditor({ form }: FormBuilderEditorProps) {
             ) : (
               content.map((field) => (
                 <div key={field.id} className="rounded-md border border-border bg-background p-3">
-                  <p className="text-sm font-medium">
-                    {field.label}
-                    {field.required ? "*" : ""}
-                  </p>
-                  <p className="text-xs text-muted-foreground mb-2">{field.type}</p>
-                  {field.type === "textarea" ? (
-                    <textarea
-                      className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm"
-                      placeholder={field.placeholder || "Value here..."}
-                      readOnly
-                    />
-                  ) : field.type === "checkbox" ? (
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" readOnly />
-                      {field.label}
-                    </label>
-                  ) : field.type === "select" ? (
-                    <select className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm" disabled>
-                      <option>{field.placeholder || "Select..."}</option>
-                      {(field.options ?? []).map((option) => (
-                        <option key={option}>{option}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm"
-                      placeholder={field.placeholder || "Value here..."}
-                      readOnly
-                    />
-                  )}
-                  {field.helpText ? <p className="mt-2 text-xs text-muted-foreground">{field.helpText}</p> : null}
+                  <p className="mb-2 text-xs text-muted-foreground">{field.type}</p>
+                  <BuilderFieldPreview field={field} />
                 </div>
               ))
             )}

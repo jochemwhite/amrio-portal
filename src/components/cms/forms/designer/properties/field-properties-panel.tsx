@@ -27,17 +27,27 @@ export function FieldPropertiesPanel({ selectedField, onUpdateField, onRemoveFie
         </div>
       </div>
 
-      <div className="space-y-1">
-        <label className="text-xs text-muted-foreground">Label</label>
-        <Input value={selectedField.label} onChange={(event) => onUpdateField(selectedField.id, { label: event.target.value })} />
-      </div>
+      {definition.supportsLabel !== false ? (
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground">Label</label>
+          <Input
+            value={selectedField.label}
+            onChange={(event) => onUpdateField(selectedField.id, { label: event.target.value })}
+          />
+        </div>
+      ) : null}
 
-      <div className="space-y-1">
-        <label className="text-xs text-muted-foreground">Key</label>
-        <Input value={selectedField.key} onChange={(event) => onUpdateField(selectedField.id, { key: event.target.value })} />
-      </div>
+      {definition.supportsKey !== false ? (
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground">Key</label>
+          <Input
+            value={selectedField.key}
+            onChange={(event) => onUpdateField(selectedField.id, { key: event.target.value })}
+          />
+        </div>
+      ) : null}
 
-      {selectedField.type !== "checkbox" && (
+      {definition.supportsPlaceholder ? (
         <div className="space-y-1">
           <label className="text-xs text-muted-foreground">Placeholder</label>
           <Input
@@ -45,15 +55,17 @@ export function FieldPropertiesPanel({ selectedField, onUpdateField, onRemoveFie
             onChange={(event) => onUpdateField(selectedField.id, { placeholder: event.target.value })}
           />
         </div>
-      )}
+      ) : null}
 
-      <div className="space-y-1">
-        <label className="text-xs text-muted-foreground">Help text</label>
-        <Input
-          value={selectedField.helpText ?? ""}
-          onChange={(event) => onUpdateField(selectedField.id, { helpText: event.target.value })}
-        />
-      </div>
+      {definition.supportsHelpText ? (
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground">Help text</label>
+          <Input
+            value={selectedField.helpText ?? ""}
+            onChange={(event) => onUpdateField(selectedField.id, { helpText: event.target.value })}
+          />
+        </div>
+      ) : null}
 
       {TypeSettings ? (
         <div className="space-y-1">
@@ -62,14 +74,16 @@ export function FieldPropertiesPanel({ selectedField, onUpdateField, onRemoveFie
         </div>
       ) : null}
 
-      <label className="flex items-center gap-2 text-sm text-foreground">
-        <input
-          type="checkbox"
-          checked={selectedField.required}
-          onChange={(event) => onUpdateField(selectedField.id, { required: event.target.checked })}
-        />
-        Required field
-      </label>
+      {definition.supportsRequired ? (
+        <label className="flex items-center gap-2 text-sm text-foreground">
+          <input
+            type="checkbox"
+            checked={selectedField.required}
+            onChange={(event) => onUpdateField(selectedField.id, { required: event.target.checked })}
+          />
+          Required field
+        </label>
+      ) : null}
 
       <Button type="button" variant="destructive" className="w-full" onClick={() => onRemoveField(selectedField.id)}>
         Remove Field

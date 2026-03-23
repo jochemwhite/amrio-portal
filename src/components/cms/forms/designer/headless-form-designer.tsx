@@ -5,6 +5,7 @@ import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
 import { AlignLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { FIELD_PALETTE, getFieldTypeDefinition } from "./field-type-registry";
 import { DropIndicator } from "./dnd/drop-indicator";
@@ -138,6 +139,14 @@ export function HeadlessFormDesigner({ value, onChange }: HeadlessFormDesignerPr
                             setSidebarTab("properties");
                             updateField(field.id, { label: nextLabel });
                           }}
+                          onToggleRequired={() => {
+                            setSelectedId(field.id);
+                            setSidebarTab("properties");
+                            updateField(field.id, { required: !field.required });
+                          }}
+                          onDelete={() => {
+                            removeField(field.id);
+                          }}
                         />
                         {showDropIndicators ? <DropIndicator active={dropIndicatorIndex === index + 1} /> : null}
                       </div>
@@ -169,24 +178,26 @@ export function HeadlessFormDesigner({ value, onChange }: HeadlessFormDesignerPr
             </Button>
           </div>
 
-          <div className="h-[calc(78vh-48px)] overflow-y-auto p-3">
-            {sidebarTab === "elements" ? (
-              <>
-                <p className="mb-3 text-xs font-medium text-muted-foreground">Drag and drop elements</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {FIELD_PALETTE.map((item) => (
-                    <PaletteItem key={item.type} type={item.type} label={item.label} icon={item.icon} />
-                  ))}
-                </div>
-              </>
-            ) : (
-              <FieldPropertiesPanel
-                selectedField={selectedField}
-                onUpdateField={updateField}
-                onRemoveField={removeField}
-              />
-            )}
-          </div>
+          <ScrollArea className="h-[calc(78vh-48px)]">
+            <div className="p-3">
+              {sidebarTab === "elements" ? (
+                <>
+                  <p className="mb-3 text-xs font-medium text-muted-foreground">Drag and drop elements</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {FIELD_PALETTE.map((item) => (
+                      <PaletteItem key={item.type} type={item.type} label={item.label} icon={item.icon} />
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <FieldPropertiesPanel
+                  selectedField={selectedField}
+                  onUpdateField={updateField}
+                  onRemoveField={removeField}
+                />
+              )}
+            </div>
+          </ScrollArea>
         </aside>
       </div>
 
