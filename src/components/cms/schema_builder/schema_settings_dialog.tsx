@@ -50,6 +50,7 @@ export function SchemaSettingsDialog({
     onSubmit({
       title: values.title.trim(),
       description: values.description.trim(),
+      isTemplate: values.isTemplate,
     })
   }
 

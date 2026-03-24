@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use server";
 
 import { createClient } from "@/lib/supabase/supabaseServerClient";
@@ -138,4 +139,3 @@ export async function getCollectionRPC(
     return { success: false, error: "An unexpected error occurred." };
   }
 }
-

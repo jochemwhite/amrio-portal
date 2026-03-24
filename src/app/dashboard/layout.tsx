@@ -34,7 +34,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
   }
 
   // 3. Resolve active tenant from cookie
-  const activeTenantId = cookieStore.get(ACTIVE_TENANT_COOKIE)?.value ?? null;
+  const activeTenantId = cookieStore.get(ACTIVE_TENANT_COOKIE)?.value;
 
   // 4. Single RPC — returns user_info, global_roles, active_tenant
   const { data, error } = await supabase.rpc("get_user_session", {
@@ -60,7 +60,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
         .single();
 
       if (website) {
-        activeWebsite = { id: website.id, name: website.name, url: website.domain };
+        activeWebsite = { id: website.id, name: website.name, url: website.domain ?? "" };
       }
     }
 
@@ -74,7 +74,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
         .single();
 
       if (website) {
-        activeWebsite = { id: website.id, name: website.name, url: website.domain };
+        activeWebsite = { id: website.id, name: website.name, url: website.domain ?? "" };
       }
     }
   }

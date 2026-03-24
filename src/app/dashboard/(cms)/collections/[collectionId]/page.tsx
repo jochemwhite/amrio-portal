@@ -1,5 +1,5 @@
 import { getCollectionWithSchemaRPC } from "@/actions/cms/collection-rpc-actions";
-import { SchemaBuilder } from "@/components/cms/schema-builder/SchemaBuilder";
+import { SchemaBuilder } from "@/components/cms/schema_builder/schema_builder";
 import { getActiveTenantId } from "@/server/utils";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -37,5 +37,14 @@ export default async function CollectionSchemaPage({ params }: { params: Promise
     return <div className="container mx-auto py-6">no Schema found</div>;
   }
 
-  // return <SchemaBuilder initialSchema={schema} pageId={collectionId} websiteId={collection.website_id || ""} />;
+  return (
+    <div className="container mx-auto py-6">
+      <div className="rounded-lg border p-4">
+        <p className="text-sm text-muted-foreground">
+          Collection schema builder is temporarily unavailable until the legacy schema payload is mapped to the new
+          builder document format.
+        </p>
+      </div>
+    </div>
+  );
 }

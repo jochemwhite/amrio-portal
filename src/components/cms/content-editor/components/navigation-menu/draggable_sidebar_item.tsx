@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { useDraggable } from "@dnd-kit/react";
+import { useDraggable } from "@dnd-kit/core";
 
 interface DraggableSidebarItemProps {
   page: any;
@@ -14,7 +14,7 @@ export function DraggableSidebarItem({
   label,
   children,
 }: DraggableSidebarItemProps) {
-  const { ref, isDragging } = useDraggable({
+  const { setNodeRef, isDragging } = useDraggable({
     id: `sidebar-${type}-${page?.id || "custom"}`,
     data: {
       type: "SidebarItem",
@@ -30,7 +30,7 @@ export function DraggableSidebarItem({
   });
 
   return (
-    <div ref={ref} className={cn(isDragging && "opacity-50")}>
+    <div ref={setNodeRef} className={cn(isDragging && "opacity-50")}>
       {children}
     </div>
   );

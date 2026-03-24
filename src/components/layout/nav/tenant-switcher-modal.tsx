@@ -14,7 +14,7 @@ import { getWebsitesByTenant } from "@/actions/cms/website-actions";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 
-type Tenant = UserSession["tenants"][0];
+type Tenant = NonNullable<UserSession["tenants"]>[number];
 
 type Step = "tenant" | "website";
 
@@ -52,7 +52,7 @@ export function TenantSwitcherModal() {
     }
   }, [open]);
 
-  const availableTenants = userSession?.tenants || [];
+  const availableTenants = userSession?.tenants ?? [];
 
   const handleTenantSelect = async (tenant: Tenant) => {
     setSelectedTenant(tenant);
@@ -147,7 +147,7 @@ export function TenantSwitcherModal() {
               <CommandList>
                 <CommandEmpty>No organizations found.</CommandEmpty>
                 <CommandGroup heading="Organizations">
-                  {availableTenants.map((tenant) => (
+                  {availableTenants.map((tenant: Tenant) => (
                     <CommandItem
                       key={tenant.id}
                       value={tenant.name}
@@ -156,7 +156,7 @@ export function TenantSwitcherModal() {
                       disabled={loadingWebsites}
                     >
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={tenant.logo_url} />
+                        <AvatarImage src={tenant.logo_url ?? undefined} />
                         <AvatarFallback>{tenant.name.charAt(0)}</AvatarFallback>
                       </Avatar>
                       <div className="flex flex-1 flex-col">

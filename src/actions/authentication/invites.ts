@@ -60,7 +60,7 @@ export async function createUserInvite(userValues: UserFormValues): Promise<Acti
       p_email: userValues.email,
       p_first_name: userValues.first_name,
       p_last_name: userValues.last_name,
-      p_role_type_id: userValues.global_role,
+      p_role_type_id: userValues.global_role ?? "",
     });
 
     if (rpcError) {

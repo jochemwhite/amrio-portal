@@ -69,7 +69,7 @@ export const useSessionStore = create<SessionState>()(
           const activeTenantId = getCookie(ACTIVE_TENANT_COOKIE);
           const { data, error } = await supabase.rpc("get_user_session", {
             p_uid: user.id,
-            p_active_tenant_id: activeTenantId ?? null,
+            p_active_tenant_id: activeTenantId ?? undefined,
           });
           if (error) throw new Error(error.message);
 
@@ -117,7 +117,7 @@ export const useSessionStore = create<SessionState>()(
               active_website: {
                 id: website.id,
                 name: website.name,
-                url: website.domain,
+                url: website.domain ?? "",
               },
             },
           };

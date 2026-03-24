@@ -5,9 +5,6 @@ export const metadata: Metadata = {
   description: "Overview of your Amrio portal dashboard.",
 };
 
-export default function DashboardPage(){
-
-
-
-    return<></>
+export default function DashboardPage() {
+  return <></>;
 }
