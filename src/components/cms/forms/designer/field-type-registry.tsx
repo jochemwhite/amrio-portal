@@ -19,27 +19,21 @@ import {
   ToggleLeft,
   Type,
 } from "lucide-react";
-import { CheckboxFieldSettings } from "./field-settings/checkbox-field-settings";
-import { ChoiceFieldSettings } from "./field-settings/choice-field-settings";
-import { DateFieldSettings } from "./field-settings/date-field-settings";
-import { FileFieldSettings } from "./field-settings/file-field-settings";
-import { HeadingFieldSettings } from "./field-settings/heading-field-settings";
-import { NumberFieldSettings } from "./field-settings/number-field-settings";
-import { ParagraphFieldSettings } from "./field-settings/paragraph-field-settings";
-import { RatingFieldSettings } from "./field-settings/rating-field-settings";
-import { SelectFieldSettings } from "./field-settings/select-field-settings";
+import { FIELD_EDITABLE_SETTINGS, createUniqueFieldKey } from "./field-helpers";
 import type { BuilderField, BuilderFieldType, FieldTypeDefinition } from "./types";
 
-function createDefaultField(type: BuilderFieldType, index: number): BuilderField {
+function createDefaultField(type: BuilderFieldType, index: number, fields: BuilderField[] = []): BuilderField {
   const baseLabel = `${type[0].toUpperCase()}${type.slice(1)} field`;
   return {
     id: crypto.randomUUID(),
     type,
-    key: `${type}_${index + 1}`,
+    key: createUniqueFieldKey(`${type}_${index + 1}`, fields),
     label: baseLabel,
     required: true,
     placeholder: type === "checkbox" ? undefined : "Value here...",
     helpText: "Helper text",
+    width: "full",
+    hidden: false,
   };
 }
 
@@ -48,7 +42,8 @@ export const FIELD_TYPE_DEFINITIONS: Record<BuilderFieldType, FieldTypeDefinitio
     type: "text",
     label: "Text Field",
     icon: Type,
-    createField: (index) => createDefaultField("text", index),
+    createField: (index, fields) => createDefaultField("text", index, fields),
+    editableSettings: FIELD_EDITABLE_SETTINGS.text,
     supportsLabel: true,
     supportsKey: true,
     supportsPlaceholder: true,
@@ -59,7 +54,8 @@ export const FIELD_TYPE_DEFINITIONS: Record<BuilderFieldType, FieldTypeDefinitio
     type: "email",
     label: "Email Field",
     icon: Mail,
-    createField: (index) => createDefaultField("email", index),
+    createField: (index, fields) => createDefaultField("email", index, fields),
+    editableSettings: FIELD_EDITABLE_SETTINGS.email,
     supportsLabel: true,
     supportsKey: true,
     supportsPlaceholder: true,
@@ -70,7 +66,8 @@ export const FIELD_TYPE_DEFINITIONS: Record<BuilderFieldType, FieldTypeDefinitio
     type: "textarea",
     label: "TextArea Field",
     icon: Pilcrow,
-    createField: (index) => createDefaultField("textarea", index),
+    createField: (index, fields) => createDefaultField("textarea", index, fields),
+    editableSettings: FIELD_EDITABLE_SETTINGS.textarea,
     supportsLabel: true,
     supportsKey: true,
     supportsPlaceholder: true,
@@ -81,13 +78,13 @@ export const FIELD_TYPE_DEFINITIONS: Record<BuilderFieldType, FieldTypeDefinitio
     type: "number",
     label: "Number Field",
     icon: Hash,
-    createField: (index) => ({
-      ...createDefaultField("number", index),
+    createField: (index, fields) => ({
+      ...createDefaultField("number", index, fields),
       min: undefined,
       max: undefined,
       step: 1,
     }),
-    SettingsComponent: NumberFieldSettings,
+    editableSettings: FIELD_EDITABLE_SETTINGS.number,
     supportsLabel: true,
     supportsKey: true,
     supportsPlaceholder: true,
@@ -98,12 +95,12 @@ export const FIELD_TYPE_DEFINITIONS: Record<BuilderFieldType, FieldTypeDefinitio
     type: "checkbox",
     label: "CheckBox Field",
     icon: CheckSquare,
-    createField: (index) => ({
-      ...createDefaultField("checkbox", index),
+    createField: (index, fields) => ({
+      ...createDefaultField("checkbox", index, fields),
       checkedValue: "true",
       uncheckedValue: "false",
     }),
-    SettingsComponent: CheckboxFieldSettings,
+    editableSettings: FIELD_EDITABLE_SETTINGS.checkbox,
     supportsLabel: true,
     supportsKey: true,
     supportsHelpText: true,
@@ -113,11 +110,11 @@ export const FIELD_TYPE_DEFINITIONS: Record<BuilderFieldType, FieldTypeDefinitio
     type: "select",
     label: "Select Field",
     icon: ChevronsUpDown,
-    createField: (index) => ({
-      ...createDefaultField("select", index),
+    createField: (index, fields) => ({
+      ...createDefaultField("select", index, fields),
       options: ["Option 1", "Option 2"],
     }),
-    SettingsComponent: SelectFieldSettings,
+    editableSettings: FIELD_EDITABLE_SETTINGS.select,
     supportsLabel: true,
     supportsKey: true,
     supportsPlaceholder: true,
@@ -128,12 +125,12 @@ export const FIELD_TYPE_DEFINITIONS: Record<BuilderFieldType, FieldTypeDefinitio
     type: "date",
     label: "Date Field",
     icon: Calendar,
-    createField: (index) => ({
-      ...createDefaultField("date", index),
+    createField: (index, fields) => ({
+      ...createDefaultField("date", index, fields),
       minDate: undefined,
       maxDate: undefined,
     }),
-    SettingsComponent: DateFieldSettings,
+    editableSettings: FIELD_EDITABLE_SETTINGS.date,
     supportsLabel: true,
     supportsKey: true,
     supportsHelpText: true,
@@ -143,11 +140,11 @@ export const FIELD_TYPE_DEFINITIONS: Record<BuilderFieldType, FieldTypeDefinitio
     type: "radio",
     label: "Radio Group Field",
     icon: ListChecks,
-    createField: (index) => ({
-      ...createDefaultField("radio", index),
+    createField: (index, fields) => ({
+      ...createDefaultField("radio", index, fields),
       options: ["Option 1", "Option 2"],
     }),
-    SettingsComponent: ChoiceFieldSettings,
+    editableSettings: FIELD_EDITABLE_SETTINGS.radio,
     supportsLabel: true,
     supportsKey: true,
     supportsHelpText: true,
@@ -157,12 +154,12 @@ export const FIELD_TYPE_DEFINITIONS: Record<BuilderFieldType, FieldTypeDefinitio
     type: "multiselect",
     label: "Multi Select Field",
     icon: ChevronsUpDown,
-    createField: (index) => ({
-      ...createDefaultField("multiselect", index),
+    createField: (index, fields) => ({
+      ...createDefaultField("multiselect", index, fields),
       options: ["Option 1", "Option 2", "Option 3"],
       placeholder: "Select one or more...",
     }),
-    SettingsComponent: ChoiceFieldSettings,
+    editableSettings: FIELD_EDITABLE_SETTINGS.multiselect,
     supportsLabel: true,
     supportsKey: true,
     supportsPlaceholder: true,
@@ -173,13 +170,13 @@ export const FIELD_TYPE_DEFINITIONS: Record<BuilderFieldType, FieldTypeDefinitio
     type: "toggle",
     label: "Toggle Field",
     icon: ToggleLeft,
-    createField: (index) => ({
-      ...createDefaultField("toggle", index),
+    createField: (index, fields) => ({
+      ...createDefaultField("toggle", index, fields),
       checkedValue: "true",
       uncheckedValue: "false",
       placeholder: undefined,
     }),
-    SettingsComponent: CheckboxFieldSettings,
+    editableSettings: FIELD_EDITABLE_SETTINGS.toggle,
     supportsLabel: true,
     supportsKey: true,
     supportsHelpText: true,
@@ -189,13 +186,13 @@ export const FIELD_TYPE_DEFINITIONS: Record<BuilderFieldType, FieldTypeDefinitio
     type: "file",
     label: "File Upload Field",
     icon: FileUp,
-    createField: (index) => ({
-      ...createDefaultField("file", index),
+    createField: (index, fields) => ({
+      ...createDefaultField("file", index, fields),
       placeholder: undefined,
       accept: undefined,
       multiple: false,
     }),
-    SettingsComponent: FileFieldSettings,
+    editableSettings: FIELD_EDITABLE_SETTINGS.file,
     supportsLabel: true,
     supportsKey: true,
     supportsHelpText: true,
@@ -205,10 +202,11 @@ export const FIELD_TYPE_DEFINITIONS: Record<BuilderFieldType, FieldTypeDefinitio
     type: "phone",
     label: "Phone Field",
     icon: Phone,
-    createField: (index) => ({
-      ...createDefaultField("phone", index),
+    createField: (index, fields) => ({
+      ...createDefaultField("phone", index, fields),
       placeholder: "(555) 123-4567",
     }),
+    editableSettings: FIELD_EDITABLE_SETTINGS.phone,
     supportsLabel: true,
     supportsKey: true,
     supportsPlaceholder: true,
@@ -219,10 +217,11 @@ export const FIELD_TYPE_DEFINITIONS: Record<BuilderFieldType, FieldTypeDefinitio
     type: "password",
     label: "Password Field",
     icon: TextCursorInput,
-    createField: (index) => ({
-      ...createDefaultField("password", index),
+    createField: (index, fields) => ({
+      ...createDefaultField("password", index, fields),
       placeholder: "Enter password",
     }),
+    editableSettings: FIELD_EDITABLE_SETTINGS.password,
     supportsLabel: true,
     supportsKey: true,
     supportsPlaceholder: true,
@@ -233,10 +232,11 @@ export const FIELD_TYPE_DEFINITIONS: Record<BuilderFieldType, FieldTypeDefinitio
     type: "url",
     label: "URL Field",
     icon: Link2,
-    createField: (index) => ({
-      ...createDefaultField("url", index),
+    createField: (index, fields) => ({
+      ...createDefaultField("url", index, fields),
       placeholder: "https://example.com",
     }),
+    editableSettings: FIELD_EDITABLE_SETTINGS.url,
     supportsLabel: true,
     supportsKey: true,
     supportsPlaceholder: true,
@@ -247,10 +247,11 @@ export const FIELD_TYPE_DEFINITIONS: Record<BuilderFieldType, FieldTypeDefinitio
     type: "time",
     label: "Time Field",
     icon: BetweenHorizontalStart,
-    createField: (index) => ({
-      ...createDefaultField("time", index),
+    createField: (index, fields) => ({
+      ...createDefaultField("time", index, fields),
       placeholder: undefined,
     }),
+    editableSettings: FIELD_EDITABLE_SETTINGS.time,
     supportsLabel: true,
     supportsKey: true,
     supportsHelpText: true,
@@ -260,13 +261,13 @@ export const FIELD_TYPE_DEFINITIONS: Record<BuilderFieldType, FieldTypeDefinitio
     type: "dateRange",
     label: "Date Range Field",
     icon: Calendar,
-    createField: (index) => ({
-      ...createDefaultField("dateRange", index),
+    createField: (index, fields) => ({
+      ...createDefaultField("dateRange", index, fields),
       placeholder: undefined,
       minDate: undefined,
       maxDate: undefined,
     }),
-    SettingsComponent: DateFieldSettings,
+    editableSettings: FIELD_EDITABLE_SETTINGS.dateRange,
     supportsLabel: true,
     supportsKey: true,
     supportsHelpText: true,
@@ -276,14 +277,14 @@ export const FIELD_TYPE_DEFINITIONS: Record<BuilderFieldType, FieldTypeDefinitio
     type: "range",
     label: "Range Slider Field",
     icon: SlidersHorizontal,
-    createField: (index) => ({
-      ...createDefaultField("range", index),
+    createField: (index, fields) => ({
+      ...createDefaultField("range", index, fields),
       min: 0,
       max: 100,
       step: 1,
       placeholder: undefined,
     }),
-    SettingsComponent: NumberFieldSettings,
+    editableSettings: FIELD_EDITABLE_SETTINGS.range,
     supportsLabel: true,
     supportsKey: true,
     supportsHelpText: true,
@@ -293,12 +294,14 @@ export const FIELD_TYPE_DEFINITIONS: Record<BuilderFieldType, FieldTypeDefinitio
     type: "rating",
     label: "Rating Field",
     icon: Star,
-    createField: (index) => ({
-      ...createDefaultField("rating", index),
+    createField: (index, fields) => ({
+      ...createDefaultField("rating", index, fields),
       placeholder: undefined,
       maxRating: 5,
+      ratingStep: 1,
+      ratingIcon: "star",
     }),
-    SettingsComponent: RatingFieldSettings,
+    editableSettings: FIELD_EDITABLE_SETTINGS.rating,
     supportsLabel: true,
     supportsKey: true,
     supportsHelpText: true,
@@ -308,16 +311,19 @@ export const FIELD_TYPE_DEFINITIONS: Record<BuilderFieldType, FieldTypeDefinitio
     type: "heading",
     label: "Heading Block",
     icon: Heading,
-    createField: (index) => ({
-      ...createDefaultField("heading", index),
-      label: "Section heading",
+    createField: (index, fields) => ({
+      ...createDefaultField("heading", index, fields),
+      key: undefined,
+      label: undefined,
       placeholder: undefined,
       helpText: undefined,
       required: false,
       headingLevel: 2,
+      content: "Section heading",
+      align: "left",
     }),
-    SettingsComponent: HeadingFieldSettings,
-    supportsLabel: true,
+    editableSettings: FIELD_EDITABLE_SETTINGS.heading,
+    supportsLabel: false,
     supportsKey: false,
     supportsPlaceholder: false,
     supportsHelpText: false,
@@ -327,15 +333,18 @@ export const FIELD_TYPE_DEFINITIONS: Record<BuilderFieldType, FieldTypeDefinitio
     type: "paragraph",
     label: "Paragraph Block",
     icon: AlignLeft,
-    createField: (index) => ({
-      ...createDefaultField("paragraph", index),
-      label: "Paragraph block",
+    createField: (index, fields) => ({
+      ...createDefaultField("paragraph", index, fields),
+      key: undefined,
+      label: undefined,
       placeholder: undefined,
       helpText: undefined,
       required: false,
       content: "Use this paragraph to give extra context before the next field.",
+      align: "left",
+      markdown: false,
     }),
-    SettingsComponent: ParagraphFieldSettings,
+    editableSettings: FIELD_EDITABLE_SETTINGS.paragraph,
     supportsLabel: false,
     supportsKey: false,
     supportsPlaceholder: false,
@@ -346,13 +355,17 @@ export const FIELD_TYPE_DEFINITIONS: Record<BuilderFieldType, FieldTypeDefinitio
     type: "divider",
     label: "Divider Block",
     icon: Minus,
-    createField: (index) => ({
-      ...createDefaultField("divider", index),
-      label: "Divider block",
+    createField: (index, fields) => ({
+      ...createDefaultField("divider", index, fields),
+      key: undefined,
+      label: undefined,
       placeholder: undefined,
       helpText: undefined,
       required: false,
+      width: undefined,
+      hidden: undefined,
     }),
+    editableSettings: FIELD_EDITABLE_SETTINGS.divider,
     supportsLabel: false,
     supportsKey: false,
     supportsPlaceholder: false,
@@ -363,13 +376,17 @@ export const FIELD_TYPE_DEFINITIONS: Record<BuilderFieldType, FieldTypeDefinitio
     type: "section",
     label: "Section Block",
     icon: BetweenHorizontalStart,
-    createField: (index) => ({
-      ...createDefaultField("section", index),
+    createField: (index, fields) => ({
+      ...createDefaultField("section", index, fields),
+      key: undefined,
       label: "Section title",
       placeholder: undefined,
       helpText: "Optional section description",
       required: false,
+      collapsible: false,
+      collapsed: false,
     }),
+    editableSettings: FIELD_EDITABLE_SETTINGS.section,
     supportsLabel: true,
     supportsKey: false,
     supportsPlaceholder: false,
@@ -380,8 +397,8 @@ export const FIELD_TYPE_DEFINITIONS: Record<BuilderFieldType, FieldTypeDefinitio
 
 export const FIELD_PALETTE = Object.values(FIELD_TYPE_DEFINITIONS);
 
-export function createFieldFromType(type: BuilderFieldType, index: number) {
-  return FIELD_TYPE_DEFINITIONS[type].createField(index);
+export function createFieldFromType(type: BuilderFieldType, index: number, fields: BuilderField[] = []) {
+  return FIELD_TYPE_DEFINITIONS[type].createField(index, fields);
 }
 
 export function getFieldTypeDefinition(type: BuilderFieldType) {

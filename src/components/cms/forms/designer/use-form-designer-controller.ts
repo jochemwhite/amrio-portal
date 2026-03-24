@@ -233,7 +233,7 @@ export function useFormDesignerController({ value, onChange }: HeadlessFormDesig
       }
 
       const type = activeFieldType ?? (activeIdValue.replace("palette:", "") as BuilderFieldType);
-      const newField = createFieldFromType(type, value.length);
+      const newField = createFieldFromType(type, value.length, value);
       onChange(createInsertedFieldList(insertIndex ?? value.length, newField));
       setSelectedId(newField.id);
       setSidebarTab("elements");

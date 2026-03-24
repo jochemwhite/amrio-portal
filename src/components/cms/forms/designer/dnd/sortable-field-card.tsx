@@ -41,7 +41,7 @@ export function SortableFieldCard({
   const displayLabel =
     definition.supportsLabel === false
       ? field.content || definition.label
-      : field.label;
+      : field.label || definition.label;
 
   return (
     <div
@@ -69,19 +69,21 @@ export function SortableFieldCard({
       >
         <Trash2 className="h-4 w-4 " />
       </button>
-      <div>
-        <Badge
-          variant={field.required ? "outline" : "secondary"}
-          className="cursor-pointer"
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={(event) => {
-            event.stopPropagation();
-            onToggleRequired();
-          }}
-        >
-          {field.required ? "Required" : "Optional"}
-        </Badge>
-      </div>
+      {definition.supportsRequired ? (
+        <div>
+          <Badge
+            variant={field.required ? "outline" : "secondary"}
+            className="cursor-pointer"
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleRequired();
+            }}
+          >
+            {field.required ? "Required" : "Optional"}
+          </Badge>
+        </div>
+      ) : null}
       <div className="flex items-center">
         <div className="mb-2 flex items-center gap-2 pr-8 text-foreground/80">
           <FieldIcon className="h-10 w-10" />
@@ -95,7 +97,7 @@ export function SortableFieldCard({
             </p>
           ) : (
             <Input
-              value={field.label}
+              value={field.label ?? ""}
               onChange={(event) => onLableChange(event.target.value)}
               data-field-label-input={field.id}
               onPointerDown={(event) => event.stopPropagation()}

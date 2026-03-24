@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
 import { AlignLeft } from "lucide-react";
@@ -15,7 +15,8 @@ import { FieldPropertiesPanel } from "./properties/field-properties-panel";
 import type { BuilderFieldType, HeadlessFormDesignerProps } from "./types";
 import { useFormDesignerController } from "./use-form-designer-controller";
 
-export function HeadlessFormDesigner({ value, onChange }: HeadlessFormDesignerProps) {
+export function HeadlessFormDesigner({ value, onChange, submissionsCount, initialFieldKeys }: HeadlessFormDesignerProps) {
+  const [conditionalLogicOpen, setConditionalLogicOpen] = useState(false);
   const {
     activeId,
     collisionDetection,
@@ -88,7 +89,12 @@ export function HeadlessFormDesigner({ value, onChange }: HeadlessFormDesignerPr
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className="grid min-h-[78vh] grid-cols-1 overflow-hidden rounded-xl border border-border bg-background lg:grid-cols-[1fr_320px]">
+      <div
+        className={cn(
+          "grid min-h-[78vh] grid-cols-1 overflow-hidden rounded-xl border border-border bg-background",
+          conditionalLogicOpen ? "lg:grid-cols-[1fr_420px]" : "lg:grid-cols-[1fr_320px]",
+        )}
+      >
         <div className="relative" ref={setCanvasShellNodeRef}>
           <div
             className="pointer-events-none absolute inset-0"
@@ -192,6 +198,10 @@ export function HeadlessFormDesigner({ value, onChange }: HeadlessFormDesignerPr
               ) : (
                 <FieldPropertiesPanel
                   selectedField={selectedField}
+                  allFields={value}
+                  submissionsCount={submissionsCount}
+                  initialFieldKeys={initialFieldKeys}
+                  onConditionalLogicOpenChange={setConditionalLogicOpen}
                   onUpdateField={updateField}
                   onRemoveField={removeField}
                 />

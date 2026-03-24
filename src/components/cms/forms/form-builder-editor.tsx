@@ -12,47 +12,166 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { ArrowLeft, Eye, Save } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { createUniqueFieldKey, fieldSupportsKey } from "./designer/field-helpers";
 import { BuilderFieldPreview } from "./builder-field-preview";
 import { BuilderField, HeadlessFormDesigner } from "./headless-form-designer";
+
+const CONDITIONAL_LOGIC_OPERATORS = new Set([
+  "equals",
+  "not_equals",
+  "contains",
+  "not_contains",
+  "starts_with",
+  "ends_with",
+  "is_empty",
+  "is_not_empty",
+  "greater_than",
+  "less_than",
+  "greater_than_or_equal",
+  "less_than_or_equal",
+  "file_count_equals",
+  "file_count_greater_than",
+  "file_count_less_than",
+  "file_size_less_than",
+  "file_size_greater_than",
+] as const);
 
 interface FormBuilderEditorProps {
   form: CmsForm;
 }
 
 export function FormBuilderEditor({ form }: FormBuilderEditorProps) {
+  const initialFieldKeys = (() => {
+    if (!Array.isArray(form.content)) return {};
+    return Object.fromEntries(
+      (form.content as unknown[])
+        .filter((entry): entry is { id?: unknown; key?: unknown } => Boolean(entry) && typeof entry === "object")
+        .map((entry) => [String(entry.id ?? ""), entry.key ? String(entry.key) : undefined]),
+    );
+  })();
+
   const [content, setContent] = useState<BuilderField[]>(() => {
     if (Array.isArray(form.content)) {
-      return (form.content as unknown[]).flatMap((entry) => {
+      const fields = (form.content as unknown[]).flatMap((entry) => {
         if (!entry || typeof entry !== "object") return [];
         const field = entry as Partial<BuilderField>;
-        if (!field.id || !field.type || !field.key || !field.label) return [];
+        if (!field.id || !field.type) return [];
+
+        const supportsKey = fieldSupportsKey(field.type);
+        if (supportsKey && !field.key) return [];
+
         return [
           {
             id: String(field.id),
             type: field.type,
-            key: String(field.key),
-            label: String(field.label),
+            key: supportsKey ? String(field.key) : undefined,
+            label: field.label ? String(field.label) : undefined,
             required: Boolean(field.required),
             placeholder: field.placeholder ? String(field.placeholder) : "",
             helpText: field.helpText ? String(field.helpText) : "",
             options: Array.isArray(field.options)
               ? field.options.map((option) => String(option))
               : undefined,
+            defaultValue:
+              typeof field.defaultValue === "string" ||
+              typeof field.defaultValue === "number" ||
+              typeof field.defaultValue === "boolean" ||
+              Array.isArray(field.defaultValue)
+                ? field.defaultValue
+                : undefined,
+            readOnly: Boolean(field.readOnly),
+            hidden: Boolean(field.hidden),
+            width:
+              field.width === "half" || field.width === "third" || field.width === "full"
+                ? field.width
+                : supportsKey
+                  ? "full"
+                  : undefined,
+            conditionalLogic:
+              field.conditionalLogic && typeof field.conditionalLogic === "object"
+                ? {
+                    action: field.conditionalLogic.action === "hide" ? "hide" : "show",
+                    match: field.conditionalLogic.match === "any" ? "any" : "all",
+                    rules: Array.isArray(field.conditionalLogic.rules)
+                      ? field.conditionalLogic.rules.flatMap((rule) => {
+                          if (!rule || typeof rule !== "object" || !("field" in rule) || !("operator" in rule)) {
+                            return [];
+                          }
+
+                          return [
+                            {
+                              field: String(rule.field),
+                              operator: CONDITIONAL_LOGIC_OPERATORS.has(
+                                String(rule.operator) as (typeof CONDITIONAL_LOGIC_OPERATORS extends Set<infer T> ? T : never),
+                              )
+                                ? (String(rule.operator) as NonNullable<BuilderField["conditionalLogic"]>["rules"][number]["operator"])
+                                : "equals",
+                              value:
+                                "value" in rule &&
+                                (typeof rule.value === "string" ||
+                                  typeof rule.value === "number" ||
+                                  typeof rule.value === "boolean")
+                                  ? rule.value
+                                  : undefined,
+                            },
+                          ];
+                        })
+                      : [],
+                  }
+                : undefined,
             min: typeof field.min === "number" ? field.min : undefined,
             max: typeof field.max === "number" ? field.max : undefined,
             step: typeof field.step === "number" ? field.step : undefined,
+            minLength: typeof field.minLength === "number" ? field.minLength : undefined,
+            maxLength: typeof field.maxLength === "number" ? field.maxLength : undefined,
+            rows: typeof field.rows === "number" ? field.rows : undefined,
+            prefix: field.prefix ? String(field.prefix) : undefined,
+            suffix: field.suffix ? String(field.suffix) : undefined,
+            autocomplete: field.autocomplete ? field.autocomplete : undefined,
+            searchable: Boolean(field.searchable),
+            minSelections: typeof field.minSelections === "number" ? field.minSelections : undefined,
+            maxSelections: typeof field.maxSelections === "number" ? field.maxSelections : undefined,
             minDate: field.minDate ? String(field.minDate) : undefined,
             maxDate: field.maxDate ? String(field.maxDate) : undefined,
+            disabledDates: Array.isArray(field.disabledDates)
+              ? field.disabledDates.map((value) => String(value))
+              : undefined,
+            dateFormat: field.dateFormat ? String(field.dateFormat) : undefined,
+            minTime: field.minTime ? String(field.minTime) : undefined,
+            maxTime: field.maxTime ? String(field.maxTime) : undefined,
+            timeStep: typeof field.timeStep === "number" ? field.timeStep : undefined,
+            minRange: typeof field.minRange === "number" ? field.minRange : undefined,
+            maxRange: typeof field.maxRange === "number" ? field.maxRange : undefined,
             checkedValue: field.checkedValue ? String(field.checkedValue) : undefined,
             uncheckedValue: field.uncheckedValue ? String(field.uncheckedValue) : undefined,
             accept: field.accept ? String(field.accept) : undefined,
             multiple: Boolean(field.multiple),
+            maxFileSize: typeof field.maxFileSize === "number" ? field.maxFileSize : undefined,
+            maxFiles: typeof field.maxFiles === "number" ? field.maxFiles : undefined,
             maxRating: typeof field.maxRating === "number" ? field.maxRating : undefined,
+            ratingStep: typeof field.ratingStep === "number" ? field.ratingStep : undefined,
+            ratingIcon: field.ratingIcon ? String(field.ratingIcon) : undefined,
             content: field.content ? String(field.content) : undefined,
             headingLevel: typeof field.headingLevel === "number" ? field.headingLevel : undefined,
+            align:
+              field.align === "center" || field.align === "right" || field.align === "left"
+                ? field.align
+                : undefined,
+            markdown: Boolean(field.markdown),
+            collapsible: Boolean(field.collapsible),
+            collapsed: Boolean(field.collapsed),
           } satisfies BuilderField,
         ];
       });
+
+      return fields.map((field) =>
+        fieldSupportsKey(field.type)
+          ? {
+              ...field,
+              key: createUniqueFieldKey(field.key ?? `${field.type}_field`, fields, field.id),
+            }
+          : field,
+      );
     }
     return [];
   });
@@ -121,7 +240,12 @@ export function FormBuilderEditor({ form }: FormBuilderEditorProps) {
         </div>
       </div>
 
-      <HeadlessFormDesigner value={content} onChange={setContent} />
+      <HeadlessFormDesigner
+        value={content}
+        onChange={setContent}
+        submissionsCount={form.submissions}
+        initialFieldKeys={initialFieldKeys}
+      />
 
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="max-w-2xl">

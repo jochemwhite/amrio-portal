@@ -395,6 +395,7 @@ export type Database = {
           submissions: number
           tenant_id: string
           updated_at: string
+          version: number
           visits: number
           website_id: string
         }
@@ -411,6 +412,7 @@ export type Database = {
           submissions?: number
           tenant_id: string
           updated_at?: string
+          version?: number
           visits?: number
           website_id: string
         }
@@ -427,6 +429,7 @@ export type Database = {
           submissions?: number
           tenant_id?: string
           updated_at?: string
+          version?: number
           visits?: number
           website_id?: string
         }

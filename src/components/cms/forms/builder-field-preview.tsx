@@ -29,18 +29,33 @@ function FieldShell({
 }) {
   if (field.type === "heading") {
     const headingLevel = Math.min(Math.max(field.headingLevel ?? 2, 1), 6);
-    const headingClassName = "font-semibold tracking-tight text-foreground";
+    const headingClassName = cn(
+      "font-semibold tracking-tight text-foreground",
+      field.align === "center" && "text-center",
+      field.align === "right" && "text-right",
+    );
+    const headingContent = field.content || "Section heading";
 
-    if (headingLevel === 1) return <h1 className={headingClassName}>{field.label}</h1>;
-    if (headingLevel === 2) return <h2 className={headingClassName}>{field.label}</h2>;
-    if (headingLevel === 3) return <h3 className={headingClassName}>{field.label}</h3>;
-    if (headingLevel === 4) return <h4 className={headingClassName}>{field.label}</h4>;
-    if (headingLevel === 5) return <h5 className={headingClassName}>{field.label}</h5>;
-    return <h6 className={headingClassName}>{field.label}</h6>;
+    if (headingLevel === 1) return <h1 className={headingClassName}>{headingContent}</h1>;
+    if (headingLevel === 2) return <h2 className={headingClassName}>{headingContent}</h2>;
+    if (headingLevel === 3) return <h3 className={headingClassName}>{headingContent}</h3>;
+    if (headingLevel === 4) return <h4 className={headingClassName}>{headingContent}</h4>;
+    if (headingLevel === 5) return <h5 className={headingClassName}>{headingContent}</h5>;
+    return <h6 className={headingClassName}>{headingContent}</h6>;
   }
 
   if (field.type === "paragraph") {
-    return <p className="text-sm leading-6 text-muted-foreground">{field.content || "Paragraph content"}</p>;
+    return (
+      <p
+        className={cn(
+          "text-sm leading-6 text-muted-foreground",
+          field.align === "center" && "text-center",
+          field.align === "right" && "text-right",
+        )}
+      >
+        {field.content || "Paragraph content"}
+      </p>
+    );
   }
 
   if (field.type === "divider") {
@@ -50,7 +65,7 @@ function FieldShell({
   if (field.type === "section") {
     return (
       <div className="rounded-lg border border-dashed border-border bg-muted/20 p-4">
-        <p className="text-sm font-semibold text-foreground">{field.label}</p>
+        <p className="text-sm font-semibold text-foreground">{field.label || "Section title"}</p>
         {field.helpText ? <p className="mt-1 text-sm text-muted-foreground">{field.helpText}</p> : null}
       </div>
     );
@@ -59,7 +74,7 @@ function FieldShell({
   return (
     <div className={cn("space-y-2", className)}>
       <Label className="text-sm font-medium text-foreground">
-        {field.label}
+        {field.label || "Untitled field"}
         {field.required ? <span className="ml-1">*</span> : null}
       </Label>
       {children}
@@ -183,7 +198,12 @@ export function BuilderFieldPreview({ field }: BuilderFieldPreviewProps) {
   if (field.type === "textarea") {
     return (
       <FieldShell field={field}>
-        <Textarea placeholder={field.placeholder || "Value here..."} />
+        <Textarea
+          placeholder={field.placeholder || "Value here..."}
+          rows={field.rows}
+          defaultValue={typeof field.defaultValue === "string" ? field.defaultValue : undefined}
+          readOnly={field.readOnly}
+        />
       </FieldShell>
     );
   }
@@ -314,7 +334,10 @@ export function BuilderFieldPreview({ field }: BuilderFieldPreviewProps) {
         max={field.type === "number" ? field.max : field.type === "date" ? field.maxDate : undefined}
         step={field.type === "number" ? field.step : undefined}
         pattern={field.type === "phone" ? "^[0-9+()\\-\\s]+$" : undefined}
-        minLength={field.type === "password" ? 8 : undefined}
+        minLength={field.minLength ?? (field.type === "password" ? 8 : undefined)}
+        maxLength={field.maxLength}
+        defaultValue={typeof field.defaultValue === "string" || typeof field.defaultValue === "number" ? field.defaultValue : undefined}
+        readOnly={field.readOnly}
       />
     </FieldShell>
   );
