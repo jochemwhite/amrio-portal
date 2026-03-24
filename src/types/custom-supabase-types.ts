@@ -3,6 +3,12 @@ import { Database } from "./supabase";
 export type UserSession = {
   user_info: Database["public"]["Tables"]["users"]["Row"];
   global_roles: string[] | null;
+  tenants?: {
+    id: string;
+    name: string;
+    logo_url: string | null;
+    website: string | null;
+  }[];
   active_tenant: {
     id: string;
     name: string;

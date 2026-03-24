@@ -1,8 +1,7 @@
-import { createClient } from "@/lib/supabase/supabaseClient";
-import { AvailableRole } from "@/types/custom-supabase-types";
 import React from "react";
 import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "../ui/select";
-import { useUsers } from "@/providers/users-providers";
+import { createClient } from "@/lib/supabase/supabaseClient";
+import type { AvailableRole } from "@/types/custom-supabase-types";
 export interface GlobalRoleSelectProps {
   value: string | undefined;
   onChange: (value: string) => void;
@@ -10,14 +9,32 @@ export interface GlobalRoleSelectProps {
 }
 
 export const GlobalRoleSelect: React.FC<GlobalRoleSelectProps> = ({ value, onChange, placeholder }) => {
-  const [search, setSearch] = React.useState("");
+  const [availableRoles, setAvailableRoles] = React.useState<AvailableRole[]>([]);
   const [open, setOpen] = React.useState(false);
-  const { availableRoles } = useUsers();
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const fetchRoles = async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("global_role_types")
+        .select("id, role_name, description")
+        .order("role_name", { ascending: true });
+
+      if (error || cancelled) return;
+      setAvailableRoles((data ?? []) as AvailableRole[]);
+    };
+
+    void fetchRoles();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filteredRoles =
-    search.trim().length === 0
-      ? availableRoles
-      : availableRoles.filter((role) => role.role_name.toLowerCase().includes(search.toLowerCase()));
+    availableRoles;
 
   const selectedRole = availableRoles.find((r) => r.id === value);
 

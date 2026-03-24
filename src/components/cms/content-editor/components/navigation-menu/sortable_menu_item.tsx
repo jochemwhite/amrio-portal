@@ -1,5 +1,5 @@
-import { useDroppable } from "@dnd-kit/react";
-import { useSortable } from "@dnd-kit/react/sortable";
+import { useDroppable } from "@dnd-kit/core";
+import { useSortable } from "@dnd-kit/sortable";
 import { Button } from "@/components/ui/button";
 import {
   GripVertical,
@@ -44,21 +44,19 @@ export function SortableMenuItem({
   isOverlay = false,
 }: SortableMenuItemProps) {
   const {
-    ref,
-    handleRef,
+    setNodeRef,
+    setActivatorNodeRef,
     isDragging,
-    isDropTarget: isSortableOver,
+    isOver: isSortableOver,
   } = useSortable({
     id: item.id,
-    index,
     data: { type: "MenuItem", item, depth },
   });
 
   // Nesting Drop Zone (Bottom Edge)
-  const { ref: nestRef, isDropTarget: isNestOver } = useDroppable({
+  const { setNodeRef: setNestRef, isOver: isNestOver } = useDroppable({
     id: `nest-${item.id}`,
     data: { type: "NestZone", item, depth },
-    disabled: isDragging || isOverlay,
   });
 
   const hasChildren = item.children && item.children.length > 0;
@@ -75,7 +73,7 @@ export function SortableMenuItem({
 
   return (
     <div
-      ref={ref}
+      ref={setNodeRef}
       className={cn(
         "group relative",
         depth === 0 ? "inline-block mr-2 align-top" : "block mt-2 pb-4",
@@ -97,7 +95,7 @@ export function SortableMenuItem({
       >
         {/* Drag Handle */}
         <div
-          ref={handleRef}
+          ref={setActivatorNodeRef}
           className="cursor-grab active:cursor-grabbing p-1 hover:bg-accent rounded z-20"
         >
           <GripVertical className="h-4 w-4 text-muted-foreground" />
@@ -161,7 +159,7 @@ export function SortableMenuItem({
       {/* Nesting Drop Zone Overlay (Bottom Edge/Padding) */}
       {!isDragging && !isOverlay && (
         <div
-          ref={nestRef}
+          ref={setNestRef}
           className={cn(
             "absolute bottom-0 left-0 right-0 z-0 transition-colors rounded-b-md",
             depth === 0 ? "h-6" : "h-4",

@@ -1,10 +1,8 @@
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { FormControl } from "@/components/ui/form";
 import { Select, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/supabaseClient";
 import React, { useEffect } from "react";
-import UserSheet from "@/components/admin/sheets/user-sheet";
-import { User, Plus, Search } from "lucide-react";
+import { User, Search } from "lucide-react";
 
 export interface UserSelectProps {
   value: string | undefined;
@@ -18,7 +16,6 @@ export const UserSelect: React.FC<UserSelectProps> = ({ value, onChange, placeho
   const [fetched, setFetched] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const [open, setOpen] = React.useState(false);
-  const [sheetOpen, setSheetOpen] = React.useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -42,96 +39,59 @@ export const UserSelect: React.FC<UserSelectProps> = ({ value, onChange, placeho
 
   const selectedUser = users.find((u) => u.id === value);
 
-  const openSheet = async (id: string) => {
-    onChange(id);
-    setSheetOpen(true);
-  };
-
-  const handleSuccess = async (id: string) => {
-    await fetchUsers();
-    onChange(id);
-    setSheetOpen(false);
-    setOpen(false);
-  };
-
   return (
-    <>
-      <Select
-        value={value}
-        open={open}
-        onOpenChange={async (open) => {
-          if (open && !fetched) {
-            await fetchUsers();
-          }
-          setOpen(open);
-        }}
-      >
-        <FormControl>
-          <SelectTrigger>
-            <SelectValue placeholder={placeholder || "Select a user"}>
-              {selectedUser ? (
-                <span className="flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  {`${selectedUser.first_name} ${selectedUser.last_name} (${selectedUser.email})`}
-                </span>
-              ) : null}
-            </SelectValue>
-          </SelectTrigger>
-        </FormControl>
-        <SelectContent>
-          <Command shouldFilter={false} className="p-0">
-            <div className="flex items-center px-2 py-2 gap-2">
-              <Search className="w-4 h-4 text-muted-foreground" />
-              <CommandInput placeholder="Search users..." value={search} onValueChange={setSearch} autoFocus className="flex-1" />
-            </div>
-            <CommandList>
-              {loading ? (
-                <div className="p-2 text-sm text-muted-foreground">Loading...</div>
-              ) : (
-                <>
-                  <CommandEmpty>No users found.</CommandEmpty>
-                  {filteredUsers.map((user) => (
-                    <CommandItem
-                      key={user.id}
-                      value={user.id}
-                      onSelect={() => {
-                        onChange(user.id);
-                        setOpen(false);
-                        setSheetOpen(false);
-                      }}
-                    >
-                      <span className="flex items-center gap-2">
-                        <User className="w-4 h-4" />
-                        {user.first_name} {user.last_name} ({user.email})
-                      </span>
-                    </CommandItem>
-                  ))}
+    <Select
+      value={value}
+      open={open}
+      onOpenChange={async (open) => {
+        if (open && !fetched) {
+          await fetchUsers();
+        }
+        setOpen(open);
+      }}
+    >
+      <SelectTrigger>
+        <SelectValue placeholder={placeholder || "Select a user"}>
+          {selectedUser ? (
+            <span className="flex items-center gap-2">
+              <User className="w-4 h-4" />
+              {`${selectedUser.first_name} ${selectedUser.last_name} (${selectedUser.email})`}
+            </span>
+          ) : null}
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        <Command shouldFilter={false} className="p-0">
+          <div className="flex items-center px-2 py-2 gap-2">
+            <Search className="w-4 h-4 text-muted-foreground" />
+            <CommandInput placeholder="Search users..." value={search} onValueChange={setSearch} autoFocus className="flex-1" />
+          </div>
+          <CommandList>
+            {loading ? (
+              <div className="p-2 text-sm text-muted-foreground">Loading...</div>
+            ) : (
+              <>
+                <CommandEmpty>No users found.</CommandEmpty>
+                {filteredUsers.map((user) => (
                   <CommandItem
-                    value="__create_new__"
-                    className="text-primary font-semibold border-t mt-2 pt-2"
-                    onSelect={(id: string) => {
-                      console.log("create new user", id);
-                      openSheet(id);
+                    key={user.id}
+                    value={user.id}
+                    onSelect={() => {
+                      onChange(user.id);
                       setOpen(false);
                     }}
                   >
                     <span className="flex items-center gap-2">
-                      <Plus className="w-4 h-4" />
-                      + Create new user…
+                      <User className="w-4 h-4" />
+                      {user.first_name} {user.last_name} ({user.email})
                     </span>
                   </CommandItem>
-                </>
-              )}
-            </CommandList>
-          </Command>
-        </SelectContent>
-      </Select>
-
-      <UserSheet
-        sheetOpen={sheetOpen}
-        setSheetOpen={setSheetOpen}
-        onSuccess={handleSuccess}
-      />
-    </>
+                ))}
+              </>
+            )}
+          </CommandList>
+        </Command>
+      </SelectContent>
+    </Select>
   );
 };

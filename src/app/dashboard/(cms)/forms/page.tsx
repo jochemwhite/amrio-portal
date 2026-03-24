@@ -47,7 +47,7 @@ export default async function FormsPage() {
   ]);
 
   const forms = formsResult.success ? formsResult.data ?? [] : [];
-  const stats = statsResult.success
+  const stats: NonNullable<typeof statsResult.data> = statsResult.success && statsResult.data
     ? statsResult.data
     : {
         visits: 0,

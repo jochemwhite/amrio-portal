@@ -9,13 +9,11 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useActiveTenant } from "@/hooks/use-active-tenant";
 import { useUserSession } from "@/providers/session-provider";
 import { UserSession } from "@/types/custom-supabase-types";
 import { SupabaseWebsite } from "@/types/cms";
@@ -23,13 +21,16 @@ import { getWebsitesByTenant } from "@/actions/cms/website-actions";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 
-type Tenant = UserSession["tenants"][0];
+type Tenant = NonNullable<UserSession["tenants"]>[number];
 type Step = "tenant" | "website";
 
 export function TeamSwitcher() {
   const { isMobile } = useSidebar();
-  const { activeTenant, setActiveTenant: setActiveTenantHook, availableTenants, hasMultipleTenants, isInitialized } = useActiveTenant();
   const { userSession, setActiveTenant, setActiveWebsite } = useUserSession();
+  const availableTenants = userSession?.tenants ?? [];
+  const activeTenant = userSession?.active_tenant ?? null;
+  const hasMultipleTenants = availableTenants.length > 1;
+  const isInitialized = userSession !== null;
   
   const [step, setStep] = React.useState<Step>("tenant");
   const [selectedTenant, setSelectedTenant] = React.useState<Tenant | null>(null);
@@ -115,7 +116,7 @@ export function TeamSwitcher() {
             >
               <div className="flex items-center justify-center rounded-lg text-sidebar-primary-foreground">
                 <Avatar>
-                  <AvatarImage src={activeTenant?.logo_url} />
+                  <AvatarImage src={activeTenant?.logo_url ?? undefined} />
                   <AvatarFallback>{activeTenant?.name.charAt(0)}</AvatarFallback>
                 </Avatar>
               </div>
@@ -134,7 +135,7 @@ export function TeamSwitcher() {
             {step === "tenant" && (
               <>
                 <DropdownMenuLabel className="text-xs text-muted-foreground">Organizations</DropdownMenuLabel>
-                {availableTenants.map((team, index) => (
+                {availableTenants.map((team: Tenant, index: number) => (
                   <DropdownMenuItem 
                     key={team.id} 
                     onClick={() => handleTenantSelect(team)} 
@@ -143,7 +144,7 @@ export function TeamSwitcher() {
                   >
                     <div className="flex size-6 items-center justify-center rounded-sm border">
                       <Avatar className="mr-2">
-                        <AvatarImage src={team.logo_url} />
+                        <AvatarImage src={team.logo_url ?? undefined} />
                         <AvatarFallback>{team.name.charAt(0)}</AvatarFallback>
                       </Avatar>
                     </div>
