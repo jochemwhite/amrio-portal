@@ -7,13 +7,17 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Upload, X, Image as ImageIcon, FolderOpen, Loader2, AlertTriangle } from "lucide-react";
+import { Upload, X, Image as ImageIcon, FolderOpen, Loader2, AlertTriangle, Search, ChevronRight, Folder } from "lucide-react";
 import React, { useRef, useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/supabaseClient";
+import { useMediaUpload } from "@/hooks/useMediaUpload";
+import { getPublicUrl } from "@/lib/r2/urls";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { FieldComponentProps } from "@/stores/content-editor-store";
 import { useUserSession } from "@/providers/session-provider";
+import { StorageFolder } from "@/components/storage/types";
+import { formatBytes } from "@/components/storage/utils";
 
 interface ImageValue {
   id?: string;
@@ -28,6 +32,7 @@ interface ImageValue {
 
 interface StorageImage {
   id: string;
+  folder_id: string | null;
   original_filename: string;
   storage_path: string;
   size_bytes: number;
@@ -41,49 +46,59 @@ export default function Image({ field, fieldId, value, handleFieldChange }: Fiel
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const [storageImages, setStorageImages] = useState<StorageImage[]>([]);
+  const [storageFolders, setStorageFolders] = useState<StorageFolder[]>([]);
   const [isLoadingImages, setIsLoadingImages] = useState(false);
   const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
   const [showSizeHelp, setShowSizeHelp] = useState(false);
   const supabase = createClient();
   const { userSession } = useUserSession();
+  const { uploadFile: uploadMediaFile, progress, error: uploadError, reset } = useMediaUpload();
 
   const activeTenantId = userSession?.active_tenant?.id;
+  const activeWebsiteId = userSession?.active_website?.id;
+  const isUploading = progress === "uploading" || progress === "confirming";
 
   // Fetch images from storage
   const fetchStorageImages = async () => {
-    if (!activeTenantId) return;
+    if (!activeTenantId || !activeWebsiteId) return;
 
     setIsLoadingImages(true);
     try {
-      const { data, error } = await supabase
-        .from('files')
-        .select('*')
-        .eq('tenant_id', activeTenantId)
-        .eq('file_type', 'image')
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false });
+      const [{ data: filesData, error: filesError }, { data: foldersData, error: foldersError }] =
+        await Promise.all([
+          supabase
+            .from('files')
+            .select('*')
+            .eq('tenant_id', activeTenantId)
+            .eq('website_id', activeWebsiteId)
+            .eq('file_type', 'image')
+            .is('deleted_at', null)
+            .eq('upload_status', 'confirmed')
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('folders')
+            .select('*')
+            .eq('tenant_id', activeTenantId)
+            .eq('website_id', activeWebsiteId)
+            .is('deleted_at', null)
+            .order('full_path', { ascending: true }),
+        ]);
 
-      if (error) throw error;
+      if (filesError) throw filesError;
+      if (foldersError) throw foldersError;
 
-      if (data) {
-        setStorageImages(data);
-        
-        // Generate signed URLs for all images
+      if (filesData) {
+        setStorageImages(filesData);
+
         const urls: Record<string, string> = {};
-        await Promise.all(
-          data.map(async (img) => {
-            const { data: urlData } = await supabase.storage
-              .from('cms_storage')
-              .getPublicUrl(img.storage_path);
-            if (urlData?.publicUrl) {
-              urls[img.id] = urlData.publicUrl;
-            }
-          })
-        );
+        filesData.forEach((img) => {
+          urls[img.id] = getPublicUrl(img.storage_path);
+        });
         setImageUrls(urls);
       }
+
+      setStorageFolders(foldersData ?? []);
     } catch (error) {
       console.error("Error fetching images:", error);
       toast.error("Failed to load images");
@@ -94,34 +109,21 @@ export default function Image({ field, fieldId, value, handleFieldChange }: Fiel
 
   useEffect(() => {
     if (isOpen) {
-      fetchStorageImages();
+      void fetchStorageImages();
     }
-  }, [isOpen, activeTenantId]);
+  }, [isOpen, activeTenantId, activeWebsiteId]);
 
   
 
   const uploadFile = async (file: File) => {
-    if (!activeTenantId) {
-      toast.error("No active tenant selected");
+    if (!activeTenantId || !activeWebsiteId) {
+      toast.error("No active tenant or website selected");
       return null;
     }
 
-    setIsUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('tenantId', activeTenantId);
-
-      const response = await fetch('/api/files/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Upload failed');
-      }
+      reset();
+      const uploadedFile = await uploadMediaFile(file, activeTenantId, activeWebsiteId);
 
       toast.success(`${file.name} uploaded successfully`);
       
@@ -129,19 +131,17 @@ export default function Image({ field, fieldId, value, handleFieldChange }: Fiel
       await fetchStorageImages();
       
       return {
-        id: result.file.id,
-        name: result.file.original_filename,
-        url: result.url,
-        size: result.file.size_bytes,
-        width: result.file.width,
-        height: result.file.height,
+        id: uploadedFile.id,
+        name: uploadedFile.original_filename,
+        url: getPublicUrl(uploadedFile.storage_path),
+        size: uploadedFile.size_bytes,
+        width: uploadedFile.width ?? undefined,
+        height: uploadedFile.height ?? undefined,
       };
-    } catch (error: any) {
+    } catch (error) {
       console.error("Upload error:", error);
-      toast.error(error.message || "Failed to upload image");
+      toast.error(error instanceof Error ? error.message : "Failed to upload image");
       return null;
-    } finally {
-      setIsUploading(false);
     }
   };
 
@@ -285,9 +285,11 @@ export default function Image({ field, fieldId, value, handleFieldChange }: Fiel
                       handleFileSelect={handleFileSelect}
                       isLoadingImages={isLoadingImages}
                       storageImages={storageImages}
+                      storageFolders={storageFolders}
                       imageUrls={imageUrls}
                       handleSelectFromStorage={handleSelectFromStorage}
                       isUploading={isUploading}
+                      uploadError={uploadError}
                     />
                   </Dialog>
                   <Button
@@ -367,9 +369,11 @@ export default function Image({ field, fieldId, value, handleFieldChange }: Fiel
                     handleFileSelect={handleFileSelect}
                     isLoadingImages={isLoadingImages}
                     storageImages={storageImages}
+                    storageFolders={storageFolders}
                     imageUrls={imageUrls}
                     handleSelectFromStorage={handleSelectFromStorage}
                     isUploading={isUploading}
+                    uploadError={uploadError}
                   />
                 </Dialog>
               </>
@@ -506,20 +510,37 @@ function ImagePickerDialog({
   handleFileSelect,
   isLoadingImages,
   storageImages,
+  storageFolders,
   imageUrls,
   handleSelectFromStorage,
   isUploading,
+  uploadError,
 }: {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   handleFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
   isLoadingImages: boolean;
   storageImages: StorageImage[];
+  storageFolders: StorageFolder[];
   imageUrls: Record<string, string>;
   handleSelectFromStorage: (image: StorageImage) => void;
   isUploading: boolean;
+  uploadError: string | null;
 }) {
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+
+  const filteredImages = storageImages.filter((image) => {
+    const matchesFolder =
+      selectedFolderId === null ? image.folder_id === null : image.folder_id === selectedFolderId;
+    const matchesSearch =
+      search.trim().length === 0 ||
+      image.original_filename.toLowerCase().includes(search.trim().toLowerCase());
+
+    return matchesFolder && matchesSearch;
+  });
+
   return (
-    <DialogContent className="max-w-4xl max-h-[80vh]">
+    <DialogContent className="max-h-[85vh] w-[96vw] max-w-6xl sm:max-w-6xl">
       <DialogHeader>
         <DialogTitle>Select Image</DialogTitle>
         <DialogDescription>
@@ -534,60 +555,130 @@ function ImagePickerDialog({
         </TabsList>
 
         <TabsContent value="storage" className="mt-4">
-          <ScrollArea className="h-[400px] pr-4">
-            {isLoadingImages ? (
-              <div className="flex items-center justify-center h-40">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <div className="grid gap-4 md:grid-cols-[220px_minmax(0,1fr)]">
+            <div className="overflow-hidden rounded-xl border bg-muted/10">
+              <div className="border-b px-3 py-2">
+                <p className="text-sm font-medium">Folders</p>
               </div>
-            ) : storageImages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-40 text-center">
-                <ImageIcon className="h-12 w-12 text-muted-foreground/50 mb-2" />
-                <p className="text-sm text-muted-foreground">No images in storage</p>
-                <p className="text-xs text-muted-foreground mt-1">Upload your first image to get started</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-4">
-                {storageImages.map((image) => {
-                  const isLarge = image.size_bytes > 500 * 1024; // 500KB threshold
-                  const sizeMB = (image.size_bytes / (1024 * 1024)).toFixed(2);
-                  const sizeKB = (image.size_bytes / 1024).toFixed(0);
-                  
-                  return (
+              <ScrollArea className="h-48 lg:h-[460px]">
+                <div className="space-y-1 p-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedFolderId(null)}
+                    className={cn(
+                      "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors",
+                      selectedFolderId === null ? "bg-accent text-accent-foreground" : "hover:bg-muted"
+                    )}
+                  >
+                    <FolderOpen className="h-4 w-4" />
+                    Root
+                  </button>
+
+                  {storageFolders.map((folder) => (
                     <button
-                      key={image.id}
+                      key={folder.id}
                       type="button"
-                      onClick={() => handleSelectFromStorage(image)}
-                      className="group relative aspect-square rounded-lg overflow-hidden border-2 border-muted hover:border-primary transition-colors"
-                    >
-                      <img
-                        src={imageUrls[image.id]}
-                        alt={image.original_filename}
-                        className="w-full h-full object-cover"
-                      />
-                      
-                      {/* Size badge */}
-                      {isLarge && (
-                        <div className="absolute top-2 right-2 bg-amber-500 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
-                          <AlertTriangle className="h-3 w-3" />
-                          {sizeMB} MB
-                        </div>
+                      onClick={() => setSelectedFolderId(folder.id)}
+                      className={cn(
+                        "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors",
+                        selectedFolderId === folder.id ? "bg-accent text-accent-foreground" : "hover:bg-muted"
                       )}
-                      
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-colors flex flex-col items-center justify-center p-2">
-                        <p className="text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity text-center truncate w-full">
-                          {image.original_filename}
-                        </p>
-                        <p className="text-white/80 text-xs opacity-0 group-hover:opacity-100 transition-opacity mt-1">
-                          {isLarge ? `${sizeMB} MB` : `${sizeKB} KB`}
-                          {image.width && image.height && ` • ${image.width}×${image.height}`}
-                        </p>
-                      </div>
+                    >
+                      <Folder className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{folder.full_path}</span>
                     </button>
-                  );
-                })}
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+
+            <div className="min-w-0 overflow-hidden rounded-xl border bg-muted/10">
+              <div className="border-b p-3">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span className="inline-flex items-center gap-1">
+                        <FolderOpen className="h-3.5 w-3.5" />
+                        {selectedFolderId === null
+                          ? "Root"
+                          : storageFolders.find((folder) => folder.id === selectedFolderId)?.full_path ?? "Folder"}
+                      </span>
+                      <ChevronRight className="h-3 w-3 shrink-0" />
+                      <span>{filteredImages.length} image{filteredImages.length === 1 ? "" : "s"}</span>
+                    </div>
+                  </div>
+
+                  <div className="relative w-full lg:max-w-xs">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={search}
+                      onChange={(event) => setSearch(event.target.value)}
+                      placeholder="Search images by filename"
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
               </div>
-            )}
-          </ScrollArea>
+
+              <ScrollArea className="h-[460px]">
+                {isLoadingImages ? (
+                  <div className="flex h-40 items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : filteredImages.length === 0 ? (
+                  <div className="flex h-56 flex-col items-center justify-center px-6 text-center">
+                    <ImageIcon className="h-12 w-12 text-muted-foreground/50 mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      {search
+                        ? "No images match your search"
+                        : "No images in this folder"}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {search
+                        ? "Try a different filename or switch folders"
+                        : "Upload a new image or choose another folder"}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3 xl:grid-cols-4">
+                    {filteredImages.map((image) => {
+                      const isLarge = image.size_bytes > 500 * 1024;
+
+                      return (
+                        <button
+                          key={image.id}
+                          type="button"
+                          onClick={() => handleSelectFromStorage(image)}
+                          className="group relative aspect-square rounded-lg overflow-hidden border-2 border-muted hover:border-primary transition-colors"
+                        >
+                          <img
+                            src={imageUrls[image.id]}
+                            alt={image.original_filename}
+                            className="w-full h-full object-cover"
+                          />
+
+                          {isLarge ? (
+                            <div className="absolute top-2 right-2 bg-amber-500 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              {formatBytes(image.size_bytes)}
+                            </div>
+                          ) : null}
+
+                          <div className="absolute inset-x-0 bottom-0 bg-black/70 p-2 text-left text-white opacity-0 transition-opacity group-hover:opacity-100">
+                            <p className="truncate text-xs font-medium">{image.original_filename}</p>
+                            <p className="mt-1 text-[11px] text-white/80">
+                              {formatBytes(image.size_bytes)}
+                              {image.width && image.height ? ` • ${image.width}×${image.height}` : ""}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </ScrollArea>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="upload" className="mt-4">
@@ -624,6 +715,10 @@ function ImagePickerDialog({
                   </Button>
                 </>
               )}
+
+              {uploadError ? (
+                <p className="mt-4 text-sm text-destructive">{uploadError}</p>
+              ) : null}
             </div>
           </div>
         </TabsContent>
