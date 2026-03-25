@@ -928,9 +928,11 @@ export type Database = {
           deleted_at: string | null
           description: string | null
           download_count: number | null
+          expires_at: string | null
           file_type: string
           filename: string
           folder: string | null
+          folder_id: string | null
           height: number | null
           id: string
           last_accessed_at: string | null
@@ -941,6 +943,7 @@ export type Database = {
           storage_path: string
           tags: string[] | null
           tenant_id: string
+          upload_status: string
           updated_at: string | null
           uploaded_by: string
           used_in_fields: string[] | null
@@ -953,9 +956,11 @@ export type Database = {
           deleted_at?: string | null
           description?: string | null
           download_count?: number | null
+          expires_at?: string | null
           file_type: string
           filename: string
           folder?: string | null
+          folder_id?: string | null
           height?: number | null
           id?: string
           last_accessed_at?: string | null
@@ -966,6 +971,7 @@ export type Database = {
           storage_path: string
           tags?: string[] | null
           tenant_id: string
+          upload_status?: string
           updated_at?: string | null
           uploaded_by: string
           used_in_fields?: string[] | null
@@ -978,9 +984,11 @@ export type Database = {
           deleted_at?: string | null
           description?: string | null
           download_count?: number | null
+          expires_at?: string | null
           file_type?: string
           filename?: string
           folder?: string | null
+          folder_id?: string | null
           height?: number | null
           id?: string
           last_accessed_at?: string | null
@@ -991,6 +999,7 @@ export type Database = {
           storage_path?: string
           tags?: string[] | null
           tenant_id?: string
+          upload_status?: string
           updated_at?: string | null
           uploaded_by?: string
           used_in_fields?: string[] | null
@@ -1006,6 +1015,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "files_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "files_uploaded_by_fkey"
             columns: ["uploaded_by"]
             isOneToOne: false
@@ -1014,6 +1030,74 @@ export type Database = {
           },
           {
             foreignKeyName: "files_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "cms_websites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      folders: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          deleted_at: string | null
+          full_path: string
+          id: string
+          name: string
+          parent_folder_id: string | null
+          slug: string
+          tenant_id: string
+          website_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          deleted_at?: string | null
+          full_path: string
+          id?: string
+          name: string
+          parent_folder_id?: string | null
+          slug: string
+          tenant_id: string
+          website_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          deleted_at?: string | null
+          full_path?: string
+          id?: string
+          name?: string
+          parent_folder_id?: string | null
+          slug?: string
+          tenant_id?: string
+          website_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folders_parent_folder_id_fkey"
+            columns: ["parent_folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folders_website_id_fkey"
             columns: ["website_id"]
             isOneToOne: false
             referencedRelation: "cms_websites"
@@ -1368,6 +1452,10 @@ export type Database = {
         }
         Returns: Json
       }
+      decrement_storage_used: {
+        Args: { p_bytes: number; p_tenant_id: string }
+        Returns: undefined
+      }
       get_content: {
         Args: {
           create_missing_sections_param?: boolean
@@ -1376,6 +1464,10 @@ export type Database = {
           tenant_id_param?: string
         }
         Returns: Json
+      }
+      increment_storage_used: {
+        Args: { p_bytes: number; p_tenant_id: string }
+        Returns: undefined
       }
       get_user_session: {
         Args: { p_active_tenant_id?: string; p_uid: string }

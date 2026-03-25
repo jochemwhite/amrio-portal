@@ -10,11 +10,11 @@ interface SpinnerProps extends React.ComponentProps<"div"> {
 export function Spinner({ size = 16, invert, disabled, className, ...props }: SpinnerProps) {
   if (disabled) return null;
 
-  const sizePx = `${size}px`;
-  const barWidth = `${(size * 0.2).toFixed(2)}px`;
-  const barHeight = `${(size * 0.075).toFixed(2)}px`;
+  const barWidth = size * 0.2;
+  const barHeight = size * 0.075;
+
   return (
-    <div className={cn("relative", className)} style={{ width: sizePx, height: sizePx }} {...props}>
+    <div className={cn("relative text-white", className)} style={{ width: size, height: size }} {...props}>
       {[...Array(5)].map((_, i) => (
         <div
           key={i}
@@ -24,11 +24,11 @@ export function Spinner({ size = 16, invert, disabled, className, ...props }: Sp
           }}
         >
           <div
+            suppressHydrationWarning
+            className={cn("rounded-full bg-current", invert && "text-white")}
             style={{
-              backgroundColor: invert ? "white" : "white",
               width: barWidth,
               height: barHeight,
-              borderRadius: "9999px",
             }}
           />
         </div>
