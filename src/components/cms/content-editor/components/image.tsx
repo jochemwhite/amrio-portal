@@ -7,8 +7,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Upload, X, Image as ImageIcon, FolderOpen, Loader2, AlertTriangle, Search, ChevronRight, Folder } from "lucide-react";
-import React, { useRef, useState, useEffect } from "react";
+import { Upload, X, Image as ImageIcon, FolderOpen, Loader2, AlertTriangle, Search, ChevronRight } from "lucide-react";
+import React, { useMemo, useRef, useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/supabaseClient";
 import { useMediaUpload } from "@/hooks/useMediaUpload";
 import { getPublicUrl } from "@/lib/r2/urls";
@@ -18,6 +18,7 @@ import { FieldComponentProps } from "@/stores/content-editor-store";
 import { useUserSession } from "@/providers/session-provider";
 import { StorageFolder } from "@/components/storage/types";
 import { formatBytes } from "@/components/storage/utils";
+import { Tree, type TreeViewElement } from "@/components/ui/file-tree";
 
 interface ImageValue {
   id?: string;
@@ -528,6 +529,39 @@ function ImagePickerDialog({
 }) {
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const rootTreeId = "__root__";
+
+  const folderTreeElements = useMemo<TreeViewElement[]>(() => {
+    const byParent = new Map<string | null, StorageFolder[]>();
+
+    for (const folder of storageFolders) {
+      const siblings = byParent.get(folder.parent_folder_id) ?? [];
+      siblings.push(folder);
+      byParent.set(folder.parent_folder_id, siblings);
+    }
+
+    const buildChildren = (parentId: string | null): TreeViewElement[] => {
+      const folders = byParent.get(parentId) ?? [];
+
+      return folders
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((folder) => ({
+          id: folder.id,
+          name: folder.name,
+          type: "folder",
+          children: buildChildren(folder.id),
+        }));
+    };
+
+    return [
+      {
+        id: rootTreeId,
+        name: "Root",
+        type: "folder",
+        children: buildChildren(null),
+      },
+    ];
+  }, [storageFolders]);
 
   const filteredImages = storageImages.filter((image) => {
     const matchesFolder =
@@ -560,36 +594,13 @@ function ImagePickerDialog({
               <div className="border-b px-3 py-2">
                 <p className="text-sm font-medium">Folders</p>
               </div>
-              <ScrollArea className="h-48 lg:h-[460px]">
-                <div className="space-y-1 p-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedFolderId(null)}
-                    className={cn(
-                      "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors",
-                      selectedFolderId === null ? "bg-accent text-accent-foreground" : "hover:bg-muted"
-                    )}
-                  >
-                    <FolderOpen className="h-4 w-4" />
-                    Root
-                  </button>
-
-                  {storageFolders.map((folder) => (
-                    <button
-                      key={folder.id}
-                      type="button"
-                      onClick={() => setSelectedFolderId(folder.id)}
-                      className={cn(
-                        "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors",
-                        selectedFolderId === folder.id ? "bg-accent text-accent-foreground" : "hover:bg-muted"
-                      )}
-                    >
-                      <Folder className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{folder.full_path}</span>
-                    </button>
-                  ))}
-                </div>
-              </ScrollArea>
+              <Tree
+                className="h-48 lg:h-[460px]"
+                elements={folderTreeElements}
+                initialExpandedItems={[rootTreeId]}
+                initialSelectedId={selectedFolderId ?? rootTreeId}
+                onSelectChange={(id) => setSelectedFolderId(id === rootTreeId ? null : id)}
+              />
             </div>
 
             <div className="min-w-0 overflow-hidden rounded-xl border bg-muted/10">

@@ -2,16 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  ChevronDown,
-  ChevronRight,
-  Folder,
-  FolderPlus,
-  FolderTree as FolderTreeIcon,
-  MoreHorizontal,
-  Pencil,
-  Trash2,
-} from "lucide-react";
+import { FolderPlus, FolderTree as FolderTreeIcon, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -26,17 +17,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
 import {
   Dialog,
   DialogContent,
@@ -53,6 +33,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
+import { Tree, type TreeViewElement } from "@/components/ui/file-tree";
 
 import { createFolder, deleteFolder, renameFolder } from "@/lib/actions/media";
 
@@ -67,6 +48,8 @@ interface FolderTreeProps {
   websiteId: string;
 }
 
+const ROOT_TREE_ID = "__root__";
+
 export function FolderTree({
   folders,
   selectedFolderId,
@@ -77,31 +60,45 @@ export function FolderTree({
 }: FolderTreeProps) {
   const router = useRouter();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
-  const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [folderToDelete, setFolderToDelete] = useState<StorageFolder | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({});
 
-  const childrenByParentId = useMemo(() => {
-    const map = new Map<string | null, StorageFolder[]>();
+  const selectedFolder = folders.find((folder) => folder.id === selectedFolderId) ?? null;
+
+  const treeElements = useMemo<TreeViewElement[]>(() => {
+    const byParent = new Map<string | null, StorageFolder[]>();
 
     for (const folder of folders) {
-      const key = folder.parent_folder_id;
-      const current = map.get(key) ?? [];
-      current.push(folder);
-      map.set(key, current);
+      const siblings = byParent.get(folder.parent_folder_id) ?? [];
+      siblings.push(folder);
+      byParent.set(folder.parent_folder_id, siblings);
     }
 
-    for (const entry of map.values()) {
-      entry.sort((a, b) => a.name.localeCompare(b.name));
-    }
+    const buildChildren = (parentId: string | null): TreeViewElement[] => {
+      const childFolders = byParent.get(parentId) ?? [];
 
-    return map;
+      return childFolders
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((folder) => ({
+          id: folder.id,
+          name: folder.name,
+          type: "folder",
+          children: buildChildren(folder.id),
+        }));
+    };
+
+    return [
+      {
+        id: ROOT_TREE_ID,
+        name: "Root",
+        type: "folder",
+        children: buildChildren(null),
+      },
+    ];
   }, [folders]);
-
-  const rootFolders = childrenByParentId.get(null) ?? [];
 
   async function refreshFolders() {
     await onFoldersChanged();
@@ -123,12 +120,16 @@ export function FolderTree({
     }
   }
 
-  async function handleRenameFolder(folderId: string) {
+  async function handleRenameFolder() {
+    if (!selectedFolder) {
+      return;
+    }
+
     try {
       setSubmitting(true);
-      await renameFolder(folderId, renameValue);
+      await renameFolder(selectedFolder.id, renameValue);
       toast.success("Folder renamed successfully.");
-      setRenamingFolderId(null);
+      setRenameDialogOpen(false);
       setRenameValue("");
       await refreshFolders();
     } catch (error) {
@@ -159,143 +160,59 @@ export function FolderTree({
     }
   }
 
-  function renderFolderNode(folder: StorageFolder, depth: number) {
-    const childFolders = childrenByParentId.get(folder.id) ?? [];
-    const isSelected = selectedFolderId === folder.id;
-    const isOpen = openFolders[folder.id] ?? isSelected;
-    const isRenaming = renamingFolderId === folder.id;
-
-    return (
-      <Collapsible
-        key={folder.id}
-        open={childFolders.length > 0 ? isOpen : false}
-        onOpenChange={(nextOpen) =>
-          setOpenFolders((current) => ({ ...current, [folder.id]: nextOpen }))
-        }
-      >
-        <ContextMenu>
-          <ContextMenuTrigger>
-            <div className="space-y-1">
-              <div
-                className={`group flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm transition-colors ${
-                  isSelected ? "bg-accent text-accent-foreground" : "hover:bg-muted"
-                }`}
-                style={{ paddingLeft: `${depth * 14 + 8}px` }}
-              >
-                {childFolders.length > 0 ? (
-                  <CollapsibleTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="size-6 shrink-0 rounded-full"
-                    >
-                      {isOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
-                    </Button>
-                  </CollapsibleTrigger>
-                ) : (
-                  <span className="size-6 shrink-0" />
-                )}
-
-                <button
-                  type="button"
-                  className="flex min-w-0 flex-1 items-center gap-2 text-left"
-                  onClick={() => onSelectFolder(folder.id)}
-                >
-                  <Folder className="size-4 shrink-0 text-muted-foreground" />
-                  {isRenaming ? (
-                    <Input
-                      value={renameValue}
-                      onChange={(event) => setRenameValue(event.target.value)}
-                      onBlur={() => void handleRenameFolder(folder.id)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          void handleRenameFolder(folder.id);
-                        }
-
-                        if (event.key === "Escape") {
-                          setRenamingFolderId(null);
-                          setRenameValue("");
-                        }
-                      }}
-                      autoFocus
-                      className="h-8"
-                    />
-                  ) : (
-                    <span className="truncate">{folder.name}</span>
-                  )}
-                </button>
-
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="size-7 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-                  onClick={() => {
-                    setRenamingFolderId(folder.id);
-                    setRenameValue(folder.name);
-                  }}
-                >
-                  <MoreHorizontal className="size-4" />
-                </Button>
-              </div>
-
-              {childFolders.length > 0 ? (
-                <CollapsibleContent className="space-y-1">
-                  {childFolders.map((child) => renderFolderNode(child, depth + 1))}
-                </CollapsibleContent>
-              ) : null}
-            </div>
-          </ContextMenuTrigger>
-          <ContextMenuContent>
-            <ContextMenuItem
-              onSelect={() => {
-                setRenamingFolderId(folder.id);
-                setRenameValue(folder.name);
-              }}
-            >
-              <Pencil className="size-4" />
-              Rename
-            </ContextMenuItem>
-            <ContextMenuItem
-              variant="destructive"
-              onSelect={() => setFolderToDelete(folder)}
-            >
-              <Trash2 className="size-4" />
-              Delete
-            </ContextMenuItem>
-          </ContextMenuContent>
-        </ContextMenu>
-      </Collapsible>
-    );
-  }
-
   return (
     <>
       <Card className="rounded-2xl">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-base">Folders</CardTitle>
-          <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
-            <FolderPlus className="mr-2 size-4" />
-            New Folder
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Button
-            type="button"
-            variant={selectedFolderId === null ? "secondary" : "ghost"}
-            className="w-full justify-start rounded-xl"
-            onClick={() => onSelectFolder(null)}
-          >
-            <FolderTreeIcon className="mr-2 size-4" />
-            Root
-          </Button>
+        <CardHeader className="space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-base">Folders</CardTitle>
+            <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
+              <FolderPlus className="mr-2 size-4" />
+              New Folder
+            </Button>
+          </div>
 
-          {rootFolders.length > 0 ? (
-            <div className="space-y-1">
-              {rootFolders.map((folder) => renderFolderNode(folder, 0))}
-            </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!selectedFolder}
+              onClick={() => {
+                if (!selectedFolder) return;
+                setRenameValue(selectedFolder.name);
+                setRenameDialogOpen(true);
+              }}
+            >
+              <Pencil className="mr-2 size-4" />
+              Rename
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!selectedFolder}
+              onClick={() => selectedFolder && setFolderToDelete(selectedFolder)}
+            >
+              <Trash2 className="mr-2 size-4" />
+              Delete
+            </Button>
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            {selectedFolder
+              ? `Selected: ${selectedFolder.full_path}`
+              : "Selected: Root"}
+          </p>
+        </CardHeader>
+        <CardContent>
+          {folders.length > 0 ? (
+            <Tree
+              key={selectedFolderId ?? ROOT_TREE_ID}
+              className="h-[420px]"
+              elements={treeElements}
+              initialExpandedItems={[ROOT_TREE_ID]}
+              initialSelectedId={selectedFolderId ?? ROOT_TREE_ID}
+              onSelectChange={(id) => onSelectFolder(id === ROOT_TREE_ID ? null : id)}
+            />
           ) : (
             <Empty className="rounded-xl border">
               <EmptyHeader>
@@ -338,6 +255,29 @@ export function FolderTree({
             </Button>
             <Button onClick={() => void handleCreateFolder()} disabled={submitting}>
               Create
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename folder</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Input
+              value={renameValue}
+              onChange={(event) => setRenameValue(event.target.value)}
+              placeholder="New folder name"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => void handleRenameFolder()} disabled={submitting || !selectedFolder}>
+              Save
             </Button>
           </DialogFooter>
         </DialogContent>
