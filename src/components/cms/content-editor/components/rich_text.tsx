@@ -1,16 +1,12 @@
 "use client";
+
 import { Label } from "@/components/ui/label";
-import RichTextEditorComponent from "@/components/rich-editor/tiptap";
-import React, { useEffect } from "react";
-import { FieldComponentProps, useContentEditorStore } from "@/stores/content-editor-store";
+import { FieldComponentProps } from "@/stores/content-editor-store";
+import { getRichTextAllowedNodesFromSettings } from "@/utils/schema/rich_text_nodes";
+import { RichTextEditor } from "./rich-text";
 
 export default function RichText({ field, fieldId, value, handleFieldChange }: FieldComponentProps) {
-  const { getFieldValue } = useContentEditorStore();
-  const handleChange = (json: unknown) => {
-    handleFieldChange(field.id, json);
-  };
-
-
+  const allowedNodes = getRichTextAllowedNodesFromSettings(field.settings)
 
   return (
     <div className="space-y-2">
@@ -18,7 +14,13 @@ export default function RichText({ field, fieldId, value, handleFieldChange }: F
         {field.name}
         {field.required && <span className="text-destructive ml-1">*</span>}
       </Label>
-      <RichTextEditorComponent initialValue={value} onChange={handleChange} />
+      <RichTextEditor
+        value={value}
+        onChange={(json) => handleFieldChange(field.id, json)}
+        allowedNodes={allowedNodes}
+        placeholder={field.description || "Start typing..."}
+        fieldName={field.name}
+      />
       {field.description && <p className="text-sm text-muted-foreground">{field.description}</p>}
     </div>
   );

@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import * as cmsComponents from "@/components/cms/content-editor/components"
 import { ReferenceSettings } from "@/components/cms/schema_builder/field_settings/reference_settings"
+import { RichTextSettings } from "@/components/cms/schema_builder/field_settings/rich_text_settings"
 import { SocialMediaSettings } from "@/components/cms/schema_builder/field_settings/social_media_settings"
 
 const EmptyCMSComponent: ComponentType<FieldComponentProps> = () => null
@@ -53,6 +54,7 @@ export const FIELD_TYPES: SchemaFieldType[] = [
     description: "WYSIWYG editor",
     color: "bg-indigo-100 text-indigo-800",
     cmsComponent: cmsComponents.RichTextComponent,
+    settingsComponent: RichTextSettings,
   },
   {
     value: "boolean",

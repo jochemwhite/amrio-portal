@@ -154,6 +154,7 @@ export interface SchemaField {
   parent_field_id?: string | null;
   schema_section_id: string;
   collection_id?: string | null;
+  allowedNodes?: string[];
   created_at?: string;
   updated_at?: string;
 }
@@ -279,6 +280,7 @@ export type RPCPageField = {
   parent_field_id: string | null;
   collection_id: string | null;
   settings?: Record<string, any> | null;
+  allowedNodes?: string[];
   content?: { value?: any } | null; // JSONB content column
   content_field_id?: string | null; // ID of the cms_content_fields row for updates
   fields?: RPCPageField[]; // For nested section fields
