@@ -303,7 +303,17 @@ export function SelectionBubbleMenu({
           </ToolbarToggle>
           <ToolbarToggle
             pressed={activeState.currentImageAlign === "full"}
-            onPressedChange={() => editor.chain().focus().updateAttributes("image", { align: "full" }).run()}
+            onPressedChange={() =>
+              editor
+                .chain()
+                .focus()
+                .updateAttributes("image", {
+                  align: "full",
+                  width: null,
+                  height: null,
+                })
+                .run()
+            }
             label="Make image full width"
           >
             <Expand className="size-4" />

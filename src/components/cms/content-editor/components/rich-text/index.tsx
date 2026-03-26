@@ -182,7 +182,15 @@ export function RichTextEditor({
   }
 
   function handleImageSelect(image: { url: string }) {
-    currentEditor.chain().focus().setImage({ src: image.url }).run()
+    currentEditor
+      .chain()
+      .focus()
+      .insertContent([
+        { type: "image", attrs: { src: image.url } },
+        { type: "paragraph" },
+      ])
+      .focus("end")
+      .run()
   }
 
   return (
@@ -370,6 +378,10 @@ const EDITOR_SURFACE_CLASS = cn(
   "[&_.ProseMirror_p.is-editor-empty:first-child::before]:h-0",
   "[&_.ProseMirror_p.is-editor-empty:first-child::before]:text-muted-foreground/90",
   "[&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)]",
+  "[&_.ProseMirror-gapcursor]:pointer-events-none [&_.ProseMirror-gapcursor]:relative",
+  "[&_.ProseMirror-gapcursor:after]:absolute [&_.ProseMirror-gapcursor:after]:top-[-2px]",
+  "[&_.ProseMirror-gapcursor:after]:h-5 [&_.ProseMirror-gapcursor:after]:border-l-2",
+  "[&_.ProseMirror-gapcursor:after]:border-primary [&_.ProseMirror-gapcursor:after]:content-['']",
   "[&_.ProseMirror_pre]:overflow-x-auto [&_.ProseMirror_pre]:rounded-xl",
   "[&_.ProseMirror_pre]:border [&_.ProseMirror_pre]:border-border/70 [&_.ProseMirror_pre]:bg-muted/65 [&_.ProseMirror_pre]:p-3",
   "[&_.ProseMirror_blockquote]:border-l-2 [&_.ProseMirror_blockquote]:border-primary/45 [&_.ProseMirror_blockquote]:bg-muted/30 [&_.ProseMirror_blockquote]:py-1 [&_.ProseMirror_blockquote]:pl-4 [&_.ProseMirror_blockquote]:text-muted-foreground",
@@ -409,6 +421,10 @@ const FULLSCREEN_EDITOR_SURFACE_CLASS = cn(
   "[&_.ProseMirror_p.is-editor-empty:first-child::before]:h-0",
   "[&_.ProseMirror_p.is-editor-empty:first-child::before]:text-muted-foreground/90",
   "[&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)]",
+  "[&_.ProseMirror-gapcursor]:pointer-events-none [&_.ProseMirror-gapcursor]:relative",
+  "[&_.ProseMirror-gapcursor:after]:absolute [&_.ProseMirror-gapcursor:after]:top-[-2px]",
+  "[&_.ProseMirror-gapcursor:after]:h-6 [&_.ProseMirror-gapcursor:after]:border-l-2",
+  "[&_.ProseMirror-gapcursor:after]:border-primary [&_.ProseMirror-gapcursor:after]:content-['']",
   "[&_.ProseMirror_pre]:overflow-x-auto [&_.ProseMirror_pre]:rounded-xl [&_.ProseMirror_pre]:bg-slate-100 [&_.ProseMirror_pre]:p-4 [&_.ProseMirror_pre]:font-mono dark:[&_.ProseMirror_pre]:bg-muted/70",
   "[&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-primary/50 [&_.ProseMirror_blockquote]:pl-5 [&_.ProseMirror_blockquote]:italic [&_.ProseMirror_blockquote]:text-muted-foreground",
   "[&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-6 [&_.ProseMirror_ul_li]:my-2",

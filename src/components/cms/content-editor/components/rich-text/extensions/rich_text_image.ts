@@ -87,7 +87,11 @@ export const RichTextImage = Image.extend({
           "data-width": width ? String(width) : undefined,
           "data-align": align || "center",
           width: width ? String(width) : undefined,
-          style: buildImageStyle(width, (align || "center") as ImageAlign),
+          style: buildImageStyle({
+            width: normalizeImageDimension(width),
+            height: normalizeImageDimension(HTMLAttributes.height),
+            align: (align || "center") as ImageAlign,
+          }),
         }),
       ],
       ...(showCaption && caption
@@ -104,12 +108,17 @@ export const RichTextImage = Image.extend({
     const { directions, minWidth, minHeight, alwaysPreserveAspectRatio } = this.options.resize
 
     return ({ node, getPos, HTMLAttributes, editor }) => {
+      let currentNode = node
       const image = document.createElement("img")
       let resizeContainer: HTMLElement | null = null
       let resizeWrapper: HTMLElement | null = null
 
+      image.draggable = false
+      image.decoding = "async"
+
       const applyImageAttributes = (attrs: Record<string, unknown>) => {
         const width = normalizeImageDimension(attrs.width)
+        const height = normalizeImageDimension(attrs.height)
         const align = (attrs.align || "center") as ImageAlign
 
         image.src = String(attrs.src || "")
@@ -125,7 +134,11 @@ export const RichTextImage = Image.extend({
           image.removeAttribute("data-width")
         }
 
-        image.style.cssText = buildImageStyle(width, align)
+        image.style.cssText = buildImageStyle({
+          width,
+          height,
+          align,
+        })
 
         if (resizeContainer && resizeWrapper) {
           applyResizeContainerLayout({
@@ -150,11 +163,21 @@ export const RichTextImage = Image.extend({
       const nodeView = new ResizableNodeView({
         element: image,
         editor,
-        node,
+        node: currentNode,
         getPos,
         onResize: (width, height) => {
-          image.style.cssText = buildImageStyle(width, (node.attrs.align || "center") as ImageAlign)
-          image.style.height = `${height}px`
+          const align = (currentNode.attrs.align || "center") as ImageAlign
+
+          image.style.cssText = buildImageStyle({ width, height, align })
+
+          if (resizeContainer && resizeWrapper) {
+            applyResizeContainerLayout({
+              container: resizeContainer,
+              wrapper: resizeWrapper,
+              width,
+              align,
+            })
+          }
         },
         onCommit: (width, height) => {
           const pos = getPos()
@@ -170,10 +193,11 @@ export const RichTextImage = Image.extend({
             .run()
         },
         onUpdate: (updatedNode) => {
-          if (updatedNode.type !== node.type) {
+          if (updatedNode.type !== currentNode.type) {
             return false
           }
 
+          currentNode = updatedNode
           applyImageAttributes(updatedNode.attrs)
           return true
         },
@@ -243,13 +267,21 @@ function applyResizeContainerLayout({
   wrapper.style.marginRight = align === "center" || align === "left" ? "auto" : "0"
 }
 
-function buildImageStyle(width: number | null, align: ImageAlign) {
+function buildImageStyle({
+  width,
+  height,
+  align,
+}: {
+  width: number | null
+  height: number | null
+  align: ImageAlign
+}) {
   const baseWidth = align === "full" ? "100%" : width ? `${width}px` : undefined
 
   return [
     baseWidth ? `width: ${baseWidth}` : "",
     "max-width: 100%",
-    "height: auto",
+    align === "full" ? "height: auto" : height ? `height: ${height}px` : "height: auto",
     "border-radius: 0.75rem",
     "display: block",
     align === "full" ? "width: 100%;" : "",

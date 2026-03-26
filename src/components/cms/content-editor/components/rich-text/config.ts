@@ -7,6 +7,7 @@ import BulletList from "@tiptap/extension-bullet-list"
 import CodeBlock from "@tiptap/extension-code-block"
 import Color from "@tiptap/extension-color"
 import Document from "@tiptap/extension-document"
+import Gapcursor from "@tiptap/extension-gapcursor"
 import HardBreak from "@tiptap/extension-hard-break"
 import Heading from "@tiptap/extension-heading"
 import Highlight from "@tiptap/extension-highlight"
@@ -156,6 +157,7 @@ export function buildExtensions(
     Paragraph,
     Text,
     History,
+    Gapcursor,
     Placeholder.configure({
       placeholder,
       emptyEditorClass: "is-editor-empty",
