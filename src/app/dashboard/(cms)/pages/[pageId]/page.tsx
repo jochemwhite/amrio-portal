@@ -1,6 +1,6 @@
 import { PageContentEditor } from "@/components/cms/pages/page-content-editor";
 import { createClient } from "@/lib/supabase/supabaseServerClient";
-import { RPCPageResponse } from "@/types/cms";
+import { RPCPageField, RPCPageResponse } from "@/types/cms";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -38,12 +38,21 @@ export default async function PageContentPage({ params }: PageContentProps) {
 
   const page = pageData as RPCPageResponse;
 
+  const applyRichTextConfig = (fields: RPCPageField[]): RPCPageField[] =>
+    fields.map((field) => ({
+      ...field,
+      allowedNodes: Array.isArray(field.settings?.allowedNodes) ? field.settings.allowedNodes : [],
+      fields: field.fields ? applyRichTextConfig(field.fields) : undefined,
+    }))
 
-  console.log(pageData)
+  page.sections = page.sections.map((section) => ({
+    ...section,
+    fields: applyRichTextConfig(section.fields ?? []),
+  }))
 
   // Recursively flatten all fields including nested fields
   // The new schema-based function returns fields with both schema field ID and content field ID
-  const flattenFields = (fields: any[]): any[] => {
+  const flattenFields = (fields: RPCPageField[]): RPCPageField[] => {
     return fields.flatMap((field) => {
       if (field.type === "section" && field.fields) {
         // Recursively flatten nested fields, but exclude the section field itself
@@ -58,7 +67,7 @@ export default async function PageContentPage({ params }: PageContentProps) {
   const fields: {
     id: string;
     type: string;
-    content: any;
+    content: unknown;
     content_field_id: string | null;
     collection_id?: string | null;
   }[] = page.sections
@@ -66,8 +75,8 @@ export default async function PageContentPage({ params }: PageContentProps) {
     .map((field) => ({
       id: field.id, // This is the schema field ID
       type: field.type,
-      content: field.content,
-      content_field_id: field.content_field_id, // This is the content field ID for updates
+      content: field.content ?? null,
+      content_field_id: field.content_field_id ?? null, // This is the content field ID for updates
       collection_id: field.collection_id || null,
     }));
 

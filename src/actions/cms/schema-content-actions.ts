@@ -6,6 +6,28 @@ import { revalidatePath } from "next/cache";
 
 // Helper function to check if richtext content is empty
 const isRichTextEmpty = (value: any): boolean => {
+  if (value && typeof value === "object" && value.type === "doc") {
+    const content = Array.isArray(value.content) ? value.content : []
+
+    return (
+      content.length === 0 ||
+      (content.length === 1 &&
+        content[0]?.type === "paragraph" &&
+        (!content[0]?.content || content[0].content.length === 0))
+    )
+  }
+
+  if (typeof value === "string") {
+    const normalized = value
+      .replace(/<p><\/p>/gi, "")
+      .replace(/<p>\s*<\/p>/gi, "")
+      .replace(/<br\s*\/?>/gi, "")
+      .replace(/&nbsp;/gi, "")
+      .trim()
+
+    return normalized.length === 0
+  }
+
   if (!value || typeof value !== "object") return true;
   if (!value.content || !Array.isArray(value.content)) return true;
   return (
@@ -37,7 +59,7 @@ const formatContentForFieldType = (fieldType: string, value: any): any => {
       return value.toString();
 
     case "richtext":
-      // Rich text is stored as-is (JSON object)
+      // Rich text is stored as TipTap JSON.
       return value;
 
     case "number":
