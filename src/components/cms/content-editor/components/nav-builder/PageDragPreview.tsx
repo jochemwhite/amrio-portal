@@ -1,16 +1,16 @@
 "use client"
 
-import { Link2 } from "lucide-react"
+import { FileText } from "lucide-react"
 
 import type { CmsPage } from "./nav-builder.types"
 
 export function PageDragPreview({ page }: { page: CmsPage }) {
   return (
-    <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm shadow-xl opacity-95 rotate-1">
-      <Link2 className="size-4 text-muted-foreground" />
+    <div className="flex cursor-grabbing items-center gap-2.5 rounded-lg border bg-background px-3 py-2 text-sm font-medium shadow-xl ring-2 ring-primary/20 rotate-2 scale-105">
+      <FileText className="size-3.5 text-primary" />
       <div className="min-w-0">
-        <p className="font-medium">{page.title}</p>
-        <p className="truncate text-xs text-muted-foreground">{page.slug}</p>
+        <p>{page.title}</p>
+        <p className="truncate text-xs font-normal text-muted-foreground">{page.slug}</p>
       </div>
     </div>
   )

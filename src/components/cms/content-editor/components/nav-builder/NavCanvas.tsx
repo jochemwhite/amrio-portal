@@ -2,7 +2,7 @@
 
 import { useDroppable } from "@dnd-kit/core"
 import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable"
-import { Plus } from "lucide-react"
+import { Navigation, Plus } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -22,19 +22,12 @@ export function NavCanvas({
   })
 
   return (
-    <div className="flex-1 overflow-auto p-6">
-      <div className="mb-4 flex items-start justify-between gap-4">
-        <div>
-          <h3 className="text-sm font-semibold">Navigation canvas</h3>
-          <p className="text-sm text-muted-foreground">
-            Drag pages from the sidebar or rearrange existing items directly in the menu.
-          </p>
-        </div>
-
-        <Button variant="outline" onClick={builder.addBlankRootItem}>
-          <Plus className="size-4" />
-          Add item
-        </Button>
+    <div className="flex flex-1 flex-col overflow-hidden p-6">
+      <div className="mb-5">
+        <h3 className="text-sm font-semibold">Navigation canvas</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Arrange top-level links across the row, then drag into an item to create sub-navigation.
+        </p>
       </div>
 
       <SortableContext items={rootIds} strategy={horizontalListSortingStrategy}>
@@ -42,27 +35,46 @@ export function NavCanvas({
           <div
             ref={setRootZoneNodeRef}
             className={cn(
-              "flex min-h-32 items-center justify-center rounded-xl border border-dashed p-6 text-sm text-muted-foreground",
-              isRootZoneOver && "ring-2 ring-primary ring-offset-2 bg-primary/5"
+              "flex h-full min-h-[320px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed text-center text-muted-foreground transition-all duration-200",
+              builder.activeId && "bg-muted/30",
+              isRootZoneOver && "bg-primary/5 ring-2 ring-primary/30"
             )}
           >
-            Drop pages here to create your root navigation
+            <div className="flex size-12 items-center justify-center rounded-xl border-2 border-dashed">
+              <Navigation className="size-5 opacity-40" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground">No navigation items yet</p>
+              <p className="mt-0.5 text-xs opacity-70">
+                Drag pages from the sidebar or click + to add a custom link
+              </p>
+            </div>
+            <Button variant="outline" onClick={builder.addBlankRootItem}>
+              <Plus className="size-4" />
+              Add root item
+            </Button>
           </div>
         ) : (
-          <div className="flex min-h-16 flex-wrap items-start gap-2 rounded-xl border border-dashed p-3">
+          <div
+            ref={setRootZoneNodeRef}
+            className={cn(
+              "flex min-h-24 flex-wrap items-start gap-2 rounded-2xl p-4 transition-all duration-200",
+              builder.activeId && "bg-muted/30",
+              isRootZoneOver && "bg-primary/5 ring-2 ring-primary/30"
+            )}
+          >
             {builder.items.map((item) => (
               <NavItemRoot key={item.id} builder={builder} item={item} />
             ))}
 
-            <div
-              ref={setRootZoneNodeRef}
-              className={cn(
-                "flex min-h-11 min-w-28 items-center justify-center rounded-lg border border-dashed px-3 py-2 text-xs text-muted-foreground",
-                isRootZoneOver && "ring-2 ring-primary ring-offset-2 bg-primary/5"
-              )}
+            <Button
+              variant="outline"
+              className="h-11 rounded-xl border-dashed bg-background/80"
+              onClick={builder.addBlankRootItem}
             >
-              Drop here
-            </div>
+              <Plus className="size-4" />
+              Add item
+            </Button>
           </div>
         )}
       </SortableContext>
