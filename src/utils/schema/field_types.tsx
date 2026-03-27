@@ -15,10 +15,9 @@ import {
 } from "lucide-react"
 import * as cmsComponents from "@/components/cms/content-editor/components"
 import { ReferenceSettings } from "@/components/cms/schema_builder/field_settings/reference_settings"
+import { NavigationMenuSettings } from "@/components/cms/schema_builder/field_settings/navigation_menu_settings"
 import { RichTextSettings } from "@/components/cms/schema_builder/field_settings/rich_text_settings"
 import { SocialMediaSettings } from "@/components/cms/schema_builder/field_settings/social_media_settings"
-
-const EmptyCMSComponent: ComponentType<FieldComponentProps> = () => null
 
 export type SchemaFieldType = {
   value: string
@@ -128,7 +127,8 @@ export const FIELD_TYPES: SchemaFieldType[] = [
     icon: <Menu className="h-4 w-4" />,
     description: "Navigation menu with nested items",
     color: "bg-emerald-100 text-emerald-800",
-    cmsComponent: EmptyCMSComponent,
+    cmsComponent: cmsComponents.NavigationMenuComponent,
+    settingsComponent: NavigationMenuSettings,
   },
 ]
 
