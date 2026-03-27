@@ -2,6 +2,7 @@ export { default as BooleanComponent } from "./boolean";
 export { default as ButtonComponent } from "./button";
 export { default as DateComponent } from "./date";
 export { default as ImageComponent } from "./image";
+export { default as NavigationMenuComponent } from "./navigation_menu";
 export { default as ReferenceComponent } from "./reference";
 export { default as RichTextComponent } from "./rich_text";
 export { default as SectionFieldComponent } from "./section_field";
