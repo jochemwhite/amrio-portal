@@ -6,11 +6,12 @@ import { ContentEditor } from "@/components/cms/content-editor/content_editor";
 import ContentEditorHeader from "@/components/cms/content-editor/content_editor_header";
 import { savePageContent } from "@/actions/cms/schema-content-actions";
 import { RPCPageResponse } from "@/types/cms";
+import { SaveContentFunction } from "@/stores/content-editor-store";
 
 interface PageContentEditorProps {
   pageId: string;
   existingContent: RPCPageResponse;
-  originalFields: { id: string; type: string; content: any; collection_id?: string | null }[];
+  originalFields: { id: string; type: string; content: any; content_field_id?: string | null; collection_id?: string | null }[];
 }
 
 export function PageContentEditor({ pageId, existingContent, originalFields }: PageContentEditorProps) {
@@ -20,6 +21,15 @@ export function PageContentEditor({ pageId, existingContent, originalFields }: P
   const processedSections = useMemo(() => {
     return existingContent.sections || [];
   }, [existingContent.sections]);
+
+  const saveFn: SaveContentFunction = async (updatedFieldsJSON: string) => {
+    const result = await savePageContent(pageId, updatedFieldsJSON);
+    if (result.success) {
+      router.refresh();
+    }
+
+    return result;
+  };
 
   const header = (
     <ContentEditorHeader
@@ -36,7 +46,7 @@ export function PageContentEditor({ pageId, existingContent, originalFields }: P
       existingContent={existingContent}
       originalFields={originalFields}
       header={header}
-      saveFn={savePageContent}
+      saveFn={saveFn}
       expandedSections={expandedSections}
       setExpandedSections={setExpandedSections}
     />
