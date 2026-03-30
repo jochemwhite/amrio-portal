@@ -5,7 +5,7 @@ import { MoreHorizontal, Plus, X } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { removeGlobalRole, removeUserFromTenant, updateUserTenantRole } from "@/app/actions/users";
+import { removeGlobalRole, removeUserFromTenant, updateUserTenantRole } from "@/actions/users";
 import { AssignGlobalRoleDialog } from "@/components/admin/user-detail/AssignGlobalRoleDialog";
 import { AssignTenantDialog } from "@/components/admin/user-detail/AssignTenantDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";

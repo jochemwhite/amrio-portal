@@ -5,7 +5,7 @@ import { Copy, Loader2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { deleteUser, resendVerificationEmail, resetPasswordWithLink, toggleSuspend } from "@/app/actions/users";
+import { deleteUser, resendVerificationEmail, resetPasswordWithLink, toggleSuspend } from "@/actions/users";
 import { EditUserDialog } from "@/components/admin/EditUserDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

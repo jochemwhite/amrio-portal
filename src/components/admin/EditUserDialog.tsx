@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { updateUser } from "@/app/actions/users";
+import { updateUser } from "@/actions/users";
 import {
   Dialog,
   DialogContent,

@@ -8,7 +8,7 @@ import {
   getUserRoleOptions,
   getUserSessions,
   getUserTenants,
-} from "@/app/actions/users";
+} from "@/actions/users";
 import { UserDetailHeader } from "@/components/admin/user-detail/UserDetailHeader";
 import { UserDetailTabs } from "@/components/admin/user-detail/UserDetailTabs";
 

@@ -9,7 +9,7 @@ import {
   resendInvite,
   resetPassword,
   toggleSuspend,
-} from "@/app/actions/users";
+} from "@/actions/users";
 import {
   AlertDialog,
   AlertDialogAction,

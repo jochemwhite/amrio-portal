@@ -5,7 +5,7 @@ import { DateRange } from "react-day-picker";
 import { Filter } from "lucide-react";
 import { toast } from "sonner";
 
-import { getUserAuditLogs } from "@/app/actions/users";
+import { getUserAuditLogs } from "@/actions/users";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";

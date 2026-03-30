@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { getUserRoleOptions, getUsers } from "@/app/actions/users";
+import { getUserRoleOptions, getUsers } from "@/actions/users";
 import { UserTable } from "@/components/admin/UserTable";
 
 export const metadata: Metadata = {
