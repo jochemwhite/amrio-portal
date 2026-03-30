@@ -23,7 +23,7 @@ export const ResetPasswordEmail = ({
   resetLink,
   yourName,
 }: ResetPasswordEmailProps) => {
-  const logoUrl = 'https://xjcvdiidvtccsmbwtdmh.supabase.co/storage/v1/object/public/amrio//logo.png';
+  const logoUrl = 'https://cdn.amrio.nl/tenants/a57afac3-85a8-4973-ab97-d00e9f7f0bc9/websites/027fdca2-2407-4b24-b8b8-5d7febf9ee8c/media/31426be6-ceb2-48dc-b7d0-0348ee2fb938-amrio-logo.png';
 
   return (
     <Html lang="en">
