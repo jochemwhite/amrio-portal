@@ -632,7 +632,7 @@ export async function getUserRoleOptions(): Promise<ActionResponse<UserRoleOptio
     }
 
     const roles = (data as GlobalRoleTypeRow[]).map((role) => ({
-      value: role.role_name,
+      value: role.id,
       label: role.role_name.charAt(0).toUpperCase() + role.role_name.slice(1),
       description: role.description,
     }));
@@ -1151,41 +1151,5 @@ export async function revokeAllSessions(userId: string): Promise<ActionResponse<
   } catch (error) {
     console.error("Failed to revoke sessions", error);
     return { success: false, error: "Failed to revoke sessions." };
-  }
-}
-
-export async function resendVerificationEmail(email: string): Promise<ActionResponse<string>> {
-  const access = await ensureAdminAccess();
-  if (!access.success) return { success: false, error: access.error };
-
-  try {
-    const { data, error } = await supabaseAdmin.auth.admin.generateLink({
-      type: "signup",
-      email,
-    } as never);
-
-    if (error) return { success: false, error: error.message };
-    return { success: true, data: data?.properties?.action_link ?? "" };
-  } catch (error) {
-    console.error("Failed to resend verification email", error);
-    return { success: false, error: "Failed to resend verification email." };
-  }
-}
-
-export async function resetPasswordWithLink(email: string): Promise<ActionResponse<string>> {
-  const access = await ensureAdminAccess();
-  if (!access.success) return { success: false, error: access.error };
-
-  try {
-    const { data, error } = await supabaseAdmin.auth.admin.generateLink({
-      type: "recovery",
-      email,
-    });
-
-    if (error) return { success: false, error: error.message };
-    return { success: true, data: data?.properties?.action_link ?? "" };
-  } catch (error) {
-    console.error("Failed to generate reset password link", error);
-    return { success: false, error: "Failed to generate reset password link." };
   }
 }

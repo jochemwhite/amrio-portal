@@ -5,8 +5,10 @@ import { Copy, Loader2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { deleteUser, resendVerificationEmail, resetPasswordWithLink, toggleSuspend } from "@/actions/users";
+import { resetPasswordWithLink, resendVerificationEmail } from "@/actions/authentication/user-emails";
+import { deleteUser, toggleSuspend } from "@/actions/users";
 import { EditUserDialog } from "@/components/admin/EditUserDialog";
+import { SetPasswordDialog } from "@/components/admin/user-detail/SetPasswordDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +47,8 @@ export function UserOverviewTab({
   const [isPending, startTransition] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [resetEmailOpen, setResetEmailOpen] = useState(false);
+  const [setPasswordOpen, setSetPasswordOpen] = useState(false);
 
   const refresh = () =>
     new Promise<void>((resolve) => {
@@ -185,8 +189,11 @@ export function UserOverviewTab({
               </div>
 
               <div className="flex flex-wrap gap-3">
-                <Button variant="outline" onClick={handleResetPassword}>
-                  Reset Password
+                <Button variant="outline" onClick={() => setResetEmailOpen(true)}>
+                  Send password reset email
+                </Button>
+                <Button variant="outline" onClick={() => setSetPasswordOpen(true)}>
+                  Set password manually
                 </Button>
                 <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
                   Delete Account
@@ -246,6 +253,34 @@ export function UserOverviewTab({
         roleOptions={roleOptions}
         onSuccess={refresh}
       />
+
+      <SetPasswordDialog
+        open={setPasswordOpen}
+        onOpenChange={setSetPasswordOpen}
+        userId={user.id}
+      />
+
+      <AlertDialog open={resetEmailOpen} onOpenChange={setResetEmailOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send password reset email?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will email a password reset link to {user.email}. The user can use it to choose a new password.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                setResetEmailOpen(false);
+                await handleResetPassword();
+              }}
+            >
+              Send email
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>

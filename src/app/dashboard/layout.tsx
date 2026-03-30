@@ -27,6 +27,23 @@ export default async function Layout({ children }: { children: React.ReactNode }
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/");
 
+  const { data: userProfile, error: userProfileError } = await supabase
+    .from("users")
+    .select("is_onboarded")
+    .eq("id", user.id)
+    .single();
+
+  if (userProfileError || !userProfile) {
+
+
+
+    return <>sdfsdf</>
+  }
+
+
+
+  // if (!userProfile.is_onboarded) redirect("/onboarding");
+
   // 2. Check MFA
   const { data: mfa } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
   if (mfa && mfa.nextLevel === "aal2" && mfa.nextLevel !== mfa.currentLevel) {
@@ -43,7 +60,6 @@ export default async function Layout({ children }: { children: React.ReactNode }
   }) as unknown as { data: UserSession; error: PostgrestError | null };
 
   if (error || !data) redirect("/");
-  if (!data.user_info?.is_onboarded) redirect("/onboarding");
 
   // 5. Resolve active website for the active tenant
   let activeWebsite: UserSession["active_website"] = null;
