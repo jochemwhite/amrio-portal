@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { env } from "../env";
 
 // Always accessible without a session
-const PUBLIC_ROUTES = ["/", "/login", "/signup", "/forgot-password", "/reset-password", "/mfa", "/auth"];
+const PUBLIC_ROUTES = ["/", "/login", "/signup", "/forgot-password", "/reset-password", "/mfa", "/auth", "/privacy-policy", "/terms-of-service"];
 
 function isPublicRoute(pathname: string) {
   return PUBLIC_ROUTES.some(
@@ -12,7 +12,7 @@ function isPublicRoute(pathname: string) {
 }
 
 // Accessible even when already logged in
-const ALWAYS_ACCESSIBLE_WHEN_AUTHED = ["/forgot-password", "/reset-password", "/mfa", "/auth"];
+const ALWAYS_ACCESSIBLE_WHEN_AUTHED = ["/forgot-password", "/reset-password", "/mfa", "/auth", "/privacy-policy", "/terms-of-service"];
 
 function isAlwaysAccessible(pathname: string) {
   return ALWAYS_ACCESSIBLE_WHEN_AUTHED.some(
