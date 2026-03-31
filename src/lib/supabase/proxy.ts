@@ -14,14 +14,25 @@ function isPublicRoute(pathname: string) {
 // Accessible even when already logged in
 const ALWAYS_ACCESSIBLE_WHEN_AUTHED = ["/forgot-password", "/reset-password", "/mfa", "/auth", "/privacy-policy", "/terms-of-service"];
 
-function isAlwaysAccessible(pathname: string) {
-  return ALWAYS_ACCESSIBLE_WHEN_AUTHED.some(
-    (route) => pathname === route || pathname.startsWith(route + "/")
-  );
+const PUBLIC_ROUTES = [
+  "/",
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+  "/mfa",
+  "/auth",
+  "/onboarding",
+];
+
+function matchesRoute(pathname: string, routes: string[]) {
+  return routes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
 }
 
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+  let supabaseResponse = NextResponse.next({
+    request,
+  });
 
   const supabase = createServerClient(
     env.NEXT_PUBLIC_SUPABASE_URL,
@@ -33,32 +44,30 @@ export async function updateSession(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          supabaseResponse = NextResponse.next({ request });
+          supabaseResponse = NextResponse.next({
+            request,
+          });
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(name, value, options),
           );
         },
       },
-    }
+    },
   );
 
-  // IMPORTANT: Do not add any code between createServerClient and getUser()
-  const { data: { user } } = await supabase.auth.getUser();
-
+  // Keep this call immediately after createServerClient to avoid auth sync issues.
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
   const pathname = request.nextUrl.pathname;
 
-  // Not logged in — allow public routes, redirect everything else to login
-  if (!user) {
-    if (isPublicRoute(pathname)) return supabaseResponse;
-    return NextResponse.redirect(new URL("/", request.url));
-  }
+  if (!claims) {
+    if (matchesRoute(pathname, PUBLIC_ROUTES)) {
+      return supabaseResponse;
+    }
 
-  // Logged in — always allow these regardless
-  if (isAlwaysAccessible(pathname)) return supabaseResponse;
-
-  // Logged in — redirect away from login/signup to dashboard
-  if (isPublicRoute(pathname)) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
   }
 
   return supabaseResponse;
