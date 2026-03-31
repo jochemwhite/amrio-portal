@@ -1,7 +1,18 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-
 import { env } from "../env";
+
+// Always accessible without a session
+const PUBLIC_ROUTES = ["/", "/login", "/signup", "/forgot-password", "/reset-password", "/mfa", "/auth", "/privacy-policy", "/terms-of-service"];
+
+function isPublicRoute(pathname: string) {
+  return PUBLIC_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(route + "/")
+  );
+}
+
+// Accessible even when already logged in
+const ALWAYS_ACCESSIBLE_WHEN_AUTHED = ["/forgot-password", "/reset-password", "/mfa", "/auth", "/privacy-policy", "/terms-of-service"];
 
 const PUBLIC_ROUTES = [
   "/",

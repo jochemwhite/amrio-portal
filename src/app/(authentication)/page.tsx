@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/supabaseServerClient";
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 export default async function Home() {
   const supabase = await createClient();
 
-  const { data, error } = await supabase.auth.getUser();
+  const { data } = await supabase.auth.getUser();
 
   if (data?.user) {
     const { data: userProfile } = await supabase
@@ -26,7 +27,7 @@ export default async function Home() {
   }
 
   return (
-    <div className="h-screen relative w-full flex flex-col items-center justify-center overflow-hidden rounded-md">
+    <div className="min-h-screen relative w-full flex flex-col items-center justify-center overflow-hidden rounded-md px-4 py-10">
       <Card className="max-w-md w-full mx-auto rounded-none md:rounded-2xl p-4 md:p-8 shadow-input   z-10">
         <CardHeader>
           <div className="flex justify-center">
@@ -49,6 +50,21 @@ export default async function Home() {
           <SingInForm />
         </CardContent>
       </Card>
+
+      <div className="z-10 mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-center text-sm text-neutral-400">
+        <Link
+          href="/privacy-policy"
+          className="underline underline-offset-4 transition hover:text-white"
+        >
+          Privacy Policy
+        </Link>
+        <Link
+          href="/terms-of-service"
+          className="underline underline-offset-4 transition hover:text-white"
+        >
+          Terms of Service
+        </Link>
+      </div>
     </div>
   );
 }
