@@ -1,7 +1,4 @@
-"use client";
-
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,10 +47,21 @@ function getErrorCopy(reason: string, type: string) {
   };
 }
 
-export default function AuthErrorPage() {
-  const searchParams = useSearchParams();
-  const reason = searchParams.get("reason") ?? "verification-failed";
-  const type = searchParams.get("type") ?? "";
+type AuthErrorPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function getFirstQueryParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function AuthErrorPage({
+  searchParams,
+}: AuthErrorPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const reason =
+    getFirstQueryParam(resolvedSearchParams?.reason) ?? "verification-failed";
+  const type = getFirstQueryParam(resolvedSearchParams?.type) ?? "";
   const copy = getErrorCopy(reason, type);
 
   return (
