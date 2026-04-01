@@ -33,7 +33,7 @@ export async function createPage(data: {
   // Check admin role
   const isAdmin = await checkRequiredRoles(user.id, ["system_admin"]);
   if (!isAdmin) {
-    return { success: false, error: "Unauthorized: Only admins can create pages." };
+    return { success: false, error: "Unauthorized: Only system admins can create pages." };
   }
 
   try {
@@ -116,10 +116,9 @@ export async function updatePage(
 
 interface DeletePageProps {
   id: string;
-  websiteId: string;
 }
 
-export async function deletePage({ id, websiteId }: DeletePageProps): Promise<ActionResponse<void>> {
+export async function deletePage({ id }: DeletePageProps): Promise<ActionResponse<void>> {
   const supabase = await createClient();
 
   // Check authentication
@@ -134,7 +133,7 @@ export async function deletePage({ id, websiteId }: DeletePageProps): Promise<Ac
   // Check admin role
   const isAdmin = await checkRequiredRoles(user.id, ["system_admin"]);
   if (!isAdmin) {
-    return { success: false, error: "Unauthorized: Only admins can delete pages." };
+    return { success: false, error: "Unauthorized: Only system admins can delete pages." };
   }
 
   try {

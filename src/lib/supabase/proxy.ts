@@ -14,16 +14,7 @@ function isPublicRoute(pathname: string) {
 // Accessible even when already logged in
 const ALWAYS_ACCESSIBLE_WHEN_AUTHED = ["/forgot-password", "/reset-password", "/mfa", "/auth", "/privacy-policy", "/terms-of-service"];
 
-const PUBLIC_ROUTES = [
-  "/",
-  "/login",
-  "/signup",
-  "/forgot-password",
-  "/reset-password",
-  "/mfa",
-  "/auth",
-  "/onboarding",
-];
+
 
 function matchesRoute(pathname: string, routes: string[]) {
   return routes.some((route) => pathname === route || pathname.startsWith(`${route}/`));

@@ -16,12 +16,15 @@ import Link from "next/link";
 
 export function NavTenant({
   tenantItems,
+  isAdmin,
 }: {
   tenantItems: {
     title: string;
     url: string;
     icon: LucideIcon;
+    adminOnly?: boolean;
   }[];
+  isAdmin: boolean;
 }) {
   const { isMobile } = useSidebar();
 
@@ -30,7 +33,7 @@ export function NavTenant({
       <SidebarGroupLabel>Tenant</SidebarGroupLabel>
       <SidebarMenu>
         {tenantItems.map((item) => (
-          <SidebarMenuItem key={item.title}>
+          <SidebarMenuItem key={item.title} className={item.adminOnly && !isAdmin ? "hidden group-data-[collapsible=icon]:hidden" : ""}>
             <SidebarMenuButton asChild>
               <Link href={item.url}>
                 <item.icon />

@@ -51,12 +51,17 @@ async function getAuthorizedContext() {
 }
 
 export async function getFormsForActiveWebsite(): Promise<ActionResponse<CmsForm[]>> {
-  const context = await getAuthorizedContext();
-  if ("error" in context) {
-    return { success: false, error: context.error };
+  const supabase = await createClient();
+  const { tenantId, websiteId } = await getActiveTenantAndWebsiteIds();
+
+  if (!tenantId) {
+    return { success: false, error: "No active tenant selected." };
   }
 
-  const { supabase, tenantId, websiteId } = context;
+  if (!websiteId) {
+    return { success: false, error: "No active website selected." };
+  }
+ 
 
   const { data, error } = await supabase
     .from("cms_forms")
@@ -152,12 +157,16 @@ export async function updateFormDetails(
 }
 
 export async function getFormById(formId: string): Promise<ActionResponse<CmsForm>> {
-  const context = await getAuthorizedContext();
-  if ("error" in context) {
-    return { success: false, error: context.error };
+  const supabase = await createClient();
+  const { tenantId, websiteId } = await getActiveTenantAndWebsiteIds();
+
+  if (!tenantId) {
+    return { success: false, error: "No active tenant selected." };
   }
 
-  const { supabase, tenantId, websiteId } = context;
+  if (!websiteId) {
+    return { success: false, error: "No active website selected." };
+  }
 
   const { data, error } = await supabase
     .from("cms_forms")
@@ -185,12 +194,17 @@ export async function updateFormContent(
     return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid form content payload." };
   }
 
-  const context = await getAuthorizedContext();
-  if ("error" in context) {
-    return { success: false, error: context.error };
+  const supabase = await createClient();
+  const { tenantId, websiteId } = await getActiveTenantAndWebsiteIds();
+
+  if (!tenantId) {
+    return { success: false, error: "No active tenant selected." };
   }
 
-  const { supabase, tenantId, websiteId } = context;
+  if (!websiteId) {
+    return { success: false, error: "No active website selected." };
+  }
+
 
   const { data, error } = await supabase
     .from("cms_forms")
@@ -268,12 +282,16 @@ export async function archiveForm(formId: string): Promise<ActionResponse<void>>
 }
 
 export async function getFormStatsForActiveWebsite(): Promise<ActionResponse<CmsFormStats>> {
-  const context = await getAuthorizedContext();
-  if ("error" in context) {
-    return { success: false, error: context.error };
+  const supabase = await createClient();
+  const { tenantId, websiteId } = await getActiveTenantAndWebsiteIds();
+
+  if (!tenantId) {
+    return { success: false, error: "No active tenant selected." };
   }
 
-  const { supabase, tenantId, websiteId } = context;
+  if (!websiteId) {
+    return { success: false, error: "No active website selected." };
+  }
 
   const { data, error } = await supabase
     .from("cms_forms")

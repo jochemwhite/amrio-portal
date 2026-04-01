@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Edit, FileText, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useUserSession } from "@/providers/session-provider";
 import { LayoutFormDialog } from "./layout_form_dialog";
 
 interface LayoutContentManagerProps {
@@ -18,6 +19,8 @@ interface LayoutContentManagerProps {
 export function LayoutContentManager({ initialLayouts, websiteId }: LayoutContentManagerProps) {
   const router = useRouter();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { userSession } = useUserSession();
+  const isSystemAdmin = userSession?.global_roles?.includes("system_admin") ?? false;
 
   const handleRowClick = (layout: LayoutRow) => {
     router.push(`/dashboard/layouts/${layout.template_id}`);
@@ -82,19 +85,27 @@ export function LayoutContentManager({ initialLayouts, websiteId }: LayoutConten
         <CardContent className="py-12 text-center">
           <FileText className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
           <p className="mb-2 text-lg font-medium">No layouts configured</p>
-          <p className="text-sm text-muted-foreground">Create header, footer, sidebar, or custom templates to get started</p>
-          <Button className="mt-4" onClick={() => setIsDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Layout
-          </Button>
+          <p className="text-sm text-muted-foreground">
+            {isSystemAdmin
+              ? "Create header, footer, sidebar, or custom templates to get started"
+              : "No layouts are configured for this website yet."}
+          </p>
+          {isSystemAdmin && (
+            <Button className="mt-4" onClick={() => setIsDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Layout
+            </Button>
+          )}
         </CardContent>
 
-        <LayoutFormDialog
-          isOpen={isDialogOpen}
-          onClose={() => setIsDialogOpen(false)}
-          websiteId={websiteId}
-          onSuccess={() => router.refresh()}
-        />
+        {isSystemAdmin && (
+          <LayoutFormDialog
+            isOpen={isDialogOpen}
+            onClose={() => setIsDialogOpen(false)}
+            websiteId={websiteId}
+            onSuccess={() => router.refresh()}
+          />
+        )}
       </Card>
     );
   }
@@ -110,10 +121,12 @@ export function LayoutContentManager({ initialLayouts, websiteId }: LayoutConten
                 All layout templates with their assignments. Defaults are shown first. Click a row to edit content.
               </CardDescription>
             </div>
-            <Button onClick={() => setIsDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Layout
-            </Button>
+            {isSystemAdmin && (
+              <Button onClick={() => setIsDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Layout
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -166,12 +179,14 @@ export function LayoutContentManager({ initialLayouts, websiteId }: LayoutConten
         </CardContent>
       </Card>
 
-      <LayoutFormDialog
-        isOpen={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
-        websiteId={websiteId}
-        onSuccess={() => router.refresh()}
-      />
+      {isSystemAdmin && (
+        <LayoutFormDialog
+          isOpen={isDialogOpen}
+          onClose={() => setIsDialogOpen(false)}
+          websiteId={websiteId}
+          onSuccess={() => router.refresh()}
+        />
+      )}
     </>
   );
 }

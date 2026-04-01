@@ -1,4 +1,7 @@
-import { getFormsForActiveWebsite, getFormStatsForActiveWebsite } from "@/actions/cms/form-actions";
+import {
+  getFormsForActiveWebsite,
+  getFormStatsForActiveWebsite,
+} from "@/actions/cms/form-actions";
 import { FormsOverview } from "@/components/cms/forms/forms-overview";
 import { createClient } from "@/lib/supabase/supabaseServerClient";
 import { getActiveTenantAndWebsiteIds } from "@/server/utils";
@@ -36,7 +39,9 @@ export default async function FormsPage() {
   if (websiteError || !website) {
     return (
       <div className="flex items-center justify-center py-24">
-        <p className="text-muted-foreground">Website not found for the selected tenant.</p>
+        <p className="text-muted-foreground">
+          Website not found for the selected tenant.
+        </p>
       </div>
     );
   }
@@ -46,15 +51,16 @@ export default async function FormsPage() {
     getFormStatsForActiveWebsite(),
   ]);
 
-  const forms = formsResult.success ? formsResult.data ?? [] : [];
-  const stats: NonNullable<typeof statsResult.data> = statsResult.success && statsResult.data
-    ? statsResult.data
-    : {
-        visits: 0,
-        submissions: 0,
-        submissionRate: 0,
-        bounceRate: 0,
-      };
+  const forms = formsResult.success ? (formsResult.data ?? []) : [];
+  const stats: NonNullable<typeof statsResult.data> =
+    statsResult.success && statsResult.data
+      ? statsResult.data
+      : {
+          visits: 0,
+          submissions: 0,
+          submissionRate: 0,
+          bounceRate: 0,
+        };
 
   return <FormsOverview initialForms={forms} initialStats={stats} />;
 }

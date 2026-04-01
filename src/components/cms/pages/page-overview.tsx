@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PageStatus, Page } from "@/types/cms";
+import { PageStatus } from "@/types/cms";
 import { deletePage } from "@/actions/cms/page-actions";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -40,14 +40,14 @@ export function PageOverview({ pages, websiteId }: PageOverviewProps) {
 
   const handleDeletePage = async (pageId: string) => {
     try {
-      const result = await deletePage({ id: pageId, websiteId });
+      const result = await deletePage({ id: pageId });
       if (result.success) {
         setData((prev) => prev.filter((page) => page.id !== pageId));
         toast.success("Page deleted successfully");
       } else {
         toast.error(result.error || "Failed to delete page");
       }
-    } catch (error) {
+    } catch {
       toast.error("An unexpected error occurred");
     }
   };
