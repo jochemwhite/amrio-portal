@@ -43,12 +43,12 @@ export function AppSidebar() {
     ],
     tenant: [
       { title: "Storage", url: "/dashboard/storage", icon: ArchiveRestore },
-      { title: "API Keys", url: "/dashboard/api-keys", icon: Key },
+      { title: "Schemas", url: "/dashboard/admin/schemas", icon: FileText, adminOnly: true },
+      { title: "API Keys", url: "/dashboard/api-keys", icon: Key, adminOnly: true },
     ],
     admin: [
       { name: "Users", url: "/dashboard/admin/users", icon: User },
       { name: "Tenants", url: "/dashboard/admin/tenants", icon: Building2 },
-      { name: "Schemas", url: "/dashboard/admin/schemas", icon: FileText },
     ],
   };
 
@@ -60,7 +60,7 @@ export function AppSidebar() {
         </SidebarHeader>
         <SidebarContent>
           <NavCms cmsItems={data.cms} />
-          <NavTenant tenantItems={data.tenant} />
+          <NavTenant tenantItems={data.tenant} isAdmin={isAdmin ?? false} />
           {isAdmin && <NavAdmin adminItems={data.admin} />}
         </SidebarContent>
         <SidebarFooter>

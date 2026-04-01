@@ -7,7 +7,8 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Layouts",
-  description: "Manage shared website layouts such as header, footer, and sidebar.",
+  description:
+    "Manage shared website layouts such as header, footer, and sidebar.",
 };
 
 export default async function LayoutsPage() {
@@ -18,11 +19,15 @@ export default async function LayoutsPage() {
       <div className="container mx-auto py-6">
         <div className="mb-6 space-y-1">
           <h1 className="text-2xl font-bold">Page Layout Settings</h1>
-          <p className="text-muted-foreground">Manage header, footer, sidebar, and custom layouts for your website</p>
+          <p className="text-muted-foreground">
+            Manage header, footer, sidebar, and custom layouts for your website
+          </p>
         </div>
         <Alert>
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>Please select a website to view layout settings</AlertDescription>
+          <AlertDescription>
+            Please select a website to view layout settings
+          </AlertDescription>
         </Alert>
       </div>
     );
@@ -34,15 +39,22 @@ export default async function LayoutsPage() {
     <div className="container mx-auto py-6">
       <div className="mb-6 space-y-1">
         <h1 className="text-2xl font-bold">Page Layout Settings</h1>
-        <p className="text-muted-foreground">Manage header, footer, sidebar, and custom layouts for your website</p>
+        <p className="text-muted-foreground">
+          Manage header, footer, sidebar, and custom layouts for your website
+        </p>
       </div>
 
       {layoutsResult.success && layoutsResult.data ? (
-        <LayoutContentManager initialLayouts={layoutsResult.data} websiteId={websiteId} />
+        <LayoutContentManager
+          initialLayouts={layoutsResult.data}
+          websiteId={websiteId}
+        />
       ) : (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{layoutsResult.error || "Failed to load layouts"}</AlertDescription>
+          <AlertDescription>
+            {layoutsResult.error || "Failed to load layouts"}
+          </AlertDescription>
         </Alert>
       )}
     </div>

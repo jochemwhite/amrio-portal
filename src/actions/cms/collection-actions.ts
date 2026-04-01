@@ -77,6 +77,11 @@ export async function createCollection(data: CreateCollectionData): Promise<Acti
     return { success: false, error: "Unauthorized: User not authenticated." };
   }
 
+  const isAdmin = await checkRequiredRoles(user.id, ["system_admin"]);
+  if (!isAdmin) {
+    return { success: false, error: "Unauthorized: Only system admins can create collections." };
+  }
+
   // Get active tenant ID
   const tenantId = await getActiveTenantId();
   if (!tenantId) {

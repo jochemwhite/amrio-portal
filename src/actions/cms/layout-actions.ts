@@ -93,7 +93,7 @@ type CreateLayoutEntryData = {
 
 function nestSchemaFields(
   fields: SchemaFieldRow[],
-  contentBySchemaFieldId: Map<string, { id: string; content: unknown }>
+  contentBySchemaFieldId: Map<string, { id: string; content: unknown }>,
 ): LayoutTemplateWithContent["schema"]["sections"][number]["fields"] {
   const byId = new Map<
     string,
@@ -114,13 +114,16 @@ function nestSchemaFields(
       parent_field_id: field.parent_field_id,
       collection_id: field.collection_id,
       settings: field.settings,
-      content: contentRecord ? ({ value: contentRecord.content } as { value?: unknown }) : null,
+      content: contentRecord
+        ? ({ value: contentRecord.content } as { value?: unknown })
+        : null,
       content_field_id: contentRecord?.id || null,
       fields: [],
     });
   }
 
-  const roots: LayoutTemplateWithContent["schema"]["sections"][number]["fields"] = [];
+  const roots: LayoutTemplateWithContent["schema"]["sections"][number]["fields"] =
+    [];
 
   for (const field of fields.sort((a, b) => a.order - b.order)) {
     const node = byId.get(field.id);
@@ -141,7 +144,7 @@ function nestSchemaFields(
 }
 
 export async function createLayoutEntry(
-  data: CreateLayoutEntryData
+  data: CreateLayoutEntryData,
 ): Promise<ActionResponse<{ layout_id: string; entry_id: string }>> {
   const supabase = await createClient();
   const tenantId = await getActiveTenantId();
@@ -153,6 +156,14 @@ export async function createLayoutEntry(
 
   if (authError || !user) {
     return { success: false, error: "Unauthorized: User not authenticated." };
+  }
+
+  const isAdmin = await checkRequiredRoles(user.id, ["system_admin"]);
+  if (!isAdmin) {
+    return {
+      success: false,
+      error: "Unauthorized: Only system admins can create layouts.",
+    };
   }
 
   if (!tenantId) {
@@ -186,20 +197,26 @@ export async function createLayoutEntry(
     }
 
     if (String(schema.schema_type) !== "layout") {
-      return { success: false, error: "Selected schema must be of type layout." };
+      return {
+        success: false,
+        error: "Selected schema must be of type layout.",
+      };
     }
 
     if (data.is_default) {
-      const { data: websiteLayouts, error: websiteLayoutsError } = await supabase
-        .from("cms_layouts")
-        .select("id")
-        .eq("website_id", data.website_id);
+      const { data: websiteLayouts, error: websiteLayoutsError } =
+        await supabase
+          .from("cms_layouts")
+          .select("id")
+          .eq("website_id", data.website_id);
 
       if (websiteLayoutsError) {
         return { success: false, error: websiteLayoutsError.message };
       }
 
-      const websiteLayoutIds = (websiteLayouts || []).map((layout) => layout.id);
+      const websiteLayoutIds = (websiteLayouts || []).map(
+        (layout) => layout.id,
+      );
       if (websiteLayoutIds.length > 0) {
         const { error: resetDefaultError } = await supabase
           .from("cms_layout_entries")
@@ -227,7 +244,10 @@ export async function createLayoutEntry(
       .single();
 
     if (layoutError || !layout) {
-      return { success: false, error: layoutError?.message || "Failed to create layout." };
+      return {
+        success: false,
+        error: layoutError?.message || "Failed to create layout.",
+      };
     }
 
     const { data: entry, error: entryError } = await supabase
@@ -242,7 +262,10 @@ export async function createLayoutEntry(
       .single();
 
     if (entryError || !entry) {
-      return { success: false, error: entryError?.message || "Failed to create layout entry." };
+      return {
+        success: false,
+        error: entryError?.message || "Failed to create layout entry.",
+      };
     }
 
     return {
@@ -259,7 +282,7 @@ export async function createLayoutEntry(
 }
 
 export async function getAllLayoutsForWebsite(
-  websiteId: string
+  websiteId: string,
 ): Promise<ActionResponse<LayoutRow[]>> {
   const supabase = await createClient();
 
@@ -293,7 +316,7 @@ export async function getAllLayoutsForWebsite(
             name
           )
         )
-      `
+      `,
       )
       .eq("cms_layouts.website_id", websiteId)
       .order("created_at", { ascending: false });
@@ -304,8 +327,12 @@ export async function getAllLayoutsForWebsite(
     }
 
     const rows: LayoutRow[] = (data || []).map((entry) => {
-      const layout = Array.isArray(entry.cms_layouts) ? entry.cms_layouts[0] : entry.cms_layouts;
-      const schema = Array.isArray(layout.cms_schemas) ? layout.cms_schemas[0] : layout.cms_schemas;
+      const layout = Array.isArray(entry.cms_layouts)
+        ? entry.cms_layouts[0]
+        : entry.cms_layouts;
+      const schema = Array.isArray(layout.cms_schemas)
+        ? layout.cms_schemas[0]
+        : layout.cms_schemas;
 
       return {
         id: entry.id,
@@ -336,7 +363,9 @@ export async function getAllLayoutsForWebsite(
   }
 }
 
-export async function getTemplateWithContent(templateId: string): Promise<ActionResponse<LayoutTemplateWithContent>> {
+export async function getTemplateWithContent(
+  templateId: string,
+): Promise<ActionResponse<LayoutTemplateWithContent>> {
   const supabase = await createClient();
 
   const {
@@ -370,17 +399,24 @@ export async function getTemplateWithContent(templateId: string): Promise<Action
             description
           )
         )
-      `
+      `,
       )
       .eq("id", templateId)
       .single();
 
     if (entryError || !entry) {
-      return { success: false, error: entryError?.message || "Layout entry not found." };
+      return {
+        success: false,
+        error: entryError?.message || "Layout entry not found.",
+      };
     }
 
-    const layout = Array.isArray(entry.cms_layouts) ? entry.cms_layouts[0] : entry.cms_layouts;
-    const schema = Array.isArray(layout.cms_schemas) ? layout.cms_schemas[0] : layout.cms_schemas;
+    const layout = Array.isArray(entry.cms_layouts)
+      ? entry.cms_layouts[0]
+      : entry.cms_layouts;
+    const schema = Array.isArray(layout.cms_schemas)
+      ? layout.cms_schemas[0]
+      : layout.cms_schemas;
 
     if (!layout.schema_id) {
       return { success: false, error: "Layout has no schema assigned." };
@@ -398,10 +434,12 @@ export async function getTemplateWithContent(templateId: string): Promise<Action
 
     const { data: schemaFields, error: fieldsError } = await supabase
       .from("cms_schema_fields")
-      .select("id, name, type, order, required, validation, default_value, parent_field_id, collection_id, settings, schema_section_id")
+      .select(
+        "id, name, type, order, required, validation, default_value, parent_field_id, collection_id, settings, schema_section_id",
+      )
       .in(
         "schema_section_id",
-        (schemaSections || []).map((s) => s.id)
+        (schemaSections || []).map((s) => s.id),
       )
       .order("order", { ascending: true });
 
@@ -409,10 +447,11 @@ export async function getTemplateWithContent(templateId: string): Promise<Action
       return { success: false, error: fieldsError.message };
     }
 
-    const { data: contentSections, error: contentSectionsError } = await supabase
-      .from("cms_content_sections")
-      .select("id, schema_section_id")
-      .eq("layout_entry_id", templateId);
+    const { data: contentSections, error: contentSectionsError } =
+      await supabase
+        .from("cms_content_sections")
+        .select("id, schema_section_id")
+        .eq("layout_entry_id", templateId);
 
     if (contentSectionsError) {
       return { success: false, error: contentSectionsError.message };
@@ -428,25 +467,39 @@ export async function getTemplateWithContent(templateId: string): Promise<Action
     const { data: contentFields, error: contentFieldsError } = await supabase
       .from("cms_content_fields")
       .select("id, schema_field_id, section_id, content")
-      .in("section_id", (contentSections || []).map((s) => s.id));
+      .in(
+        "section_id",
+        (contentSections || []).map((s) => s.id),
+      );
 
     if (contentFieldsError) {
       return { success: false, error: contentFieldsError.message };
     }
 
-    const contentBySectionAndSchemaField = new Map<string, { id: string; content: unknown }>();
+    const contentBySectionAndSchemaField = new Map<
+      string,
+      { id: string; content: unknown }
+    >();
     for (const field of contentFields || []) {
-      contentBySectionAndSchemaField.set(`${field.section_id}:${field.schema_field_id}`, {
-        id: field.id,
-        content: field.content,
-      });
+      contentBySectionAndSchemaField.set(
+        `${field.section_id}:${field.schema_field_id}`,
+        {
+          id: field.id,
+          content: field.content,
+        },
+      );
     }
 
     const sectionPayload = (schemaSections || []).map((section) => {
-      const sectionFields = (schemaFields || []).filter((f) => f.schema_section_id === section.id) as SchemaFieldRow[];
+      const sectionFields = (schemaFields || []).filter(
+        (f) => f.schema_section_id === section.id,
+      ) as SchemaFieldRow[];
       const contentSectionId = sectionIdBySchemaSectionId.get(section.id);
 
-      const contentBySchemaFieldId = new Map<string, { id: string; content: unknown }>();
+      const contentBySchemaFieldId = new Map<
+        string,
+        { id: string; content: unknown }
+      >();
       if (contentSectionId) {
         for (const field of sectionFields) {
           const key = `${contentSectionId}:${field.id}`;
@@ -485,12 +538,17 @@ export async function getTemplateWithContent(templateId: string): Promise<Action
 
     return { success: true, data: payload };
   } catch (error) {
-    console.error("Unexpected error fetching layout template with content:", error);
+    console.error(
+      "Unexpected error fetching layout template with content:",
+      error,
+    );
     return { success: false, error: "An unexpected error occurred." };
   }
 }
 
-export async function getLayoutEntryContent(layoutEntryId: string): Promise<ActionResponse<unknown>> {
+export async function getLayoutEntryContent(
+  layoutEntryId: string,
+): Promise<ActionResponse<unknown>> {
   const supabase = await createClient();
 
   const {
@@ -531,7 +589,7 @@ export async function getLayoutEntryContent(layoutEntryId: string): Promise<Acti
 
 export async function saveLayoutTemplateContent(
   templateId: string,
-  updatedFieldsJSON: string
+  updatedFieldsJSON: string,
 ): Promise<ActionResponse<void>> {
   const supabase = await createClient();
 
@@ -542,11 +600,6 @@ export async function saveLayoutTemplateContent(
 
   if (authError || !user) {
     return { success: false, error: "Unauthorized: User not authenticated." };
-  }
-
-  const isAdmin = await checkRequiredRoles(user.id, ["system_admin"]);
-  if (!isAdmin) {
-    return { success: false, error: "Unauthorized: Only admins can save layout content." };
   }
 
   try {
@@ -560,7 +613,9 @@ export async function saveLayoutTemplateContent(
       return { success: true };
     }
 
-    const schemaFieldIds = [...new Set(updatedFields.map((f) => f.schema_field_id))];
+    const schemaFieldIds = [
+      ...new Set(updatedFields.map((f) => f.schema_field_id)),
+    ];
 
     const { data: schemaFields, error: schemaFieldsError } = await supabase
       .from("cms_schema_fields")
@@ -568,10 +623,15 @@ export async function saveLayoutTemplateContent(
       .in("id", schemaFieldIds);
 
     if (schemaFieldsError || !schemaFields) {
-      return { success: false, error: schemaFieldsError?.message || "Failed to load schema fields." };
+      return {
+        success: false,
+        error: schemaFieldsError?.message || "Failed to load schema fields.",
+      };
     }
 
-    const sectionIds = [...new Set(schemaFields.map((f) => f.schema_section_id))];
+    const sectionIds = [
+      ...new Set(schemaFields.map((f) => f.schema_section_id)),
+    ];
 
     const { data: sectionDefs, error: sectionDefsError } = await supabase
       .from("cms_schema_sections")
@@ -579,14 +639,18 @@ export async function saveLayoutTemplateContent(
       .in("id", sectionIds);
 
     if (sectionDefsError || !sectionDefs) {
-      return { success: false, error: sectionDefsError?.message || "Failed to load schema sections." };
+      return {
+        success: false,
+        error: sectionDefsError?.message || "Failed to load schema sections.",
+      };
     }
 
-    const { data: existingSections, error: existingSectionsError } = await supabase
-      .from("cms_content_sections")
-      .select("id, schema_section_id")
-      .eq("layout_entry_id", templateId)
-      .in("schema_section_id", sectionIds);
+    const { data: existingSections, error: existingSectionsError } =
+      await supabase
+        .from("cms_content_sections")
+        .select("id, schema_section_id")
+        .eq("layout_entry_id", templateId)
+        .in("schema_section_id", sectionIds);
 
     if (existingSectionsError) {
       return { success: false, error: existingSectionsError.message };
@@ -595,24 +659,30 @@ export async function saveLayoutTemplateContent(
     const contentSectionBySchemaSection = new Map<string, string>();
     for (const section of existingSections || []) {
       if (section.schema_section_id) {
-        contentSectionBySchemaSection.set(section.schema_section_id, section.id);
+        contentSectionBySchemaSection.set(
+          section.schema_section_id,
+          section.id,
+        );
       }
     }
 
-    const missingSections = sectionDefs.filter((s) => !contentSectionBySchemaSection.has(s.id));
+    const missingSections = sectionDefs.filter(
+      (s) => !contentSectionBySchemaSection.has(s.id),
+    );
     if (missingSections.length > 0) {
-      const { data: insertedSections, error: insertSectionsError } = await supabase
-        .from("cms_content_sections")
-        .insert(
-          missingSections.map((section) => ({
-            layout_entry_id: templateId,
-            schema_section_id: section.id,
-            name: section.name,
-            description: section.description,
-            order: section.order || 0,
-          }))
-        )
-        .select("id, schema_section_id");
+      const { data: insertedSections, error: insertSectionsError } =
+        await supabase
+          .from("cms_content_sections")
+          .insert(
+            missingSections.map((section) => ({
+              layout_entry_id: templateId,
+              schema_section_id: section.id,
+              name: section.name,
+              description: section.description,
+              order: section.order || 0,
+            })),
+          )
+          .select("id, schema_section_id");
 
       if (insertSectionsError) {
         return { success: false, error: insertSectionsError.message };
@@ -620,7 +690,10 @@ export async function saveLayoutTemplateContent(
 
       for (const section of insertedSections || []) {
         if (section.schema_section_id) {
-          contentSectionBySchemaSection.set(section.schema_section_id, section.id);
+          contentSectionBySchemaSection.set(
+            section.schema_section_id,
+            section.id,
+          );
         }
       }
     }
@@ -639,7 +712,10 @@ export async function saveLayoutTemplateContent(
 
     const existingBySectionAndSchemaField = new Map<string, string>();
     for (const field of existingFields || []) {
-      existingBySectionAndSchemaField.set(`${field.section_id}:${field.schema_field_id}`, field.id);
+      existingBySectionAndSchemaField.set(
+        `${field.section_id}:${field.schema_field_id}`,
+        field.id,
+      );
     }
 
     const schemaFieldById = new Map(schemaFields.map((f) => [f.id, f]));
@@ -648,22 +724,28 @@ export async function saveLayoutTemplateContent(
       const schemaField = schemaFieldById.get(field.schema_field_id);
       if (!schemaField) continue;
 
-      const sectionId = contentSectionBySchemaSection.get(schemaField.schema_section_id);
+      const sectionId = contentSectionBySchemaSection.get(
+        schemaField.schema_section_id,
+      );
       if (!sectionId) continue;
 
-      const existingId = existingBySectionAndSchemaField.get(`${sectionId}:${field.schema_field_id}`);
+      const existingId = existingBySectionAndSchemaField.get(
+        `${sectionId}:${field.schema_field_id}`,
+      );
 
-      const payload: Database["public"]["Tables"]["cms_content_fields"]["Insert"] = {
-        id: field.content_field_id || existingId || undefined,
-        section_id: sectionId,
-        schema_field_id: field.schema_field_id,
-        name: schemaField.name,
-        type: schemaField.type,
-        order: schemaField.order,
-        parent_field_id: schemaField.parent_field_id,
-        content: field.content as Database["public"]["Tables"]["cms_content_fields"]["Insert"]["content"],
-        updated_at: new Date().toISOString(),
-      };
+      const payload: Database["public"]["Tables"]["cms_content_fields"]["Insert"] =
+        {
+          id: field.content_field_id || existingId || undefined,
+          section_id: sectionId,
+          schema_field_id: field.schema_field_id,
+          name: schemaField.name,
+          type: schemaField.type,
+          order: schemaField.order,
+          parent_field_id: schemaField.parent_field_id,
+          content:
+            field.content as Database["public"]["Tables"]["cms_content_fields"]["Insert"]["content"],
+          updated_at: new Date().toISOString(),
+        };
 
       const { error } = await supabase
         .from("cms_content_fields")
@@ -683,7 +765,7 @@ export async function saveLayoutTemplateContent(
 
 export async function saveLayoutEntryContent(
   layoutEntryId: string,
-  updatedFieldsJSON: string
+  updatedFieldsJSON: string,
 ): Promise<ActionResponse<void>> {
   try {
     const updatedFields = JSON.parse(updatedFieldsJSON) as Array<{
@@ -698,9 +780,15 @@ export async function saveLayoutEntryContent(
       content_field_id: field.content_field_id || null,
     }));
 
-    return saveLayoutTemplateContent(layoutEntryId, JSON.stringify(transformed));
+    return saveLayoutTemplateContent(
+      layoutEntryId,
+      JSON.stringify(transformed),
+    );
   } catch (error) {
-    console.error("Unexpected error preparing layout entry content payload:", error);
+    console.error(
+      "Unexpected error preparing layout entry content payload:",
+      error,
+    );
     return { success: false, error: "An unexpected error occurred." };
   }
 }
