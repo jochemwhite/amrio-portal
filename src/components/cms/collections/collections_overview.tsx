@@ -32,6 +32,12 @@ export function CollectionsOverview({ website, initialCollections, websiteId }: 
     setCollections((prev) => prev.filter((c) => c.id !== collectionId));
   };
 
+  const handleCollectionUpdated = (updatedCollection: CollectionWithSchema) => {
+    setCollections((prev) =>
+      prev.map((collection) => (collection.id === updatedCollection.id ? { ...collection, ...updatedCollection } : collection))
+    );
+  };
+
   return (
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
@@ -60,7 +66,12 @@ export function CollectionsOverview({ website, initialCollections, websiteId }: 
             </Button>
           </div>
         ) : (
-          <CollectionTable collections={collections} onCollectionDeleted={handleCollectionDeleted} />
+          <CollectionTable
+            collections={collections}
+            websiteId={websiteId}
+            onCollectionDeleted={handleCollectionDeleted}
+            onCollectionUpdated={handleCollectionUpdated}
+          />
         )}
 
         <CollectionFormDialog

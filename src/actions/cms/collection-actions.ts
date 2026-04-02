@@ -7,6 +7,7 @@ import { checkRequiredRoles } from "@/server/auth/check-required-roles";
 import { getActiveTenantId } from "@/server/utils";
 import { ActionResponse } from "@/types/actions";
 import { revalidatePath } from "next/cache";
+import { isValidCollectionSlugPrefix, normalizeCollectionSlugPrefix } from "@/lib/cms/slug-utils";
 
 // ============== TYPES ==============
 
@@ -15,6 +16,7 @@ export interface Collection {
   name: string;
   description: string | null;
   schema_id: string | null;
+  slug_prefix: string | null;
   website_id: string | null;
   created_by: string;
   created_at: string;
@@ -56,11 +58,30 @@ interface CreateCollectionData {
   description?: string;
   website_id: string;
   schema_id: string;
+  slug_prefix?: string | null;
 }
 
 interface UpdateCollectionData {
   name?: string;
   description?: string;
+  slug_prefix?: string | null;
+}
+
+function getNormalizedSlugPrefix(slugPrefix?: string | null) {
+  if (!slugPrefix) {
+    return null;
+  }
+
+  const normalizedSlugPrefix = normalizeCollectionSlugPrefix(slugPrefix);
+  if (!normalizedSlugPrefix) {
+    return null;
+  }
+
+  if (!isValidCollectionSlugPrefix(normalizedSlugPrefix)) {
+    return { error: "Slug prefix must look like /blog or /news/articles." } as const;
+  }
+
+  return normalizedSlugPrefix;
 }
 
 // ============== COLLECTION CRUD ==============
@@ -89,6 +110,11 @@ export async function createCollection(data: CreateCollectionData): Promise<Acti
   }
 
   try {
+    const normalizedSlugPrefixResult = getNormalizedSlugPrefix(data.slug_prefix);
+    if (typeof normalizedSlugPrefixResult === "object" && "error" in normalizedSlugPrefixResult) {
+      return { success: false, error: normalizedSlugPrefixResult.error };
+    }
+
     // Verify the website belongs to the tenant
     const { data: website, error: websiteError } = await supabase
       .from("cms_websites")
@@ -101,7 +127,22 @@ export async function createCollection(data: CreateCollectionData): Promise<Acti
       return { success: false, error: "Website not found or access denied." };
     }
 
+    if (normalizedSlugPrefixResult) {
+      const { data: existingCollectionWithSlug, error: slugCheckError } = await supabase
+        .from("cms_collections")
+        .select("id")
+        .eq("website_id", data.website_id)
+        .eq("slug_prefix", normalizedSlugPrefixResult)
+        .maybeSingle();
 
+      if (slugCheckError) {
+        return { success: false, error: slugCheckError.message };
+      }
+
+      if (existingCollectionWithSlug) {
+        return { success: false, error: "That slug prefix is already in use for this website." };
+      }
+    }
 
     // Create the collection
     const { data: collection, error } = await supabase
@@ -111,6 +152,7 @@ export async function createCollection(data: CreateCollectionData): Promise<Acti
         description: data.description,
         website_id: data.website_id,
         schema_id: data.schema_id,
+        slug_prefix: normalizedSlugPrefixResult,
         created_by: user.id,
       })
       .select()
@@ -149,6 +191,14 @@ export async function updateCollection(collectionId: string, data: UpdateCollect
   }
 
   try {
+    const normalizedSlugPrefixResult = Object.prototype.hasOwnProperty.call(data, "slug_prefix")
+      ? getNormalizedSlugPrefix(data.slug_prefix)
+      : undefined;
+
+    if (typeof normalizedSlugPrefixResult === "object" && "error" in normalizedSlugPrefixResult) {
+      return { success: false, error: normalizedSlugPrefixResult.error };
+    }
+
     // Verify ownership through website
     const { data: existingCollection, error: fetchError } = await supabase
       .from("cms_collections")
@@ -165,11 +215,47 @@ export async function updateCollection(collectionId: string, data: UpdateCollect
       return { success: false, error: "Collection not found or access denied." };
     }
 
-    const { data: collection, error } = await supabase.from("cms_collections").update(data).eq("id", collectionId).select().single();
+    if (normalizedSlugPrefixResult) {
+      const { data: conflictingCollection, error: slugCheckError } = await supabase
+        .from("cms_collections")
+        .select("id")
+        .eq("website_id", (existingCollection as any).website_id)
+        .eq("slug_prefix", normalizedSlugPrefixResult)
+        .neq("id", collectionId)
+        .maybeSingle();
+
+      if (slugCheckError) {
+        return { success: false, error: slugCheckError.message };
+      }
+
+      if (conflictingCollection) {
+        return { success: false, error: "That slug prefix is already in use for this website." };
+      }
+    }
+
+    const updatePayload = {
+      ...data,
+      ...(normalizedSlugPrefixResult !== undefined ? { slug_prefix: normalizedSlugPrefixResult } : {}),
+    };
+
+    const { data: collection, error } = await supabase.from("cms_collections").update(updatePayload).eq("id", collectionId).select().single();
 
     if (error) {
       console.error("Error updating collection:", error);
       return { success: false, error: error.message };
+    }
+
+    if (normalizedSlugPrefixResult === null) {
+      const { error: clearSlugsError } = await supabase
+        .from("cms_collection_entries")
+        .update({ slug: null })
+        .eq("collection_id", collectionId)
+        .not("slug", "is", null);
+
+      if (clearSlugsError) {
+        console.error("Error clearing collection entry slugs:", clearSlugsError);
+        return { success: false, error: clearSlugsError.message };
+      }
     }
 
     revalidatePath("/dashboard/collections");

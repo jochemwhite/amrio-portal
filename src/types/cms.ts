@@ -317,10 +317,12 @@ export type RPCPageResponse = {
 export type RPCCollectionEntryResponse = {
   id: string;
   name: string;
+  slug: string | null;
   created_at: string;
   collection_id: string;
   collection_name: string;
   collection_description: string | null;
+  collection_slug_prefix: string | null;
   schema_id: string | null;
   schema_name: string | null;
   schema_description: string | null;

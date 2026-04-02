@@ -22,13 +22,15 @@ export function CollectionEntriesOverview({ collection, initialEntries, collecti
   const [entries, setEntries] = useState<CollectionEntry[]>(initialEntries);
   const [isCreating, setIsCreating] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const hasSlugSupport = Boolean(collection.slug_prefix);
 
-  const handleCreateEntry = async (name: string) => {
+  const handleCreateEntry = async ({ name, slug }: { name: string; slug: string | null }) => {
     setIsCreating(true);
     try {
       const result = await createCollectionEntry({
         collection_id: collectionId,
         name,
+        slug,
       });
 
       if (result.success && result.data) {
@@ -92,6 +94,7 @@ export function CollectionEntriesOverview({ collection, initialEntries, collecti
           <CollectionEntryTable
             entries={entries}
             collectionId={collectionId}
+            slugPrefix={collection.slug_prefix}
             onEntryDeleted={handleEntryDeleted}
             onEntryUpdated={handleEntryUpdated}
           />
@@ -107,6 +110,8 @@ export function CollectionEntriesOverview({ collection, initialEntries, collecti
           description="Add a new entry to this collection."
           submitLabel="Create Entry"
           submittingLabel="Creating..."
+          showSlugField={hasSlugSupport}
+          slugPrefix={collection.slug_prefix}
         />
       </div>
     </div>
