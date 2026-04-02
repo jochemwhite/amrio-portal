@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Edit, Pencil, Trash } from "lucide-react";
 import { CollectionEntry, deleteCollectionEntry, updateCollectionEntry } from "@/actions/cms/collection-entry-actions";
+import { joinUrlPaths } from "@/lib/cms/slug-utils";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import {
@@ -36,6 +37,7 @@ import { CollectionEntryFormDialog } from "./collection_entry_form_dialog";
 interface CollectionEntryTableProps {
   entries: CollectionEntry[];
   collectionId: string;
+  slugPrefix?: string | null;
   onEntryDeleted: (entryId: string) => void;
   onEntryUpdated: (entry: CollectionEntry) => void;
 }
@@ -43,6 +45,7 @@ interface CollectionEntryTableProps {
 export function CollectionEntryTable({
   entries,
   collectionId,
+  slugPrefix,
   onEntryDeleted,
   onEntryUpdated,
 }: CollectionEntryTableProps) {
@@ -74,12 +77,12 @@ export function CollectionEntryTable({
     }
   };
 
-  const handleUpdate = async (name: string) => {
+  const handleUpdate = async ({ name, slug }: { name: string; slug: string | null }) => {
     if (!entryToEdit) return;
 
     setIsUpdating(true);
     try {
-      const result = await updateCollectionEntry(entryToEdit.id, { name });
+      const result = await updateCollectionEntry(entryToEdit.id, { name, slug });
       if (result.success && result.data) {
         toast.success("Entry updated successfully");
         onEntryUpdated(result.data);
@@ -112,6 +115,7 @@ export function CollectionEntryTable({
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
+              {slugPrefix ? <TableHead>Slug</TableHead> : null}
               <TableHead>Created</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -127,6 +131,17 @@ export function CollectionEntryTable({
                     {entry.name || "Untitled Entry"}
                   </Link>
                 </TableCell>
+                {slugPrefix ? (
+                  <TableCell>
+                    {entry.slug ? (
+                      <span className="font-mono text-sm text-muted-foreground">
+                        {joinUrlPaths(slugPrefix, entry.slug)}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground italic">No slug</span>
+                    )}
+                  </TableCell>
+                ) : null}
                 <TableCell>
                   {format(new Date(entry.created_at), "MMM d, yyyy")}
                 </TableCell>
@@ -146,7 +161,7 @@ export function CollectionEntryTable({
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => openEditDialog(entry)}>
                         <Pencil className="mr-2 h-4 w-4" />
-                        Rename
+                        {slugPrefix ? "Edit Name & Slug" : "Rename"}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => openDeleteDialog(entry.id)}
@@ -196,11 +211,14 @@ export function CollectionEntryTable({
         }}
         onSubmit={handleUpdate}
         isSubmitting={isUpdating}
-        title="Rename Entry"
-        description="Update the name of this entry."
+        title={slugPrefix ? "Edit Entry" : "Rename Entry"}
+        description={slugPrefix ? "Update the name and slug of this entry." : "Update the name of this entry."}
         submitLabel="Save"
         submittingLabel="Saving..."
         initialName={entryToEdit?.name}
+        initialSlug={entryToEdit?.slug}
+        showSlugField={Boolean(slugPrefix)}
+        slugPrefix={slugPrefix}
       />
     </>
   );

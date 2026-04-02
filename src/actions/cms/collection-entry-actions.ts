@@ -1,6 +1,8 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/supabaseServerClient";
+import { supabaseAdmin } from "@/lib/supabase/SupabaseAdminClient";
+import { isValidEntrySlug, normalizeEntrySlug, normalizeUrlPath } from "@/lib/cms/slug-utils";
 import { getActiveTenantId } from "@/server/utils";
 import { ActionResponse } from "@/types/actions";
 import { RPCCollectionEntryResponse } from "@/types/cms";
@@ -13,6 +15,7 @@ export interface CollectionEntry {
   id: string;
   collection_id: string;
   name: string | null;
+  slug: string | null;
   created_at: string;
 }
 
@@ -35,10 +38,38 @@ export interface CollectionEntryWithItems extends CollectionEntry {
 interface CreateCollectionEntryData {
   collection_id: string;
   name?: string;
+  slug?: string | null;
 }
 
 interface UpdateCollectionEntryData {
   name?: string;
+  slug?: string | null;
+}
+
+export interface CollectionEntryByUrl extends CollectionEntry {
+  collection: {
+    id: string;
+    name: string;
+    slug_prefix: string | null;
+    website_id: string | null;
+  };
+}
+
+function getNormalizedEntrySlug(slug?: string | null) {
+  if (!slug) {
+    return null;
+  }
+
+  const normalizedSlug = normalizeEntrySlug(slug);
+  if (!normalizedSlug) {
+    return null;
+  }
+
+  if (!isValidEntrySlug(normalizedSlug)) {
+    return { error: "Entry slug can only contain lowercase letters, numbers, and hyphens." } as const;
+  }
+
+  return normalizedSlug;
 }
 
 type SchemaSectionRow = {
@@ -231,6 +262,11 @@ export async function createCollectionEntry(data: CreateCollectionEntryData): Pr
   }
 
   try {
+    const normalizedSlugResult = getNormalizedEntrySlug(data.slug);
+    if (normalizedSlugResult && typeof normalizedSlugResult === "object" && "error" in normalizedSlugResult) {
+      return { success: false, error: normalizedSlugResult.error };
+    }
+
     // Verify collection ownership and get schema_id
     const { data: collection, error: collectionError } = await supabase
       .from("cms_collections")
@@ -238,6 +274,7 @@ export async function createCollectionEntry(data: CreateCollectionEntryData): Pr
         `
         id,
         schema_id,
+        slug_prefix,
         cms_websites!inner(tenant_id)
       `
       )
@@ -248,12 +285,35 @@ export async function createCollectionEntry(data: CreateCollectionEntryData): Pr
       return { success: false, error: "Collection not found or access denied." };
     }
 
+    if (!(collection as any).slug_prefix && normalizedSlugResult) {
+      return { success: false, error: "This collection does not have slugs enabled." };
+    }
+
+    if (normalizedSlugResult) {
+      const normalizedSlug = normalizedSlugResult;
+      const { data: existingEntryWithSlug, error: slugCheckError } = await supabase
+        .from("cms_collection_entries")
+        .select("id")
+        .eq("collection_id", data.collection_id)
+        .eq("slug", normalizedSlug)
+        .maybeSingle();
+
+      if (slugCheckError) {
+        return { success: false, error: slugCheckError.message };
+      }
+
+      if (existingEntryWithSlug) {
+        return { success: false, error: "That entry slug is already in use for this collection." };
+      }
+    }
+
     // Create the entry
     const { data: entry, error } = await supabase
       .from("cms_collection_entries")
       .insert({
         collection_id: data.collection_id,
         name: data.name || "Untitled Entry",
+        slug: (collection as any).slug_prefix ? normalizedSlugResult : null,
       })
       .select()
       .single();
@@ -295,6 +355,14 @@ export async function updateCollectionEntry(entryId: string, data: UpdateCollect
   }
 
   try {
+    const normalizedSlugResult = Object.prototype.hasOwnProperty.call(data, "slug")
+      ? getNormalizedEntrySlug(data.slug)
+      : undefined;
+
+    if (normalizedSlugResult && typeof normalizedSlugResult === "object" && "error" in normalizedSlugResult) {
+      return { success: false, error: normalizedSlugResult.error };
+    }
+
     // Verify ownership
     const { data: existingEntry, error: fetchError } = await supabase
       .from("cms_collection_entries")
@@ -302,6 +370,7 @@ export async function updateCollectionEntry(entryId: string, data: UpdateCollect
         `
         *,
         cms_collections!inner(
+          slug_prefix,
           cms_websites!inner(tenant_id)
         )
       `
@@ -313,7 +382,37 @@ export async function updateCollectionEntry(entryId: string, data: UpdateCollect
       return { success: false, error: "Entry not found or access denied." };
     }
 
-    const { data: entry, error } = await supabase.from("cms_collection_entries").update(data).eq("id", entryId).select().single();
+    if (!(existingEntry as any).cms_collections?.slug_prefix && normalizedSlugResult) {
+      return { success: false, error: "This collection does not have slugs enabled." };
+    }
+
+    if (normalizedSlugResult) {
+      const normalizedSlug = normalizedSlugResult;
+      const { data: conflictingEntry, error: slugCheckError } = await supabase
+        .from("cms_collection_entries")
+        .select("id")
+        .eq("collection_id", (existingEntry as any).collection_id)
+        .eq("slug", normalizedSlug)
+        .neq("id", entryId)
+        .maybeSingle();
+
+      if (slugCheckError) {
+        return { success: false, error: slugCheckError.message };
+      }
+
+      if (conflictingEntry) {
+        return { success: false, error: "That entry slug is already in use for this collection." };
+      }
+    }
+
+    const updatePayload = {
+      ...data,
+      ...(normalizedSlugResult !== undefined
+        ? { slug: (existingEntry as any).cms_collections?.slug_prefix ? normalizedSlugResult : null }
+        : {}),
+    };
+
+    const { data: entry, error } = await supabase.from("cms_collection_entries").update(updatePayload).eq("id", entryId).select().single();
 
     if (error) {
       console.error("Error updating collection entry:", error);
@@ -430,6 +529,72 @@ export async function getCollectionEntries(collectionId: string): Promise<Action
     return { success: true, data: entries as CollectionEntry[] };
   } catch (error) {
     console.error("Unexpected error fetching collection entries:", error);
+    return { success: false, error: "An unexpected error occurred." };
+  }
+}
+
+export async function getCollectionEntryByUrlPath(
+  websiteId: string,
+  urlPath: string
+): Promise<ActionResponse<CollectionEntryByUrl>> {
+  try {
+    const normalizedPath = normalizeUrlPath(urlPath);
+
+    const { data: collections, error: collectionsError } = await supabaseAdmin
+      .from("cms_collections")
+      .select("id, name, slug_prefix, website_id")
+      .eq("website_id", websiteId)
+      .not("slug_prefix", "is", null);
+
+    if (collectionsError) {
+      return { success: false, error: collectionsError.message };
+    }
+
+    const matchingCollection = (collections || [])
+      .filter((collection) => Boolean(collection.slug_prefix))
+      .sort((a, b) => (b.slug_prefix?.length || 0) - (a.slug_prefix?.length || 0))
+      .find((collection) => normalizedPath.startsWith(`${collection.slug_prefix}/`));
+
+    if (!matchingCollection?.slug_prefix) {
+      return { success: false, error: "Collection entry not found for this URL." };
+    }
+
+    const entrySlug = normalizedPath.slice(matchingCollection.slug_prefix.length + 1);
+    const normalizedEntrySlug = getNormalizedEntrySlug(entrySlug);
+
+    if (!normalizedEntrySlug || typeof normalizedEntrySlug === "object") {
+      return { success: false, error: "Collection entry not found for this URL." };
+    }
+
+    const { data: entry, error: entryError } = await supabaseAdmin
+      .from("cms_collection_entries")
+      .select("id, collection_id, name, slug, created_at")
+      .eq("collection_id", matchingCollection.id)
+      .eq("slug", normalizedEntrySlug)
+      .maybeSingle();
+
+    if (entryError) {
+      return { success: false, error: entryError.message };
+    }
+
+    if (!entry) {
+      return { success: false, error: "Collection entry not found for this URL." };
+    }
+
+    return {
+      success: true,
+      data: {
+        ...(entry as CollectionEntry),
+        collection: {
+          id: matchingCollection.id,
+          name: matchingCollection.name,
+          slug_prefix: matchingCollection.slug_prefix,
+          website_id: matchingCollection.website_id,
+        },
+      },
+    };
+  } catch (error) {
+    console.error("Unexpected error fetching collection entry by URL:", error);
     return { success: false, error: "An unexpected error occurred." };
   }
 }
@@ -551,11 +716,13 @@ export async function getCollectionEntryRPC(entryId: string): Promise<ActionResp
         id,
         collection_id,
         name,
+        slug,
         created_at,
         cms_collections!inner(
           id,
           name,
           description,
+          slug_prefix,
           schema_id,
           cms_websites!inner(tenant_id),
           cms_schemas(
@@ -585,10 +752,12 @@ export async function getCollectionEntryRPC(entryId: string): Promise<ActionResp
         data: {
           id: entry.id,
           name: entry.name || "Untitled Entry",
+          slug: entry.slug,
           created_at: entry.created_at,
           collection_id: collection.id,
           collection_name: collection.name,
           collection_description: collection.description,
+          collection_slug_prefix: collection.slug_prefix,
           schema_id: null,
           schema_name: null,
           schema_description: null,
@@ -660,10 +829,12 @@ export async function getCollectionEntryRPC(entryId: string): Promise<ActionResp
       data: {
         id: entry.id,
         name: entry.name || "Untitled Entry",
+        slug: entry.slug,
         created_at: entry.created_at,
         collection_id: collection.id,
         collection_name: collection.name,
         collection_description: collection.description,
+        collection_slug_prefix: collection.slug_prefix,
         schema_id: schema?.id || null,
         schema_name: schema?.name || null,
         schema_description: schema?.description || null,

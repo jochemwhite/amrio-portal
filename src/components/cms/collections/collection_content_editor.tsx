@@ -11,6 +11,7 @@ import {
   updateCollectionEntry,
   saveCollectionEntryContent,
 } from "@/actions/cms/collection-entry-actions";
+import { joinUrlPaths } from "@/lib/cms/slug-utils";
 import { RPCCollectionEntryResponse } from "@/types/cms";
 import { toast } from "sonner";
 import ContentEditorHeader from "../content-editor/content_editor_header";
@@ -68,11 +69,12 @@ export function CollectionContentEditor({
     router.refresh();
   };
 
-  const handleRenameEntry = async (name: string) => {
+  const handleRenameEntry = async ({ name, slug }: { name: string; slug: string | null }) => {
     setIsUpdatingName(true);
     try {
       const nameResult = await updateCollectionEntry(entryId, {
         name,
+        slug,
       });
       if (!nameResult.success || !nameResult.data) {
         toast.error(nameResult.error || "Failed to update entry name");
@@ -108,10 +110,19 @@ export function CollectionContentEditor({
             </Button>
           </Link>
           <div className="mt-2 flex items-center gap-3">
-            <h2 className="text-xl font-semibold">{entryName || "Untitled Entry"}</h2>
+            <div>
+              <h2 className="text-xl font-semibold">{entryName || "Untitled Entry"}</h2>
+              {existingContent.collection_slug_prefix ? (
+                <p className="text-sm text-muted-foreground">
+                  {existingContent.slug
+                    ? joinUrlPaths(existingContent.collection_slug_prefix, existingContent.slug)
+                    : "No slug set"}
+                </p>
+              ) : null}
+            </div>
             <Button variant="outline" size="sm" onClick={() => setIsRenameDialogOpen(true)}>
               <Pencil className="mr-2 h-4 w-4" />
-              Rename Entry
+              {existingContent.collection_slug_prefix ? "Edit Name & Slug" : "Rename Entry"}
             </Button>
           </div>
         </div>
@@ -135,11 +146,18 @@ export function CollectionContentEditor({
           onClose={() => setIsRenameDialogOpen(false)}
           onSubmit={handleRenameEntry}
           isSubmitting={isUpdatingName}
-          title="Rename Entry"
-          description="Update the name of this collection entry."
+          title={existingContent.collection_slug_prefix ? "Edit Entry" : "Rename Entry"}
+          description={
+            existingContent.collection_slug_prefix
+              ? "Update the name and slug of this collection entry."
+              : "Update the name of this collection entry."
+          }
           submitLabel="Save"
           submittingLabel="Saving..."
           initialName={entryName}
+          initialSlug={existingContent.slug}
+          showSlugField={Boolean(existingContent.collection_slug_prefix)}
+          slugPrefix={existingContent.collection_slug_prefix}
         />
       </div>
     </div>

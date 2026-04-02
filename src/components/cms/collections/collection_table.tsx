@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -18,7 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Edit, Trash, List } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash, List } from "lucide-react";
 import { CollectionWithSchema, deleteCollection } from "@/actions/cms/collection-actions";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -32,17 +31,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { CollectionFormDialog } from "./collection_form_dialog";
 
 interface CollectionTableProps {
   collections: CollectionWithSchema[];
+  websiteId: string;
   onCollectionDeleted: (collectionId: string) => void;
+  onCollectionUpdated: (collection: CollectionWithSchema) => void;
 }
 
-export function CollectionTable({ collections, onCollectionDeleted }: CollectionTableProps) {
-  const router = useRouter();
+export function CollectionTable({ collections, websiteId, onCollectionDeleted, onCollectionUpdated }: CollectionTableProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [collectionToDelete, setCollectionToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [collectionToEdit, setCollectionToEdit] = useState<CollectionWithSchema | null>(null);
 
   const handleDelete = async () => {
     if (!collectionToDelete) return;
@@ -68,6 +71,11 @@ export function CollectionTable({ collections, onCollectionDeleted }: Collection
   const openDeleteDialog = (collectionId: string) => {
     setCollectionToDelete(collectionId);
     setDeleteDialogOpen(true);
+  };
+
+  const openEditDialog = (collection: CollectionWithSchema) => {
+    setCollectionToEdit(collection);
+    setEditDialogOpen(true);
   };
 
   return (
@@ -115,17 +123,17 @@ export function CollectionTable({ collections, onCollectionDeleted }: Collection
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={() => router.push(`/dashboard/collections/${collection.id}/entries`)}
-                      >
+                      <DropdownMenuItem asChild>
+                        <Link href={`/dashboard/collections/${collection.id}/entries`}>
                         <List className="mr-2 h-4 w-4" />
                         View Entries
+                        </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => router.push(`/dashboard/collections/${collection.id}`)}
+                        onClick={() => openEditDialog(collection)}
                       >
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit Schema
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit Name
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => openDeleteDialog(collection.id)}
@@ -164,9 +172,22 @@ export function CollectionTable({ collections, onCollectionDeleted }: Collection
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <CollectionFormDialog
+        key={`${collectionToEdit?.id ?? "none"}-${editDialogOpen ? "open" : "closed"}`}
+        isOpen={editDialogOpen}
+        onClose={() => {
+          setEditDialogOpen(false);
+          setCollectionToEdit(null);
+        }}
+        onSuccess={(updatedCollection) => {
+          onCollectionUpdated({ ...collectionToEdit, ...updatedCollection } as CollectionWithSchema);
+          setEditDialogOpen(false);
+          setCollectionToEdit(null);
+        }}
+        websiteId={websiteId}
+        collection={collectionToEdit}
+      />
     </>
   );
 }
-
-
-
