@@ -135,18 +135,21 @@ export type Database = {
           created_at: string
           id: string
           name: string | null
+          slug: string | null
         }
         Insert: {
           collection_id: string
           created_at?: string
           id?: string
           name?: string | null
+          slug?: string | null
         }
         Update: {
           collection_id?: string
           created_at?: string
           id?: string
           name?: string | null
+          slug?: string | null
         }
         Relationships: [
           {
@@ -166,6 +169,7 @@ export type Database = {
           id: string
           name: string
           schema_id: string | null
+          slug_prefix: string | null
           website_id: string | null
         }
         Insert: {
@@ -175,6 +179,7 @@ export type Database = {
           id?: string
           name: string
           schema_id?: string | null
+          slug_prefix?: string | null
           website_id?: string | null
         }
         Update: {
@@ -184,6 +189,7 @@ export type Database = {
           id?: string
           name?: string
           schema_id?: string | null
+          slug_prefix?: string | null
           website_id?: string | null
         }
         Relationships: [
@@ -395,7 +401,6 @@ export type Database = {
           submissions: number
           tenant_id: string
           updated_at: string
-          version: number
           visits: number
           website_id: string
         }
@@ -412,7 +417,6 @@ export type Database = {
           submissions?: number
           tenant_id: string
           updated_at?: string
-          version?: number
           visits?: number
           website_id: string
         }
@@ -429,7 +433,6 @@ export type Database = {
           submissions?: number
           tenant_id?: string
           updated_at?: string
-          version?: number
           visits?: number
           website_id?: string
         }
@@ -943,8 +946,8 @@ export type Database = {
           storage_path: string
           tags: string[] | null
           tenant_id: string
-          upload_status: string
           updated_at: string | null
+          upload_status: string
           uploaded_by: string
           used_in_fields: string[] | null
           website_id: string | null
@@ -971,8 +974,8 @@ export type Database = {
           storage_path: string
           tags?: string[] | null
           tenant_id: string
-          upload_status?: string
           updated_at?: string | null
+          upload_status?: string
           uploaded_by: string
           used_in_fields?: string[] | null
           website_id?: string | null
@@ -999,8 +1002,8 @@ export type Database = {
           storage_path?: string
           tags?: string[] | null
           tenant_id?: string
-          upload_status?: string
           updated_at?: string | null
+          upload_status?: string
           uploaded_by?: string
           used_in_fields?: string[] | null
           website_id?: string | null
@@ -1008,17 +1011,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "files_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "files_folder_id_fkey"
             columns: ["folder_id"]
             isOneToOne: false
             referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "files_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
           {
@@ -1039,7 +1042,7 @@ export type Database = {
       }
       folders: {
         Row: {
-          created_at: string | null
+          created_at: string
           created_by: string
           deleted_at: string | null
           full_path: string
@@ -1048,10 +1051,10 @@ export type Database = {
           parent_folder_id: string | null
           slug: string
           tenant_id: string
-          website_id: string | null
+          website_id: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           created_by: string
           deleted_at?: string | null
           full_path: string
@@ -1060,10 +1063,10 @@ export type Database = {
           parent_folder_id?: string | null
           slug: string
           tenant_id: string
-          website_id?: string | null
+          website_id: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           created_by?: string
           deleted_at?: string | null
           full_path?: string
@@ -1072,7 +1075,7 @@ export type Database = {
           parent_folder_id?: string | null
           slug?: string
           tenant_id?: string
-          website_id?: string | null
+          website_id?: string
         }
         Relationships: [
           {
@@ -1438,6 +1441,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      decrement_storage_used: {
+        Args: { p_bytes: number; p_tenant_id: string }
+        Returns: undefined
+      }
       generate_api_key: {
         Args: {
           p_created_by: string
@@ -1452,10 +1459,6 @@ export type Database = {
         }
         Returns: Json
       }
-      decrement_storage_used: {
-        Args: { p_bytes: number; p_tenant_id: string }
-        Returns: undefined
-      }
       get_content: {
         Args: {
           create_missing_sections_param?: boolean
@@ -1465,10 +1468,6 @@ export type Database = {
         }
         Returns: Json
       }
-      increment_storage_used: {
-        Args: { p_bytes: number; p_tenant_id: string }
-        Returns: undefined
-      }
       get_user_session: {
         Args: { p_active_tenant_id?: string; p_uid: string }
         Returns: Json
@@ -1477,6 +1476,11 @@ export type Database = {
         Args: { role_name_input: string; uid: string }
         Returns: boolean
       }
+      increment_storage_used: {
+        Args: { p_bytes: number; p_tenant_id: string }
+        Returns: undefined
+      }
+      is_tenant_member: { Args: { p_tenant_id: string }; Returns: boolean }
       update_schema_structure_tx: {
         Args: {
           payload_param: Json
@@ -1485,6 +1489,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      user_belongs_to_tenant: { Args: { tenant_id: string }; Returns: boolean }
     }
     Enums: {
       field_type:
